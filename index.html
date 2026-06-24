@@ -301,11 +301,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         <button class="icon-btn" id="addUserBtn" onclick="openCreateUser()" title="Create user" style="display:none">
           <i class="ti ti-user-plus" style="font-size:15px"></i>
         </button>
-        <button class="icon-btn" onclick="document.getElementById('fileIn').click()" title="Attach file">
+        <button class="icon-btn" onclick="document.getElementById('fileInMedia').click()" title="Attach file">
           <i class="ti ti-paperclip" style="font-size:15px"></i>
         </button>
         <button class="icon-btn team-toggle-btn" onclick="toggleRightPanel()" title="Team"><i class="ti ti-users" style="font-size:15px"></i></button>
-        <input type="file" id="fileIn" style="display:none" accept="image/*,.csv,.pdf,.xlsx,.docx" onchange="handleFile(event)">
+        <input type="file" id="fileInMedia" style="display:none" accept="image/*,video/*" onchange="handleFile(event,'img')">
+        <input type="file" id="fileInCSV"   style="display:none" accept=".csv,.xlsx,.tsv" onchange="handleFile(event,'csv')">
+        <input type="file" id="fileInPDF"   style="display:none" accept=".pdf,.docx"      onchange="handleFile(event,'pdf')">
       </div>
     </div>
     <div class="msgs" id="msgsArea"></div>
@@ -314,8 +316,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         <div class="input-toolbar">
           <button class="tool-btn" onclick="ins('**','**')" title="Bold"><i class="ti ti-bold"></i></button>
           <button class="tool-btn" onclick="ins('_','_')" title="Italic"><i class="ti ti-italic"></i></button>
-          <button class="tool-btn" onclick="document.getElementById('fileIn').click()" title="Photo"><i class="ti ti-photo"></i></button>
-          <button class="tool-btn" onclick="document.getElementById('fileIn').click()" title="CSV"><i class="ti ti-table"></i></button>
+          <button class="tool-btn" onclick="document.getElementById('fileInMedia').click()" title="Photo / Video"><i class="ti ti-photo"></i></button>
+          <button class="tool-btn" onclick="document.getElementById('fileInCSV').click()"   title="CSV / Spreadsheet"><i class="ti ti-table"></i></button>
+          <button class="tool-btn" onclick="document.getElementById('fileInPDF').click()"   title="PDF / Document"><i class="ti ti-file-type-pdf"></i></button>
           <button class="tool-btn" onclick="ins('👍','')" title="Emoji"><i class="ti ti-mood-smile"></i></button>
         </div>
         <div class="input-row">
@@ -341,7 +344,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <div class="rp-section">
       <div class="rp-title"><i class="ti ti-files"></i> Shared files</div>
       <div id="sfList"></div>
-      <div class="drop-zone" onclick="document.getElementById('fileIn').click()">
+      <div class="drop-zone" onclick="document.getElementById('fileInMedia').click()">
         <i class="ti ti-cloud-upload"></i>Drop or click to share a file
       </div>
     </div>
@@ -356,12 +359,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <h3>Share file</h3>
     <p>This file will be shared in the current channel.</p>
     <div class="file-preview-row">
-      <div class="fic doc"><i class="ti ti-file"></i></div>
+      <div class="fic doc" id="mfIcon"><i class="ti ti-file" id="mfIconI"></i></div>
       <div><div class="fn" id="mfName"></div><div class="fs" id="mfSize"></div></div>
     </div>
+    <img id="mfImgPreview" style="display:none;width:100%;max-height:160px;object-fit:cover;border-radius:var(--radius-md);margin-top:10px;border:0.5px solid var(--border)">
     <div class="modal-actions">
       <button class="btn-sec" onclick="closeFileModal()">Cancel</button>
-      <button class="btn-pri" onclick="confirmShare()">Share in channel</button>
+      <button class="btn-pri" id="confirmShareBtn" onclick="confirmShare()">Share in channel</button>
     </div>
   </div>
 </div>
@@ -415,6 +419,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getFirestore, collection, doc, setDoc, getDoc, getDocs, addDoc, deleteDoc, onSnapshot, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDx8lHXrrLC0PxepECIu_vjF5-oybPQVkY",
@@ -426,15 +431,17 @@ const firebaseConfig = {
   measurementId: "G-S8S1CJ0CPL"
 };
 
-const app = initializeApp(firebaseConfig);
-const db  = getFirestore(app);
-const auth = getAuth(app);
+const app     = initializeApp(firebaseConfig);
+const db      = getFirestore(app);
+const auth    = getAuth(app);
+const storage = getStorage(app);
 
 // ── STATE ──
 let ME = null;          // current user profile from Firestore
 let ALL_USERS = {};     // uid → profile
 let curCh = 'general';
 let pendingFile = null;
+let pendingFtype = null;
 let selectedRole = 'admin';
 let msgUnsub = null;    // Firestore listener unsubscribe
 
@@ -629,10 +636,12 @@ function renderSharedFiles(){
     el.innerHTML = snap.docs.map(d => {
       const f = d.data();
       const sender = ALL_USERS[f.uid];
-      return `<div class="sf-item">
-        <div class="sf-ic ${f.ftype}"><i class="ti ti-${f.ftype==='csv'?'table':'file'}"></i></div>
-        <div><div class="sf-nm">${f.name}</div><div class="sf-by">${sender?sender.name:'Unknown'}</div></div>
-      </div>`;
+      const icon = f.ftype==='csv' ? 'ti-table' : f.ftype==='pdf' ? 'ti-file-type-pdf' : f.ftype==='img' ? 'ti-photo' : 'ti-file';
+      const inner = `<div class="sf-ic ${f.ftype}"><i class="ti ${icon}"></i></div>
+        <div><div class="sf-nm">${f.name}</div><div class="sf-by">${sender?sender.name:'Unknown'}</div></div>`;
+      return f.url
+        ? `<a href="${f.url}" target="_blank" rel="noopener" style="text-decoration:none"><div class="sf-item">${inner}</div></a>`
+        : `<div class="sf-item">${inner}</div>`;
     }).join('');
   });
 }
@@ -701,9 +710,18 @@ function listenMessages(ch, isDm, targetUid, tv){
       html += `<div class="msg-row"><div class="msg-av" style="${AV_STYLES[col]||''}">${initials(mu.name)}</div>`;
       if (msg.file){
         const t = msg.file.ftype;
-        html += `<div class="file-card"><div class="fic ${t}"><i class="ti ti-${t==='csv'?'table':t==='img'?'photo':'file'}"></i></div>
-          <div><div class="fn">${msg.file.name}</div><div class="fs">${msg.file.size}</div></div>
-          <i class="ti ti-download dl-ico"></i></div>`;
+        const url = msg.file.url || '#';
+        if(t === 'img' && url !== '#'){
+          html += `<a href="${url}" target="_blank" rel="noopener" style="display:block;margin-top:2px">
+            <img src="${url}" style="max-width:240px;max-height:180px;border-radius:var(--radius-md);border:0.5px solid var(--border);display:block;cursor:pointer" loading="lazy">
+            <div class="fs" style="margin-top:3px">${msg.file.name} · ${msg.file.size}</div></a>`;
+        } else {
+          const icon = t==='csv' ? 'ti-table' : t==='pdf' ? 'ti-file-type-pdf' : 'ti-file';
+          html += `<a href="${url}" target="_blank" rel="noopener" style="text-decoration:none">
+            <div class="file-card"><div class="fic ${t}"><i class="ti ${icon}"></i></div>
+            <div><div class="fn">${msg.file.name}</div><div class="fs">${msg.file.size}</div></div>
+            <i class="ti ti-download dl-ico"></i></div></a>`;
+        }
       } else {
         html += `<div class="bubble ${isOwn?'own':''}">${msg.text}</div>`;
       }
@@ -731,29 +749,56 @@ window.sendMsg = async function(){
 };
 
 // ── FILE SHARE ──
-window.handleFile = function(ev){
+window.handleFile = function(ev, forcedFtype){
   const f = ev.target.files[0]; if (!f) return;
   pendingFile = f;
+  pendingFtype = forcedFtype || (f.type.startsWith('image/') ? 'img' : f.name.endsWith('.csv') || f.name.endsWith('.xlsx') || f.name.endsWith('.tsv') ? 'csv' : 'pdf');
   document.getElementById('mfName').textContent = f.name;
   document.getElementById('mfSize').textContent = (f.size/1024).toFixed(1)+' KB';
+  // set icon
+  const iconEl = document.getElementById('mfIconI');
+  const iconWrap = document.getElementById('mfIcon');
+  const preview = document.getElementById('mfImgPreview');
+  preview.style.display = 'none';
+  iconWrap.style.display = '';
+  if(pendingFtype === 'csv'){
+    iconEl.className = 'ti ti-table'; iconWrap.className = 'fic csv';
+  } else if(pendingFtype === 'img'){
+    iconEl.className = 'ti ti-photo'; iconWrap.className = 'fic img';
+    const reader = new FileReader();
+    reader.onload = e => { preview.src = e.target.result; preview.style.display = 'block'; iconWrap.style.display = 'none'; };
+    reader.readAsDataURL(f);
+  } else {
+    iconEl.className = 'ti ti-file-type-pdf'; iconWrap.className = 'fic doc';
+  }
   document.getElementById('fileModal').classList.add('open');
   ev.target.value = '';
 };
-window.closeFileModal = function(){ document.getElementById('fileModal').classList.remove('open'); pendingFile = null; };
+window.closeFileModal = function(){ document.getElementById('fileModal').classList.remove('open'); pendingFile = null; pendingFtype = null; };
 window.confirmShare = async function(){
   if (!pendingFile) return;
+  const btn = document.getElementById('confirmShareBtn');
+  btn.disabled = true; btn.textContent = 'Uploading…';
+  try {
+    // 1. Upload to Firebase Storage
+    const path = `chat_files/${curCh}/${Date.now()}_${pendingFile.name}`;
+    const sRef = storageRef(storage, path);
+    await uploadBytes(sRef, pendingFile);
+    const url = await getDownloadURL(sRef);
+    // 2. Save message with url
+    const ftype = pendingFtype || 'doc';
+    const isDm  = curCh.startsWith('dm-');
+    const targetUid = isDm ? curCh.replace('dm-','') : null;
+    const colPath = isDm ? `dm_messages/${dmKey(ME.uid,targetUid)}/msgs` : `channel_messages/${curCh}/msgs`;
+    const fileObj = { name: pendingFile.name, size: (pendingFile.size/1024).toFixed(1)+' KB', ftype, url };
+    await addDoc(collection(db, colPath), { uid: ME.uid, file: fileObj, ts: serverTimestamp() });
+    await addDoc(collection(db,'shared_files'), { name: pendingFile.name, uid: ME.uid, ftype, url, ts: serverTimestamp() });
+    renderSharedFiles();
+  } catch(err){
+    alert('Upload failed: '+err.message);
+  }
+  btn.disabled = false; btn.textContent = 'Share in channel';
   closeFileModal();
-  const isCSV = pendingFile.name.endsWith('.csv') || pendingFile.type.includes('csv');
-  const isImg  = pendingFile.type.startsWith('image/');
-  const ftype  = isCSV ? 'csv' : isImg ? 'img' : 'doc';
-  const isDm   = curCh.startsWith('dm-');
-  const targetUid = isDm ? curCh.replace('dm-','') : null;
-  const colPath = isDm ? `dm_messages/${dmKey(ME.uid,targetUid)}/msgs` : `channel_messages/${curCh}/msgs`;
-  const fileObj = { name: pendingFile.name, size: (pendingFile.size/1024).toFixed(1)+' KB', ftype };
-  await addDoc(collection(db, colPath), { uid: ME.uid, file: fileObj, ts: serverTimestamp() });
-  await addDoc(collection(db,'shared_files'), { name: pendingFile.name, uid: ME.uid, ftype, ts: serverTimestamp() });
-  renderSharedFiles();
-  pendingFile = null;
 };
 
 // ── FIRST TIME SETUP (force create admin if bootstrap fails) ──
