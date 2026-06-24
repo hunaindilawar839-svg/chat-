@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Navain Chat</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg-primary:#fff;--bg-secondary:#f5f5f4;--bg-tertiary:#eeede9;
+  --bg-info:#e6f1fb;--bg-success:#e1f5ee;--bg-warning:#faeeda;--bg-danger:#fcebeb;
+  --text-primary:#1a1a18;--text-secondary:#5f5e5a;--text-tertiary:#888780;
+  --text-info:#185fa5;--text-success:#0f6e56;--text-warning:#854f0b;--text-danger:#a32d2d;
+  --border:rgba(0,0,0,.12);--border-md:rgba(0,0,0,.2);
+  --green:#1D9E75;--green-dark:#0F6E56;--radius-md:8px;--radius-lg:12px;
+}
+@media(prefers-color-scheme:dark){:root{
+  --bg-primary:#1e1e1c;--bg-secondary:#282825;--bg-tertiary:#2e2e2b;
+  --bg-info:#042c53;--bg-success:#04342c;--bg-warning:#412402;--bg-danger:#501313;
+  --text-primary:#f0efeb;--text-secondary:#b4b2a9;--text-tertiary:#888780;
+  --text-info:#85b7eb;--text-success:#5dcaa5;--text-warning:#ef9f27;--text-danger:#f09595;
+  --border:rgba(255,255,255,.1);--border-md:rgba(255,255,255,.18);
+}}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg-tertiary);height:100vh;overflow:hidden;color:var(--text-primary);font-size:14px}
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--border-md);border-radius:4px}
+
+/* ── LOADER ── */
+#globalLoader{position:fixed;inset:0;background:var(--bg-tertiary);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;z-index:9999}
+#globalLoader .spin{width:32px;height:32px;border:2.5px solid var(--border);border-top-color:var(--green);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+#globalLoader p{font-size:13px;color:var(--text-tertiary)}
+
+/* ── LOGIN ── */
+#loginScreen{position:fixed;inset:0;background:var(--bg-tertiary);display:none;align-items:center;justify-content:center;z-index:999}
+#loginScreen.show{display:flex}
+.login-card{background:var(--bg-primary);border:0.5px solid var(--border);border-radius:var(--radius-lg);padding:32px;width:390px;box-shadow:0 4px 24px rgba(0,0,0,.08)}
+.login-logo{font-size:20px;font-weight:700;color:var(--text-primary);margin-bottom:2px}.login-logo span{color:var(--green)}
+.login-sub{font-size:12px;color:var(--text-tertiary);margin-bottom:24px}
+.form-label{display:block;font-size:12px;font-weight:500;color:var(--text-secondary);margin-bottom:5px}
+.form-input{width:100%;border:0.5px solid var(--border-md);border-radius:var(--radius-md);padding:10px 12px;font-size:13px;color:var(--text-primary);background:var(--bg-secondary);font-family:inherit;margin-bottom:14px;outline:none;transition:border-color .15s,box-shadow .15s}
+.form-input:focus{border-color:var(--green);box-shadow:0 0 0 3px rgba(29,158,117,.13)}
+.btn-green{width:100%;background:var(--green);border:none;border-radius:var(--radius-md);padding:11px;font-size:14px;font-weight:500;color:#fff;cursor:pointer;font-family:inherit;transition:background .15s;margin-top:2px}
+.btn-green:hover{background:var(--green-dark)}
+.btn-green:disabled{opacity:.5;cursor:not-allowed}
+.err-box{font-size:12px;color:var(--text-danger);background:var(--bg-danger);border-radius:var(--radius-md);padding:8px 12px;margin-bottom:14px;display:none}
+.badge-admin{background:var(--bg-success);color:var(--text-success);font-size:10px;font-weight:600;padding:2px 7px;border-radius:10px}
+.badge-emp{background:var(--bg-info);color:var(--text-info);font-size:10px;font-weight:600;padding:2px 7px;border-radius:10px}
+
+/* ── APP ── */
+#appScreen{display:none;height:100vh;overflow:hidden}
+#appScreen.show{display:flex;flex-direction:column}
+.app{display:flex;flex:1;overflow:hidden;min-height:0}
+
+/* ── SIDEBAR ── */
+.sidebar{width:238px;min-width:238px;background:var(--bg-primary);border-right:0.5px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
+.sb-head{padding:13px 16px;border-bottom:0.5px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.s-logo{font-size:15px;font-weight:700;color:var(--text-primary)}.s-logo span{color:var(--green)}
+.sec-label{font-size:10px;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:.07em;padding:11px 16px 4px;font-weight:600}
+.ch-item{display:flex;align-items:center;gap:8px;padding:6px 16px;cursor:pointer;font-size:13px;color:var(--text-secondary);transition:background .12s;user-select:none}
+.ch-item:hover{background:var(--bg-secondary)}
+.ch-item.active{background:var(--bg-success);color:var(--text-success);font-weight:500}
+.ch-item.locked{opacity:.38;cursor:not-allowed}
+.ch-item .ml{margin-left:auto;display:flex;align-items:center}
+.dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.dot.online{background:var(--green)}.dot.away{background:var(--text-warning)}.dot.offline{background:var(--border-md)}
+.sb-footer{margin-top:auto;padding:11px 16px;border-top:0.5px solid var(--border)}
+.sf-inner{display:flex;align-items:center;gap:9px}
+.av{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0}
+.sf-name{font-size:13px;font-weight:500;color:var(--text-primary)}
+.sf-sub{font-size:10px;color:var(--text-tertiary)}
+.logout-btn{margin-left:auto;background:none;border:none;cursor:pointer;color:var(--text-tertiary);padding:5px;border-radius:var(--radius-md);transition:color .12s}
+.logout-btn:hover{color:var(--text-danger)}
+
+/* ── MAIN ── */
+.main{flex:1;display:flex;flex-direction:column;min-width:0;overflow:hidden}
+.topbar{padding:12px 20px;border-bottom:0.5px solid var(--border);background:var(--bg-primary);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.ch-title{font-size:14px;font-weight:600;color:var(--text-primary);display:flex;align-items:center;gap:7px}
+.ch-desc{font-size:11px;color:var(--text-tertiary);margin-top:2px}
+.topbar-r{display:flex;gap:6px}
+.icon-btn{background:none;border:0.5px solid var(--border);border-radius:var(--radius-md);padding:6px 8px;cursor:pointer;color:var(--text-secondary);display:flex;align-items:center;transition:background .12s}
+.icon-btn:hover{background:var(--bg-secondary)}
+
+/* ── MESSAGES ── */
+.msgs{flex:1;overflow-y:auto;padding:16px 20px;display:flex;flex-direction:column}
+.msg-group{margin-bottom:10px}
+.msg-meta{display:flex;align-items:baseline;gap:7px;padding-left:38px;margin-bottom:3px}
+.msg-sender{font-size:13px;font-weight:600;color:var(--text-primary)}
+.msg-time{font-size:10px;color:var(--text-tertiary)}
+.admin-tag{font-size:9px;font-weight:600;padding:2px 5px;border-radius:4px;background:var(--bg-success);color:var(--text-success);margin-left:4px;vertical-align:middle}
+.msg-row{display:flex;gap:10px;align-items:flex-start;margin-bottom:1px}
+.msg-av{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0;margin-top:1px}
+.bubble{background:var(--bg-secondary);border-radius:0 var(--radius-lg) var(--radius-lg) var(--radius-lg);padding:8px 12px;font-size:13px;color:var(--text-primary);line-height:1.55;max-width:520px;word-break:break-word}
+.bubble.own{background:var(--bg-success);border-radius:var(--radius-lg) 0 var(--radius-lg) var(--radius-lg)}
+.file-card{background:var(--bg-primary);border:0.5px solid var(--border);border-radius:var(--radius-md);padding:10px 12px;display:flex;align-items:center;gap:10px;cursor:pointer;transition:background .12s;max-width:260px;margin-top:4px}
+.file-card:hover{background:var(--bg-secondary)}
+.fic{width:36px;height:36px;border-radius:var(--radius-md);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.fic.csv{background:var(--bg-success);color:var(--text-success)}
+.fic.img{background:#fbeaf0;color:#993556}
+.fic.doc{background:var(--bg-info);color:var(--text-info)}
+.fic i{font-size:18px}
+.fn{font-size:12px;font-weight:500;color:var(--text-primary);line-height:1.3}
+.fs{font-size:11px;color:var(--text-tertiary);margin-top:1px}
+.dl-ico{font-size:13px;margin-left:auto;color:var(--text-tertiary)}
+.empty-state{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:var(--text-tertiary)}
+.empty-state i{font-size:32px}
+.empty-state span{font-size:13px}
+.locked-dm{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;color:var(--text-tertiary);padding:32px;text-align:center}
+.locked-dm i{font-size:40px;color:var(--border-md)}
+.locked-dm p{font-size:13px;line-height:1.6;max-width:280px}
+.msg-loader{flex:1;display:flex;align-items:center;justify-content:center;color:var(--text-tertiary);font-size:13px;gap:8px}
+
+/* ── INPUT ── */
+.input-area{padding:10px 20px 16px;border-top:0.5px solid var(--border);background:var(--bg-primary);flex-shrink:0}
+.input-box{border:0.5px solid var(--border-md);border-radius:var(--radius-lg);overflow:hidden;background:var(--bg-secondary)}
+.input-toolbar{display:flex;align-items:center;gap:2px;padding:6px 8px;border-bottom:0.5px solid var(--border)}
+.tool-btn{background:none;border:none;cursor:pointer;color:var(--text-secondary);padding:5px;border-radius:var(--radius-md);display:flex;align-items:center;transition:background .12s}
+.tool-btn:hover{background:var(--bg-primary)}
+.tool-btn i{font-size:16px}
+.input-row{display:flex;align-items:flex-end}
+#msgInput{flex:1;border:none;background:transparent;padding:10px 13px;font-size:13px;color:var(--text-primary);font-family:inherit;resize:none;outline:none;line-height:1.55;min-height:40px;max-height:120px}
+#msgInput::placeholder{color:var(--text-tertiary)}
+.send-btn{background:var(--green);border:none;border-radius:var(--radius-md);padding:8px 12px;cursor:pointer;color:#fff;display:flex;align-items:center;margin:5px;transition:background .12s}
+.send-btn:hover{background:var(--green-dark)}
+.send-btn i{font-size:16px}
+
+/* ── RIGHT PANEL ── */
+.right-panel{width:272px;min-width:272px;background:var(--bg-primary);border-left:0.5px solid var(--border);display:flex;flex-direction:column;overflow-y:auto}
+.rp-header{padding:13px 16px;border-bottom:0.5px solid var(--border);font-size:13px;font-weight:600;color:var(--text-primary);display:flex;align-items:center;justify-content:space-between}
+.rp-section{padding:12px 16px;border-bottom:0.5px solid var(--border)}
+.rp-title{font-size:10px;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:.07em;font-weight:600;margin-bottom:10px;display:flex;align-items:center;gap:5px}
+.rp-title i{font-size:12px}
+.mc{display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:0.5px solid var(--border)}
+.mc:last-child{border-bottom:none}
+.mc-av-wrap{position:relative;flex-shrink:0}
+.mc-av{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700}
+.online-dot{width:9px;height:9px;border-radius:50%;background:var(--green);border:2px solid var(--bg-primary);position:absolute;bottom:0;right:0}
+.mc-name{font-size:13px;font-weight:500;color:var(--text-primary)}
+.mc-role{font-size:11px;color:var(--text-secondary);margin-top:1px}
+.mc-contact{font-size:11px;color:var(--text-secondary);margin-top:3px;line-height:1.7}
+.mc-anon{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}
+.anon-pill{background:var(--bg-secondary);border:0.5px solid var(--border);border-radius:4px;padding:2px 6px;font-size:10px;color:var(--text-tertiary);display:inline-flex;align-items:center;gap:3px}
+.anon-pill i{font-size:10px}
+.sf-item{display:flex;align-items:center;gap:9px;padding:6px 0;border-bottom:0.5px solid var(--border)}
+.sf-item:last-child{border-bottom:none}
+.sf-ic{width:28px;height:28px;border-radius:var(--radius-md);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.sf-ic i{font-size:14px}
+.sf-ic.csv{background:var(--bg-success);color:var(--text-success)}
+.sf-ic.doc{background:var(--bg-info);color:var(--text-info)}
+.sf-nm{font-size:12px;font-weight:500;color:var(--text-primary)}
+.sf-by{font-size:10px;color:var(--text-tertiary)}
+.drop-zone{border:0.5px dashed var(--border-md);border-radius:var(--radius-md);padding:14px;text-align:center;font-size:12px;color:var(--text-tertiary);cursor:pointer;transition:background .12s;margin-top:10px}
+.drop-zone:hover{background:var(--bg-secondary)}
+.drop-zone i{font-size:20px;display:block;margin-bottom:4px}
+
+/* ── MODAL ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;z-index:600}
+.modal-overlay.open{display:flex}
+.modal{background:var(--bg-primary);border-radius:var(--radius-lg);border:0.5px solid var(--border);padding:24px;width:360px;box-shadow:0 8px 32px rgba(0,0,0,.14)}
+.modal h3{font-size:15px;font-weight:600;color:var(--text-primary);margin-bottom:4px}
+.modal p{font-size:12px;color:var(--text-secondary);margin-bottom:16px}
+.modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}
+.btn-sec{background:none;border:0.5px solid var(--border-md);border-radius:var(--radius-md);padding:7px 14px;font-size:13px;cursor:pointer;color:var(--text-primary);font-family:inherit}
+.btn-pri{background:var(--green);border:none;border-radius:var(--radius-md);padding:7px 14px;font-size:13px;cursor:pointer;color:#fff;font-family:inherit;transition:background .12s}
+.btn-pri:hover{background:var(--green-dark)}
+.btn-pri:disabled{opacity:.5;cursor:not-allowed}
+.file-preview-row{background:var(--bg-secondary);border-radius:var(--radius-md);padding:10px 12px;display:flex;align-items:center;gap:10px;margin-bottom:4px}
+
+/* create user modal extras */
+.role-toggle{display:flex;gap:8px;margin-bottom:14px}
+.role-opt{flex:1;border:0.5px solid var(--border-md);border-radius:var(--radius-md);padding:10px;text-align:center;cursor:pointer;transition:all .15s;font-size:13px;color:var(--text-secondary)}
+.role-opt:hover{background:var(--bg-secondary)}
+.role-opt.selected-admin{background:var(--bg-success);border-color:var(--green);color:var(--text-success);font-weight:600}
+.role-opt.selected-emp{background:var(--bg-info);border-color:#185fa5;color:var(--text-info);font-weight:600}
+.role-opt i{display:block;font-size:20px;margin-bottom:4px}
+
+.toast{position:fixed;bottom:24px;right:24px;background:var(--text-primary);color:var(--bg-primary);padding:10px 16px;border-radius:var(--radius-md);font-size:13px;z-index:9999;opacity:0;transform:translateY(8px);transition:all .2s;pointer-events:none}
+.toast.show{opacity:1;transform:translateY(0)}
+</style>
+</head>
+<body>
+
+<!-- GLOBAL LOADER -->
+<div id="globalLoader">
+  <div class="spin"></div>
+  <p>Connecting to Navain Chat…</p>
+</div>
+
+<!-- LOGIN -->
+<div id="loginScreen">
+  <div class="login-card">
+    <div class="login-logo">Navain <span>Chat</span></div>
+    <div class="login-sub">Sign in to your team workspace</div>
+    <div id="loginErr" class="err-box"></div>
+    <label class="form-label" for="loginEmail">Email</label>
+    <input class="form-input" id="loginEmail" type="email" placeholder="you@navainai.com" autocomplete="email" onkeydown="if(event.key==='Enter')doLogin()">
+    <label class="form-label" for="loginPass">Password</label>
+    <input class="form-input" id="loginPass" type="password" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
+    <button class="btn-green" id="loginBtn" onclick="doLogin()">Sign in</button>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="appScreen">
+<div class="app">
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="sb-head">
+      <div class="s-logo">Navain <span>Chat</span></div>
+      <span id="roleTag"></span>
+    </div>
+    <div class="sec-label">Channels</div>
+    <div class="ch-item active" onclick="switchCh('general')" id="ch-general"><i class="ti ti-hash" style="font-size:13px"></i> general</div>
+    <div class="ch-item" onclick="switchCh('sales')" id="ch-sales"><i class="ti ti-hash" style="font-size:13px"></i> sales</div>
+    <div class="ch-item" onclick="switchCh('leads')" id="ch-leads"><i class="ti ti-hash" style="font-size:13px"></i> leads</div>
+    <div class="ch-item" onclick="switchCh('files')" id="ch-files"><i class="ti ti-hash" style="font-size:13px"></i> files</div>
+    <div class="sec-label">Direct Messages</div>
+    <div id="dmList"></div>
+    <div class="sb-footer">
+      <div class="sf-inner">
+        <div class="av" id="sfAv"></div>
+        <div><div class="sf-name" id="sfName"></div><div class="sf-sub" id="sfSub"></div></div>
+        <button class="logout-btn" onclick="doLogout()" title="Sign out"><i class="ti ti-logout" style="font-size:16px"></i></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main">
+    <div class="topbar">
+      <div>
+        <div class="ch-title" id="chTitle"></div>
+        <div class="ch-desc" id="chDesc"></div>
+      </div>
+      <div class="topbar-r">
+        <button class="icon-btn" id="addUserBtn" onclick="openCreateUser()" title="Create user" style="display:none">
+          <i class="ti ti-user-plus" style="font-size:15px"></i>
+        </button>
+        <button class="icon-btn" onclick="document.getElementById('fileIn').click()" title="Attach file">
+          <i class="ti ti-paperclip" style="font-size:15px"></i>
+        </button>
+        <input type="file" id="fileIn" style="display:none" accept="image/*,.csv,.pdf,.xlsx,.docx" onchange="handleFile(event)">
+      </div>
+    </div>
+    <div class="msgs" id="msgsArea"></div>
+    <div class="input-area" id="inputArea">
+      <div class="input-box">
+        <div class="input-toolbar">
+          <button class="tool-btn" onclick="ins('**','**')" title="Bold"><i class="ti ti-bold"></i></button>
+          <button class="tool-btn" onclick="ins('_','_')" title="Italic"><i class="ti ti-italic"></i></button>
+          <button class="tool-btn" onclick="document.getElementById('fileIn').click()" title="Photo"><i class="ti ti-photo"></i></button>
+          <button class="tool-btn" onclick="document.getElementById('fileIn').click()" title="CSV"><i class="ti ti-table"></i></button>
+          <button class="tool-btn" onclick="ins('👍','')" title="Emoji"><i class="ti ti-mood-smile"></i></button>
+        </div>
+        <div class="input-row">
+          <textarea id="msgInput" rows="1" onkeydown="kd(event)" oninput="ar(this)" placeholder="Message..."></textarea>
+          <button class="send-btn" onclick="sendMsg()" aria-label="Send"><i class="ti ti-send"></i></button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT PANEL -->
+  <div class="right-panel">
+    <div class="rp-header">
+      Team
+      <button class="icon-btn" id="rpAddBtn" onclick="openCreateUser()" title="Add member" style="display:none;border:none;padding:4px">
+        <i class="ti ti-user-plus" style="font-size:15px"></i>
+      </button>
+    </div>
+    <div class="rp-section">
+      <div class="rp-title"><i class="ti ti-users"></i> Members</div>
+      <div id="membersList"><div style="font-size:12px;color:var(--text-tertiary);padding:8px 0">Loading…</div></div>
+    </div>
+    <div class="rp-section">
+      <div class="rp-title"><i class="ti ti-files"></i> Shared files</div>
+      <div id="sfList"></div>
+      <div class="drop-zone" onclick="document.getElementById('fileIn').click()">
+        <i class="ti ti-cloud-upload"></i>Drop or click to share a file
+      </div>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<!-- FILE MODAL -->
+<div class="modal-overlay" id="fileModal">
+  <div class="modal">
+    <h3>Share file</h3>
+    <p>This file will be shared in the current channel.</p>
+    <div class="file-preview-row">
+      <div class="fic doc"><i class="ti ti-file"></i></div>
+      <div><div class="fn" id="mfName"></div><div class="fs" id="mfSize"></div></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-sec" onclick="closeFileModal()">Cancel</button>
+      <button class="btn-pri" onclick="confirmShare()">Share in channel</button>
+    </div>
+  </div>
+</div>
+
+<!-- CREATE USER MODAL -->
+<div class="modal-overlay" id="createUserModal">
+  <div class="modal">
+    <h3>Create team member</h3>
+    <p>Choose a role first, then fill in their details.</p>
+    <div class="role-toggle">
+      <div class="role-opt selected-admin" id="roleOptAdmin" onclick="selectRole('admin')">
+        <i class="ti ti-shield"></i>Admin
+      </div>
+      <div class="role-opt" id="roleOptEmp" onclick="selectRole('employee')">
+        <i class="ti ti-user"></i>Employee
+      </div>
+    </div>
+    <div id="cuErr" class="err-box"></div>
+    <label class="form-label">Full name</label>
+    <input class="form-input" id="cuName" placeholder="e.g. Sara Khan">
+    <label class="form-label">Email</label>
+    <input class="form-input" id="cuEmail" type="email" placeholder="sara@navainai.com">
+    <label class="form-label">Phone</label>
+    <input class="form-input" id="cuPhone" placeholder="+1-555-0000">
+    <label class="form-label">Password</label>
+    <input class="form-input" id="cuPass" type="password" placeholder="Min. 6 characters">
+    <div class="modal-actions">
+      <button class="btn-sec" onclick="closeCreateUser()">Cancel</button>
+      <button class="btn-pri" id="cuBtn" onclick="createUser()">Create account</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- FIREBASE -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getFirestore, collection, doc, setDoc, getDoc, getDocs, addDoc, onSnapshot, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDteptTOhJ1gjmNOrrnrIfepe2neg6hmkU",
+  authDomain: "my-leads-app-f6198.firebaseapp.com",
+  projectId: "my-leads-app-f6198",
+  storageBucket: "my-leads-app-f6198.firebasestorage.app",
+  messagingSenderId: "239949793404",
+  appId: "1:239949793404:web:092e751967d04be2c8e1f9"
+};
+
+const app = initializeApp(firebaseConfig);
+const db  = getFirestore(app);
+const auth = getAuth(app);
+
+// ── STATE ──
+let ME = null;          // current user profile from Firestore
+let ALL_USERS = {};     // uid → profile
+let curCh = 'general';
+let pendingFile = null;
+let selectedRole = 'admin';
+let msgUnsub = null;    // Firestore listener unsubscribe
+
+const AV_COLORS = ['info','success','warning','purple','coral'];
+const AV_STYLES = {
+  info:   'background:var(--bg-info);color:var(--text-info)',
+  success:'background:var(--bg-success);color:var(--text-success)',
+  warning:'background:var(--bg-warning);color:var(--text-warning)',
+  purple: 'background:#eeedfe;color:#3c3489',
+  coral:  'background:#faece7;color:#993c1d',
+};
+const CHANNELS = {
+  general:{name:'general',desc:'Team-wide announcements and chats'},
+  sales:  {name:'sales',  desc:'Sales pipeline and strategy'},
+  leads:  {name:'leads',  desc:'Lead tracking and qualification'},
+  files:  {name:'files',  desc:'Shared documents and data files'},
+};
+
+function initials(name){ return name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2); }
+function avatarColor(uid){ const keys=Object.keys(ALL_USERS); return AV_COLORS[keys.indexOf(uid)%AV_COLORS.length]||'info'; }
+function dmKey(a,b){ return [a,b].sort().join('__'); }
+
+// ── AUTH STATE ──
+onAuthStateChanged(auth, async user => {
+  document.getElementById('globalLoader').style.display = 'none';
+  if (user) {
+    const snap = await getDoc(doc(db,'chat_users', user.uid));
+    if (!snap.exists()) {
+      // Bootstrap: if NO chat_users profile exists yet anywhere, this is the very
+      // first login ever — auto-register this account as the first Admin.
+      // After this, only an existing admin can create further accounts.
+      const usersSnap = await getDocs(collection(db,'chat_users'));
+      if (usersSnap.empty) {
+        const profile = {
+          name: user.displayName || (user.email ? user.email.split('@')[0] : 'Admin'),
+          email: user.email || '',
+          phone: '',
+          role: 'Admin',
+          isAdmin: true,
+          status: 'offline',
+          createdAt: serverTimestamp()
+        };
+        await setDoc(doc(db,'chat_users', user.uid), profile);
+        ME = { uid: user.uid, ...profile };
+        await loadAllUsers();
+        showApp();
+        return;
+      }
+      await signOut(auth);
+      showLogin('No profile found for this account. Ask an admin to add you as a team member.');
+      return;
+    }
+    ME = { uid: user.uid, ...snap.data() };
+    await loadAllUsers();
+    showApp();
+  } else {
+    showLogin();
+  }
+});
+
+function showLogin(msg){
+  document.getElementById('loginScreen').classList.add('show');
+  document.getElementById('appScreen').classList.remove('show');
+  const errEl = document.getElementById('loginErr');
+  if (msg) { errEl.textContent = msg; errEl.style.display = 'block'; }
+  else { errEl.style.display = 'none'; }
+}
+function showApp(){
+  document.getElementById('loginScreen').classList.remove('show');
+  document.getElementById('appScreen').classList.add('show');
+  initApp();
+}
+
+// ── LOAD ALL USERS ──
+async function loadAllUsers(){
+  const snap = await getDocs(collection(db,'chat_users'));
+  ALL_USERS = {};
+  snap.forEach(d => { ALL_USERS[d.id] = { uid: d.id, ...d.data() }; });
+}
+
+// ── INIT APP ──
+function initApp(){
+  const u = ME;
+  document.getElementById('sfName').textContent = u.name;
+  document.getElementById('sfSub').textContent = (u.role||'') + ' · ' + (u.isAdmin ? 'Admin' : 'Employee');
+  const sfAv = document.getElementById('sfAv');
+  sfAv.textContent = initials(u.name);
+  sfAv.style.cssText = AV_STYLES[avatarColor(u.uid)] || AV_STYLES.info;
+  document.getElementById('roleTag').innerHTML = u.isAdmin
+    ? '<span class="badge-admin">Admin</span>'
+    : '<span class="badge-emp">Employee</span>';
+  const addBtns = document.querySelectorAll('#addUserBtn,#rpAddBtn');
+  addBtns.forEach(b => b.style.display = u.isAdmin ? 'flex' : 'none');
+  buildDmList();
+  renderMembers();
+  renderSharedFiles();
+  switchCh('general');
+  // live-listen to users collection so new members appear instantly
+  onSnapshot(collection(db,'chat_users'), snap => {
+    ALL_USERS = {};
+    snap.forEach(d => { ALL_USERS[d.id] = { uid:d.id, ...d.data() }; });
+    buildDmList();
+    renderMembers();
+  });
+}
+
+// ── DM LIST ──
+function buildDmList(){
+  const el = document.getElementById('dmList');
+  let html = '';
+  Object.values(ALL_USERS).forEach(v => {
+    if (v.uid === ME.uid) return;
+    const dotCls = v.status === 'online' ? 'online' : v.status === 'away' ? 'away' : 'offline';
+    const chId = 'dm-' + v.uid;
+    if (ME.isAdmin) {
+      html += `<div class="ch-item" onclick="switchCh('${chId}')" id="ch-${chId}">
+        <span class="dot ${dotCls}"></span> ${v.name}
+        ${v.isAdmin ? '<span class="ml"><i class="ti ti-shield" style="font-size:11px;opacity:.5"></i></span>' : ''}
+      </div>`;
+    } else {
+      if (v.isAdmin) {
+        html += `<div class="ch-item" onclick="switchCh('${chId}')" id="ch-${chId}">
+          <span class="dot ${dotCls}"></span> ${v.name}
+          <span class="ml"><i class="ti ti-shield" style="font-size:11px;opacity:.5"></i></span>
+        </div>`;
+      } else {
+        html += `<div class="ch-item locked" title="Employees cannot DM each other">
+          <span class="dot ${dotCls}"></span> ${v.name}
+          <span class="ml"><i class="ti ti-lock" style="font-size:11px"></i></span>
+        </div>`;
+      }
+    }
+  });
+  el.innerHTML = html || '<div style="padding:6px 16px;font-size:12px;color:var(--text-tertiary)">No other members yet</div>';
+  // re-highlight active
+  document.querySelectorAll('.ch-item').forEach(e => e.classList.remove('active'));
+  const active = document.getElementById('ch-' + curCh);
+  if (active) active.classList.add('active');
+}
+
+// ── MEMBERS PANEL ──
+function renderMembers(){
+  document.getElementById('membersList').innerHTML = Object.values(ALL_USERS).map(v => {
+    const isOnline = v.status === 'online';
+    const col = avatarColor(v.uid);
+    let detail = '';
+    if (ME.isAdmin) {
+      detail = `<div class="mc-role">${v.role||'Agent'} · <span style="color:${v.isAdmin?'var(--text-success)':'var(--text-secondary)'}">${v.isAdmin?'Admin':'Employee'}</span></div>
+      <div class="mc-contact">
+        <i class="ti ti-mail" style="font-size:11px;vertical-align:-1px;margin-right:2px"></i>${v.email||'—'}<br>
+        <i class="ti ti-phone" style="font-size:11px;vertical-align:-1px;margin-right:2px"></i>${v.phone||'—'}
+      </div>`;
+    } else {
+      detail = `<div class="mc-role">${v.isAdmin?'Team Lead':'Agent'}</div>
+      <div class="mc-anon">
+        <span class="anon-pill"><i class="ti ti-lock"></i> Email hidden</span>
+        <span class="anon-pill"><i class="ti ti-lock"></i> Phone hidden</span>
+      </div>`;
+    }
+    return `<div class="mc">
+      <div class="mc-av-wrap">
+        <div class="mc-av" style="${AV_STYLES[col]||''}">${initials(v.name)}</div>
+        ${isOnline ? '<div class="online-dot"></div>' : ''}
+      </div>
+      <div style="flex:1;min-width:0"><div class="mc-name">${v.name}</div>${detail}</div>
+    </div>`;
+  }).join('') || '<div style="font-size:12px;color:var(--text-tertiary);padding:6px 0">No members yet</div>';
+}
+
+// ── SHARED FILES (Firestore) ──
+function renderSharedFiles(){
+  const el = document.getElementById('sfList');
+  getDocs(query(collection(db,'shared_files'), orderBy('ts','desc'))).then(snap => {
+    if (snap.empty){ el.innerHTML='<div style="font-size:12px;color:var(--text-tertiary);padding:4px 0">No files yet</div>'; return; }
+    el.innerHTML = snap.docs.map(d => {
+      const f = d.data();
+      const sender = ALL_USERS[f.uid];
+      return `<div class="sf-item">
+        <div class="sf-ic ${f.ftype}"><i class="ti ti-${f.ftype==='csv'?'table':'file'}"></i></div>
+        <div><div class="sf-nm">${f.name}</div><div class="sf-by">${sender?sender.name:'Unknown'}</div></div>
+      </div>`;
+    }).join('');
+  });
+}
+
+// ── CHANNEL SWITCH ──
+window.switchCh = function(ch){
+  const isDm = ch.startsWith('dm-');
+  const targetUid = isDm ? ch.replace('dm-','') : null;
+  const tv = targetUid ? ALL_USERS[targetUid] : null;
+  // block emp→emp
+  if (isDm && !ME.isAdmin && tv && !tv.isAdmin) return;
+
+  document.querySelectorAll('.ch-item').forEach(e => e.classList.remove('active'));
+  const el = document.getElementById('ch-' + ch);
+  if (el) el.classList.add('active');
+  curCh = ch;
+
+  const displayName = isDm ? (tv?.name || 'User') : CHANNELS[ch]?.name || ch;
+  const desc = isDm ? (tv?.isAdmin ? 'Direct message · Admin' : 'Direct message') : (CHANNELS[ch]?.desc || '');
+  const icon = isDm ? 'user' : 'hash';
+  document.getElementById('chTitle').innerHTML = `<i class="ti ti-${icon}" style="font-size:15px;color:var(--text-tertiary)"></i> ${displayName}`;
+  document.getElementById('chDesc').textContent = desc;
+  document.getElementById('msgInput').placeholder = `Message ${isDm ? displayName : '#'+displayName}...`;
+
+  listenMessages(ch, isDm, targetUid, tv);
+};
+
+// ── REAL-TIME MESSAGES ──
+function listenMessages(ch, isDm, targetUid, tv){
+  const area = document.getElementById('msgsArea');
+  if (msgUnsub) { msgUnsub(); msgUnsub = null; }
+
+  // locked emp→emp
+  if (isDm && !ME.isAdmin && tv && !tv.isAdmin){
+    area.innerHTML = '';
+    area.innerHTML = `<div class="locked-dm"><i class="ti ti-lock-off"></i><p>Direct messages between employees are disabled. You can only DM admins.</p></div>`;
+    document.getElementById('inputArea').style.display = 'none';
+    return;
+  }
+  document.getElementById('inputArea').style.display = 'block';
+  area.innerHTML = `<div class="msg-loader"><div class="spin" style="width:18px;height:18px;border-width:2px"></div> Loading messages…</div>`;
+
+  const colPath = isDm ? `dm_messages/${dmKey(ME.uid, targetUid)}/msgs` : `channel_messages/${ch}/msgs`;
+  const q = query(collection(db, colPath), orderBy('ts','asc'));
+  msgUnsub = onSnapshot(q, snap => {
+    if (snap.empty){
+      area.innerHTML = `<div class="empty-state"><i class="ti ti-messages"></i><span>No messages yet — start the conversation</span></div>`;
+      return;
+    }
+    let html = '', lastUid = '';
+    snap.docs.forEach(d => {
+      const msg = d.data();
+      const mu = ALL_USERS[msg.uid] || { name:'Unknown', uid:msg.uid };
+      const isOwn = msg.uid === ME.uid;
+      const col = avatarColor(msg.uid);
+      const sameSender = msg.uid === lastUid && !msg.file;
+      const ts = msg.ts?.toDate ? msg.ts.toDate().toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}) : '';
+      if (!sameSender){
+        if (lastUid) html += '</div>';
+        html += `<div class="msg-group"><div class="msg-meta">
+          <span class="msg-sender">${mu.name}${mu.isAdmin?'<span class="admin-tag">Admin</span>':''}</span>
+          <span class="msg-time">${ts}</span>
+        </div>`;
+      }
+      html += `<div class="msg-row"><div class="msg-av" style="${AV_STYLES[col]||''}">${initials(mu.name)}</div>`;
+      if (msg.file){
+        const t = msg.file.ftype;
+        html += `<div class="file-card"><div class="fic ${t}"><i class="ti ti-${t==='csv'?'table':t==='img'?'photo':'file'}"></i></div>
+          <div><div class="fn">${msg.file.name}</div><div class="fs">${msg.file.size}</div></div>
+          <i class="ti ti-download dl-ico"></i></div>`;
+      } else {
+        html += `<div class="bubble ${isOwn?'own':''}">${msg.text}</div>`;
+      }
+      html += '</div>';
+      lastUid = msg.uid;
+    });
+    if (lastUid) html += '</div>';
+    area.innerHTML = html;
+    area.scrollTop = area.scrollHeight;
+  });
+}
+
+// ── SEND MESSAGE ──
+window.sendMsg = async function(){
+  const inp = document.getElementById('msgInput');
+  const txt = inp.value.trim();
+  if (!txt) return;
+  const isDm = curCh.startsWith('dm-');
+  const targetUid = isDm ? curCh.replace('dm-','') : null;
+  const tv = targetUid ? ALL_USERS[targetUid] : null;
+  if (isDm && !ME.isAdmin && tv && !tv.isAdmin) return;
+  const colPath = isDm ? `dm_messages/${dmKey(ME.uid, targetUid)}/msgs` : `channel_messages/${curCh}/msgs`;
+  inp.value = ''; inp.style.height = 'auto';
+  await addDoc(collection(db, colPath), { uid: ME.uid, text: txt, ts: serverTimestamp() });
+};
+
+// ── FILE SHARE ──
+window.handleFile = function(ev){
+  const f = ev.target.files[0]; if (!f) return;
+  pendingFile = f;
+  document.getElementById('mfName').textContent = f.name;
+  document.getElementById('mfSize').textContent = (f.size/1024).toFixed(1)+' KB';
+  document.getElementById('fileModal').classList.add('open');
+  ev.target.value = '';
+};
+window.closeFileModal = function(){ document.getElementById('fileModal').classList.remove('open'); pendingFile = null; };
+window.confirmShare = async function(){
+  if (!pendingFile) return;
+  closeFileModal();
+  const isCSV = pendingFile.name.endsWith('.csv') || pendingFile.type.includes('csv');
+  const isImg  = pendingFile.type.startsWith('image/');
+  const ftype  = isCSV ? 'csv' : isImg ? 'img' : 'doc';
+  const isDm   = curCh.startsWith('dm-');
+  const targetUid = isDm ? curCh.replace('dm-','') : null;
+  const colPath = isDm ? `dm_messages/${dmKey(ME.uid,targetUid)}/msgs` : `channel_messages/${curCh}/msgs`;
+  const fileObj = { name: pendingFile.name, size: (pendingFile.size/1024).toFixed(1)+' KB', ftype };
+  await addDoc(collection(db, colPath), { uid: ME.uid, file: fileObj, ts: serverTimestamp() });
+  await addDoc(collection(db,'shared_files'), { name: pendingFile.name, uid: ME.uid, ftype, ts: serverTimestamp() });
+  renderSharedFiles();
+  pendingFile = null;
+};
+
+// ── AUTH ──
+window.doLogin = async function(){
+  const email = document.getElementById('loginEmail').value.trim();
+  const pass  = document.getElementById('loginPass').value;
+  const errEl = document.getElementById('loginErr');
+  const btn   = document.getElementById('loginBtn');
+  errEl.style.display = 'none';
+  btn.disabled = true; btn.textContent = 'Signing in…';
+  try {
+    await signInWithEmailAndPassword(auth, email, pass);
+  } catch(e){
+    errEl.textContent = e.code === 'auth/invalid-credential' ? 'Invalid email or password.' : e.message;
+    errEl.style.display = 'block';
+    btn.disabled = false; btn.textContent = 'Sign in';
+  }
+};
+window.doLogout = async function(){
+  if (msgUnsub) msgUnsub();
+  await signOut(auth);
+};
+
+// ── CREATE USER (admin only) ──
+window.openCreateUser = function(){
+  if (!ME.isAdmin) return;
+  document.getElementById('cuErr').style.display='none';
+  document.getElementById('cuName').value='';
+  document.getElementById('cuEmail').value='';
+  document.getElementById('cuPhone').value='';
+  document.getElementById('cuPass').value='';
+  selectRole('admin');
+  document.getElementById('createUserModal').classList.add('open');
+};
+window.closeCreateUser = function(){ document.getElementById('createUserModal').classList.remove('open'); };
+window.selectRole = function(r){
+  selectedRole = r;
+  document.getElementById('roleOptAdmin').className = 'role-opt' + (r==='admin' ? ' selected-admin' : '');
+  document.getElementById('roleOptEmp').className   = 'role-opt' + (r==='employee' ? ' selected-emp' : '');
+};
+window.createUser = async function(){
+  const name  = document.getElementById('cuName').value.trim();
+  const email = document.getElementById('cuEmail').value.trim();
+  const phone = document.getElementById('cuPhone').value.trim();
+  const pass  = document.getElementById('cuPass').value;
+  const errEl = document.getElementById('cuErr');
+  const btn   = document.getElementById('cuBtn');
+  errEl.style.display = 'none';
+  if (!name||!email||!pass){ errEl.textContent='Name, email, and password are required.'; errEl.style.display='block'; return; }
+  if (pass.length < 6){ errEl.textContent='Password must be at least 6 characters.'; errEl.style.display='block'; return; }
+  btn.disabled=true; btn.textContent='Creating…';
+
+  // We use a secondary Firebase app instance to create the user without logging out the current admin
+  try {
+    const { initializeApp: initApp2, getApp, deleteApp } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js");
+    const { getAuth: getAuth2, createUserWithEmailAndPassword: createEAP } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js");
+    let secondaryApp;
+    try { secondaryApp = getApp('secondary'); } catch(e){ secondaryApp = initApp2(firebaseConfig,'secondary'); }
+    const auth2 = getAuth2(secondaryApp);
+    const cred  = await createEAP(auth2, email, pass);
+    await signOut(auth2);
+    // save profile to Firestore
+    await setDoc(doc(db,'chat_users', cred.user.uid), {
+      name, email, phone, role: selectedRole==='admin' ? 'Admin' : 'Agent',
+      isAdmin: selectedRole==='admin', status:'offline',
+      createdBy: ME.uid, createdAt: serverTimestamp()
+    });
+    closeCreateUser();
+    showToast(`✓ ${name} added as ${selectedRole}`);
+  } catch(e){
+    errEl.textContent = e.message;
+    errEl.style.display = 'block';
+  }
+  btn.disabled=false; btn.textContent='Create account';
+};
+
+// ── HELPERS ──
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 3000);
+}
+window.kd = function(e){ if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMsg();} };
+window.ar = function(el){ el.style.height='auto'; el.style.height=Math.min(el.scrollHeight,120)+'px'; };
+window.ins = function(a,b){
+  const el=document.getElementById('msgInput');
+  const s=el.selectionStart,en=el.selectionEnd;
+  el.value=el.value.slice(0,s)+a+el.value.slice(s,en)+b+el.value.slice(en);
+  el.focus();
+};
+</script>
+</body>
+</html>
