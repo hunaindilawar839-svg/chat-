@@ -423,7 +423,6 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
 import { getFirestore, collection, doc, setDoc, getDoc, getDocs, addDoc, deleteDoc, onSnapshot, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
-import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDx8lHXrrLC0PxepECIu_vjF5-oybPQVkY",
@@ -438,55 +437,46 @@ const firebaseConfig = {
 const app     = initializeApp(firebaseConfig);
 const db      = getFirestore(app);
 const auth    = getAuth(app);
-const storage   = getStorage(app);
-const messaging = getMessaging(app);
+const storage = getStorage(app);
 
 // ── STATE ──
-let ME = null;          // current user profile from Firestore
-let ALL_USERS = {};     // uid → profile
+let ME = null;
+let ALL_USERS = {};
 let curCh = 'general';
 let pendingFile  = null;
 let pendingFtype = null;
 
-// ── FCM PUSH NOTIFICATIONS ──
-// Replace this with your VAPID key from Firebase Console → Project Settings → Cloud Messaging → Web Push certificates
+// ── FCM PUSH NOTIFICATIONS (lazy — never blocks login) ──
+// Paste your VAPID key from: Firebase Console → Project Settings → Cloud Messaging → Web Push certificates
 const VAPID_KEY = 'YOUR_VAPID_KEY_HERE';
 
 async function initNotifications(){
-  if (!('Notification' in window)) return;
+  if (!('Notification' in window) || !('serviceWorker' in navigator)) return;
   try {
     const permission = await Notification.requestPermission();
     if (permission !== 'granted') return;
-    const sw = await navigator.serviceWorker.ready;
-    const token = await getToken(messaging, { vapidKey: VAPID_KEY, serviceWorkerRegistration: sw });
-    if (token && ME?.uid) {
-      await setDoc(doc(db,'chat_users', ME.uid), { fcmToken: token }, { merge: true });
+    // Dynamically import FCM so a failure here never breaks login or the rest of the app
+    const { getMessaging, getToken, onMessage } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging.js');
+    const messaging = getMessaging(app);
+    if (VAPID_KEY !== 'YOUR_VAPID_KEY_HERE') {
+      const sw = await navigator.serviceWorker.ready;
+      const token = await getToken(messaging, { vapidKey: VAPID_KEY, serviceWorkerRegistration: sw });
+      if (token && ME?.uid) {
+        await setDoc(doc(db,'chat_users', ME.uid), { fcmToken: token }, { merge: true });
+      }
     }
-    // Foreground message handler — show in-app toast when app is open
     onMessage(messaging, payload => {
       const { title, body } = payload.notification || {};
-      showToast(title || 'New message', body || '');
+      showToast(`${title || 'New message'}${body ? ': ' + body : ''}`);
     });
-  } catch(e){ console.warn('FCM init failed:', e.message); }
+  } catch(e){ console.warn('Notifications unavailable:', e.message); }
 }
 
-function showToast(title, body){
-  let toast = document.getElementById('notifToast');
-  if (!toast){
-    toast = document.createElement('div');
-    toast.id = 'notifToast';
-    toast.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--bg-primary);border:0.5px solid var(--border-md);border-radius:var(--radius-lg);padding:10px 16px;box-shadow:0 4px 20px rgba(0,0,0,.18);z-index:9999;font-size:13px;max-width:300px;display:flex;gap:10px;align-items:flex-start;animation:slideUp .2s ease';
-    document.body.appendChild(toast);
+function notifyLocal(senderName, preview){
+  if (document.visibilityState === 'visible'){
+    showToast(`${senderName}: ${preview}`);
+    return;
   }
-  toast.innerHTML = `<span style="font-size:18px">💬</span><div><strong style="display:block;margin-bottom:2px">${title}</strong><span style="color:var(--text-secondary)">${body}</span></div>`;
-  toast.style.display = 'flex';
-  clearTimeout(toast._t);
-  toast._t = setTimeout(() => { toast.style.display = 'none'; }, 4000);
-}
-
-// Local notification fallback when app is in foreground (no FCM needed)
-function notifyLocal(senderName, preview, isFile){
-  if (document.visibilityState === 'visible') { showToast(senderName, preview); return; }
   if (Notification.permission === 'granted'){
     new Notification(senderName, {
       body: preview,
