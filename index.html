@@ -2,8 +2,16 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Navain Chat</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#1D9E75">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Navain Chat">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="icon" href="icon-192.png">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -176,6 +184,51 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
 .toast{position:fixed;bottom:24px;right:24px;background:var(--text-primary);color:var(--bg-primary);padding:10px 16px;border-radius:var(--radius-md);font-size:13px;z-index:9999;opacity:0;transform:translateY(8px);transition:all .2s;pointer-events:none}
 .toast.show{opacity:1;transform:translateY(0)}
+
+/* ── GOOGLE SIGN-IN ── */
+.btn-google{width:100%;background:var(--bg-primary);border:0.5px solid var(--border-md);border-radius:var(--radius-md);padding:10px;font-size:13px;font-weight:500;color:var(--text-primary);cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:8px;transition:background .15s;margin-bottom:14px}
+.btn-google:hover{background:var(--bg-secondary)}
+.btn-google:disabled{opacity:.5;cursor:not-allowed}
+.divider{display:flex;align-items:center;gap:8px;margin:14px 0;font-size:11px;color:var(--text-tertiary)}
+.divider::before,.divider::after{content:'';flex:1;height:1px;background:var(--border)}
+
+/* ── REMOVE MEMBER ── */
+.mc-del{background:none;border:none;cursor:pointer;color:var(--text-tertiary);padding:4px;border-radius:var(--radius-md);flex-shrink:0;align-self:flex-start;transition:color .12s,background .12s}
+.mc-del:hover{color:var(--text-danger);background:var(--bg-danger)}
+.btn-danger{background:var(--text-danger);border:none;border-radius:var(--radius-md);padding:7px 14px;font-size:13px;cursor:pointer;color:#fff;font-family:inherit;transition:opacity .15s}
+.btn-danger:hover{opacity:.85}
+.btn-danger:disabled{opacity:.5;cursor:not-allowed}
+
+/* ── INSTALL BUTTON ── */
+.install-btn{background:none;border:none;cursor:pointer;color:var(--text-tertiary);padding:5px;border-radius:var(--radius-md);transition:color .12s;display:none}
+.install-btn.show{display:flex}
+.install-btn:hover{color:var(--green)}
+
+/* ── MOBILE TOGGLES (hidden on desktop) ── */
+.hamburger-btn,.team-toggle-btn{display:none}
+.mobile-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:450;display:none}
+.mobile-backdrop.show{display:block}
+
+/* ── RESPONSIVE / MOBILE ── */
+@media(max-width:860px){
+  .sidebar{position:fixed;left:0;top:0;bottom:0;z-index:500;width:78vw;max-width:280px;transform:translateX(-100%);transition:transform .25s ease;box-shadow:2px 0 16px rgba(0,0,0,.18)}
+  .sidebar.mobile-open{transform:translateX(0)}
+  .right-panel{position:fixed;right:0;top:0;bottom:0;z-index:500;width:80vw;max-width:300px;transform:translateX(100%);transition:transform .25s ease;box-shadow:-2px 0 16px rgba(0,0,0,.18)}
+  .right-panel.mobile-open{transform:translateX(0)}
+  .hamburger-btn,.team-toggle-btn{display:flex}
+  .topbar{padding:10px 12px}
+  .msgs{padding:12px}
+  .input-area{padding:8px 12px 12px}
+  .bubble{max-width:78vw}
+  .login-card{width:90vw;max-width:360px;padding:24px}
+  .modal{width:90vw;max-width:360px}
+  .ch-title{font-size:13px}
+}
+@media(max-width:480px){
+  .login-card{padding:20px}
+}
+.sb-footer{padding-bottom:max(11px, env(safe-area-inset-bottom))}
+.input-area{padding-bottom:max(16px, env(safe-area-inset-bottom))}
 </style>
 </head>
 <body>
@@ -191,6 +244,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   <div class="login-card">
     <div class="login-logo">Navain <span>Chat</span></div>
     <div class="login-sub">Sign in to your team workspace</div>
+    <button class="btn-google" id="googleBtn" onclick="doGoogleLogin()">
+      <svg width="16" height="16" viewBox="0 0 18 18"><path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84c-.21 1.13-.85 2.08-1.81 2.72v2.26h2.92c1.71-1.57 2.69-3.89 2.69-6.62z"/><path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.92-2.26c-.81.54-1.84.86-3.04.86-2.34 0-4.32-1.58-5.03-3.7H.96v2.33C2.44 15.98 5.48 18 9 18z"/><path fill="#FBBC05" d="M3.97 10.72c-.18-.54-.28-1.12-.28-1.72s.1-1.18.28-1.72V4.95H.96A8.99 8.99 0 0 0 0 9c0 1.45.35 2.83.96 4.05l3.01-2.33z"/><path fill="#EA4335" d="M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.58C13.46.89 11.43 0 9 0 5.48 0 2.44 2.02.96 4.95l3.01 2.33C4.68 5.16 6.66 3.58 9 3.58z"/></svg>
+      Continue with Google
+    </button>
+    <div class="divider">or sign in with email</div>
     <div id="loginErr" class="err-box"></div>
     <label class="form-label" for="loginEmail">Email</label>
     <input class="form-input" id="loginEmail" type="email" placeholder="you@navainai.com" autocomplete="email" onkeydown="if(event.key==='Enter')doLogin()">
@@ -203,6 +261,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
 <!-- APP -->
 <div id="appScreen">
+<div class="mobile-backdrop" id="mobileBackdrop" onclick="closeMobilePanels()"></div>
 <div class="app">
 
   <!-- SIDEBAR -->
@@ -222,6 +281,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <div class="sf-inner">
         <div class="av" id="sfAv"></div>
         <div><div class="sf-name" id="sfName"></div><div class="sf-sub" id="sfSub"></div></div>
+        <button class="install-btn" id="installBtn" onclick="installApp()" title="Install app"><i class="ti ti-download" style="font-size:16px"></i></button>
         <button class="logout-btn" onclick="doLogout()" title="Sign out"><i class="ti ti-logout" style="font-size:16px"></i></button>
       </div>
     </div>
@@ -230,9 +290,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   <!-- MAIN -->
   <div class="main">
     <div class="topbar">
-      <div>
-        <div class="ch-title" id="chTitle"></div>
-        <div class="ch-desc" id="chDesc"></div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <button class="icon-btn hamburger-btn" onclick="toggleSidebar()" title="Menu"><i class="ti ti-menu-2" style="font-size:15px"></i></button>
+        <div>
+          <div class="ch-title" id="chTitle"></div>
+          <div class="ch-desc" id="chDesc"></div>
+        </div>
       </div>
       <div class="topbar-r">
         <button class="icon-btn" id="addUserBtn" onclick="openCreateUser()" title="Create user" style="display:none">
@@ -241,6 +304,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         <button class="icon-btn" onclick="document.getElementById('fileIn').click()" title="Attach file">
           <i class="ti ti-paperclip" style="font-size:15px"></i>
         </button>
+        <button class="icon-btn team-toggle-btn" onclick="toggleRightPanel()" title="Team"><i class="ti ti-users" style="font-size:15px"></i></button>
         <input type="file" id="fileIn" style="display:none" accept="image/*,.csv,.pdf,.xlsx,.docx" onchange="handleFile(event)">
       </div>
     </div>
@@ -331,13 +395,26 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   </div>
 </div>
 
+<!-- REMOVE USER MODAL -->
+<div class="modal-overlay" id="removeUserModal">
+  <div class="modal">
+    <h3>Remove team member</h3>
+    <p>Remove <strong id="ruName"></strong> from the workspace? This deletes their profile and revokes access to Navain Chat immediately. Their Firebase Auth login itself isn't deleted — remove it from Firebase Console &gt; Authentication too if you want the account fully gone.</p>
+    <div id="ruErr" class="err-box"></div>
+    <div class="modal-actions">
+      <button class="btn-sec" onclick="closeRemoveUser()">Cancel</button>
+      <button class="btn-danger" id="ruBtn" onclick="removeUser()">Remove</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <!-- FIREBASE -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getFirestore, collection, doc, setDoc, getDoc, getDocs, addDoc, onSnapshot, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getFirestore, collection, doc, setDoc, getDoc, getDocs, addDoc, deleteDoc, onSnapshot, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDx8lHXrrLC0PxepECIu_vjF5-oybPQVkY",
@@ -469,6 +546,14 @@ function initApp(){
     buildDmList();
     renderMembers();
   });
+  // force sign-out in real time if this account's profile gets removed by an admin
+  onSnapshot(doc(db,'chat_users', ME.uid), snap => {
+    if (!snap.exists()) {
+      if (msgUnsub) msgUnsub();
+      signOut(auth);
+      showToast('Your access was removed by an admin');
+    }
+  });
 }
 
 // ── DM LIST ──
@@ -524,12 +609,14 @@ function renderMembers(){
         <span class="anon-pill"><i class="ti ti-lock"></i> Phone hidden</span>
       </div>`;
     }
+    const canDelete = ME.isAdmin && v.uid !== ME.uid;
     return `<div class="mc">
       <div class="mc-av-wrap">
         <div class="mc-av" style="${AV_STYLES[col]||''}">${initials(v.name)}</div>
         ${isOnline ? '<div class="online-dot"></div>' : ''}
       </div>
       <div style="flex:1;min-width:0"><div class="mc-name">${v.name}</div>${detail}</div>
+      ${canDelete ? `<button class="mc-del" onclick="confirmRemoveUser('${v.uid}','${v.name.replace(/'/g,"\\'")}')" title="Remove ${v.isAdmin?'admin':'employee'}"><i class="ti ti-trash" style="font-size:14px"></i></button>` : ''}
     </div>`;
   }).join('') || '<div style="font-size:12px;color:var(--text-tertiary);padding:6px 0">No members yet</div>';
 }
@@ -569,6 +656,7 @@ window.switchCh = function(ch){
   document.getElementById('chTitle').innerHTML = `<i class="ti ti-${icon}" style="font-size:15px;color:var(--text-tertiary)"></i> ${displayName}`;
   document.getElementById('chDesc').textContent = desc;
   document.getElementById('msgInput').placeholder = `Message ${isDm ? displayName : '#'+displayName}...`;
+  if (window.innerWidth <= 860) closeMobilePanels();
 
   listenMessages(ch, isDm, targetUid, tv);
 };
@@ -727,6 +815,24 @@ window.doLogin = async function(){
     btn.disabled = false; btn.textContent = 'Sign in';
   }
 };
+window.doGoogleLogin = async function(){
+  const btn = document.getElementById('googleBtn');
+  const errEl = document.getElementById('loginErr');
+  errEl.style.display = 'none';
+  btn.disabled = true;
+  try {
+    const provider = new GoogleAuthProvider();
+    await signInWithPopup(auth, provider);
+  } catch(e){
+    if (e.code !== 'auth/popup-closed-by-user' && e.code !== 'auth/cancelled-popup-request') {
+      errEl.textContent = e.code === 'auth/popup-blocked'
+        ? 'Popup was blocked. Allow popups for this site and try again.'
+        : e.message;
+      errEl.style.display = 'block';
+    }
+  }
+  btn.disabled = false;
+};
 window.doLogout = async function(){
   if (msgUnsub) msgUnsub();
   await signOut(auth);
@@ -785,6 +891,34 @@ window.createUser = async function(){
   btn.disabled=false; btn.textContent='Create account';
 };
 
+// ── REMOVE USER (admin only) ──
+let pendingRemoveUid = null;
+window.confirmRemoveUser = function(uid, name){
+  pendingRemoveUid = uid;
+  document.getElementById('ruName').textContent = name;
+  document.getElementById('ruErr').style.display = 'none';
+  document.getElementById('removeUserModal').classList.add('open');
+};
+window.closeRemoveUser = function(){
+  document.getElementById('removeUserModal').classList.remove('open');
+  pendingRemoveUid = null;
+};
+window.removeUser = async function(){
+  if (!pendingRemoveUid) return;
+  const btn = document.getElementById('ruBtn');
+  const errEl = document.getElementById('ruErr');
+  btn.disabled = true; btn.textContent = 'Removing…';
+  try {
+    await deleteDoc(doc(db,'chat_users', pendingRemoveUid));
+    showToast('Member removed');
+    closeRemoveUser();
+  } catch(e){
+    errEl.textContent = e.message;
+    errEl.style.display = 'block';
+  }
+  btn.disabled = false; btn.textContent = 'Remove';
+};
+
 // ── HELPERS ──
 function showToast(msg){
   const t = document.getElementById('toast');
@@ -799,6 +933,59 @@ window.ins = function(a,b){
   el.value=el.value.slice(0,s)+a+el.value.slice(s,en)+b+el.value.slice(en);
   el.focus();
 };
+
+// ── MOBILE PANELS ──
+window.toggleSidebar = function(){
+  document.querySelector('.sidebar').classList.toggle('mobile-open');
+  document.getElementById('mobileBackdrop').classList.toggle('show');
+};
+window.toggleRightPanel = function(){
+  document.querySelector('.right-panel').classList.toggle('mobile-open');
+  document.getElementById('mobileBackdrop').classList.toggle('show');
+};
+window.closeMobilePanels = function(){
+  document.querySelector('.sidebar').classList.remove('mobile-open');
+  document.querySelector('.right-panel').classList.remove('mobile-open');
+  document.getElementById('mobileBackdrop').classList.remove('show');
+};
+
+// ── PWA: INSTALLABLE APP ──
+let deferredInstallPrompt = null;
+const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.MSStream;
+
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredInstallPrompt = e;
+  const btn = document.getElementById('installBtn');
+  if (btn && !isStandalone) btn.classList.add('show');
+});
+window.addEventListener('appinstalled', () => {
+  deferredInstallPrompt = null;
+  const btn = document.getElementById('installBtn');
+  if (btn) btn.classList.remove('show');
+});
+window.installApp = async function(){
+  if (deferredInstallPrompt) {
+    deferredInstallPrompt.prompt();
+    await deferredInstallPrompt.userChoice;
+    deferredInstallPrompt = null;
+    document.getElementById('installBtn').classList.remove('show');
+  } else if (isIOS) {
+    showToast('Tap the Share icon, then "Add to Home Screen"');
+  } else {
+    showToast('Use your browser menu to install this app');
+  }
+};
+if (isIOS && !isStandalone) {
+  // iOS never fires beforeinstallprompt — show the button anyway so users get instructions
+  document.getElementById('installBtn')?.classList.add('show');
+}
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(()=>{});
+  });
+}
 </script>
 </body>
 </html>
