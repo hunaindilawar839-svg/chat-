@@ -198,7 +198,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <input class="form-input" id="loginPass" type="password" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
     <button class="btn-green" id="loginBtn" onclick="doLogin()">Sign in</button>
     <p id="firstTimeHint" style="font-size:11px;color:var(--text-tertiary);text-align:center;margin-top:12px;display:none">Having trouble? <span style="text-decoration:underline;cursor:pointer;color:var(--green)" onclick="doFirstTimeSetup()">Set up as first admin</span></p>
-    <pre id="debugLog" style="display:none;margin-top:14px;background:var(--bg-tertiary);border:0.5px solid var(--border);border-radius:var(--radius-md);padding:10px;font-size:10px;color:var(--text-secondary);white-space:pre-wrap;word-break:break-all;max-height:160px;overflow-y:auto;line-height:1.6"></pre>
   </div>
 </div>
 
@@ -341,12 +340,13 @@ import { getFirestore, collection, doc, setDoc, getDoc, getDocs, addDoc, onSnaps
 import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyDteptTOhJ1gjmNOrrnrIfepe2neg6hmkU",
-  authDomain: "my-leads-app-f6198.firebaseapp.com",
-  projectId: "my-leads-app-f6198",
-  storageBucket: "my-leads-app-f6198.firebasestorage.app",
-  messagingSenderId: "239949793404",
-  appId: "1:239949793404:web:092e751967d04be2c8e1f9"
+  apiKey: "AIzaSyDx8lHXrrLC0PxepECIu_vjF5-oybPQVkY",
+  authDomain: "navainchat.firebaseapp.com",
+  projectId: "navainchat",
+  storageBucket: "navainchat.firebasestorage.app",
+  messagingSenderId: "710372876596",
+  appId: "1:710372876596:web:6054085a29873322db0561",
+  measurementId: "G-S8S1CJ0CPL"
 };
 
 const app = initializeApp(firebaseConfig);
@@ -384,19 +384,13 @@ function dmKey(a,b){ return [a,b].sort().join('__'); }
 onAuthStateChanged(auth, async user => {
   document.getElementById('globalLoader').style.display = 'none';
   const btn = document.getElementById('loginBtn');
-  const dbg = document.getElementById('debugLog');
   if (user) {
-    dbg.style.display = 'block';
-    dbg.textContent += '\n✅ Step 2: onAuthStateChanged — user signed in: ' + user.email;
     try {
       const snap = await getDoc(doc(db,'chat_users', user.uid));
       if (!snap.exists()) {
-        dbg.textContent += '\n⏳ Step 3: No chat_users doc found. Checking for existing admins…';
         const usersSnap = await getDocs(collection(db,'chat_users'));
         const hasAnyAdmin = usersSnap.docs.some(d => d.data().isAdmin);
-        dbg.textContent += '\n   chat_users total docs: ' + usersSnap.size + ', hasAnyAdmin: ' + hasAnyAdmin;
         if (!hasAnyAdmin) {
-          dbg.textContent += '\n⏳ Creating first admin profile…';
           const profile = {
             name: user.displayName || (user.email ? user.email.split('@')[0] : 'Admin'),
             email: user.email || '',
@@ -407,26 +401,23 @@ onAuthStateChanged(auth, async user => {
             createdAt: serverTimestamp()
           };
           await setDoc(doc(db,'chat_users', user.uid), profile);
-          dbg.textContent += '\n✅ Profile created! Loading app…';
           ME = { uid: user.uid, ...profile };
           await loadAllUsers();
           showApp();
           return;
         }
-        dbg.textContent += '\n❌ Admins exist but no profile for this UID. Signing out.';
         await signOut(auth);
         btn.disabled = false; btn.textContent = 'Sign in';
         showLogin('No profile found for this account. Ask an admin to add you.');
         document.getElementById('firstTimeHint').style.display = 'block';
         return;
       }
-      dbg.textContent += '\n✅ Step 3: Profile found — ' + snap.data().name + ' (' + snap.data().role + '). Loading app…';
       ME = { uid: user.uid, ...snap.data() };
       await loadAllUsers();
       showApp();
     } catch(err) {
-      dbg.textContent += '\n❌ Firestore error: ' + err.code + ' — ' + err.message;
       btn.disabled = false; btn.textContent = 'Sign in';
+      showLogin('Connection error: ' + (err.message || err.code));
     }
   } else {
     btn.disabled = false; btn.textContent = 'Sign in';
@@ -718,16 +709,11 @@ window.doLogin = async function(){
   const pass  = document.getElementById('loginPass').value;
   const errEl = document.getElementById('loginErr');
   const btn   = document.getElementById('loginBtn');
-  const dbg   = document.getElementById('debugLog');
   errEl.style.display = 'none';
-  dbg.style.display = 'block';
-  dbg.textContent = '⏳ Step 1: Calling Firebase Auth…';
   btn.disabled = true; btn.textContent = 'Signing in…';
   try {
-    const cred = await signInWithEmailAndPassword(auth, email, pass);
-    dbg.textContent = '✅ Step 1: Auth OK — UID: ' + cred.user.uid + '\n⏳ Step 2: Loading Firestore profile…';
+    await signInWithEmailAndPassword(auth, email, pass);
   } catch(e){
-    dbg.textContent = '❌ Auth failed: ' + e.code + '\n' + e.message;
     errEl.textContent = e.code === 'auth/invalid-credential' || e.code === 'auth/wrong-password'
       ? 'Invalid email or password.'
       : e.code === 'auth/user-not-found'
