@@ -224,7 +224,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   .modal{width:90vw;max-width:360px}
   .ch-title{font-size:13px}
 }
-@media(max-width:480px){
+@keyframes slideUp{from{opacity:0;transform:translateX(-50%) translateY(12px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+.notif-bell{position:relative;cursor:pointer}
+.notif-bell .dot{position:absolute;top:2px;right:2px;width:7px;height:7px;background:#E24B4A;border-radius:50%;border:1.5px solid var(--bg-primary);display:none}
+.notif-bell.unread .dot{display:block}
   .login-card{padding:20px}
 }
 .sb-footer{padding-bottom:max(11px, env(safe-area-inset-bottom))}
@@ -420,6 +423,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
 import { getFirestore, collection, doc, setDoc, getDoc, getDocs, addDoc, deleteDoc, onSnapshot, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
+import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDx8lHXrrLC0PxepECIu_vjF5-oybPQVkY",
@@ -434,14 +438,64 @@ const firebaseConfig = {
 const app     = initializeApp(firebaseConfig);
 const db      = getFirestore(app);
 const auth    = getAuth(app);
-const storage = getStorage(app);
+const storage   = getStorage(app);
+const messaging = getMessaging(app);
 
 // ── STATE ──
 let ME = null;          // current user profile from Firestore
 let ALL_USERS = {};     // uid → profile
 let curCh = 'general';
-let pendingFile = null;
+let pendingFile  = null;
 let pendingFtype = null;
+
+// ── FCM PUSH NOTIFICATIONS ──
+// Replace this with your VAPID key from Firebase Console → Project Settings → Cloud Messaging → Web Push certificates
+const VAPID_KEY = 'YOUR_VAPID_KEY_HERE';
+
+async function initNotifications(){
+  if (!('Notification' in window)) return;
+  try {
+    const permission = await Notification.requestPermission();
+    if (permission !== 'granted') return;
+    const sw = await navigator.serviceWorker.ready;
+    const token = await getToken(messaging, { vapidKey: VAPID_KEY, serviceWorkerRegistration: sw });
+    if (token && ME?.uid) {
+      await setDoc(doc(db,'chat_users', ME.uid), { fcmToken: token }, { merge: true });
+    }
+    // Foreground message handler — show in-app toast when app is open
+    onMessage(messaging, payload => {
+      const { title, body } = payload.notification || {};
+      showToast(title || 'New message', body || '');
+    });
+  } catch(e){ console.warn('FCM init failed:', e.message); }
+}
+
+function showToast(title, body){
+  let toast = document.getElementById('notifToast');
+  if (!toast){
+    toast = document.createElement('div');
+    toast.id = 'notifToast';
+    toast.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--bg-primary);border:0.5px solid var(--border-md);border-radius:var(--radius-lg);padding:10px 16px;box-shadow:0 4px 20px rgba(0,0,0,.18);z-index:9999;font-size:13px;max-width:300px;display:flex;gap:10px;align-items:flex-start;animation:slideUp .2s ease';
+    document.body.appendChild(toast);
+  }
+  toast.innerHTML = `<span style="font-size:18px">💬</span><div><strong style="display:block;margin-bottom:2px">${title}</strong><span style="color:var(--text-secondary)">${body}</span></div>`;
+  toast.style.display = 'flex';
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => { toast.style.display = 'none'; }, 4000);
+}
+
+// Local notification fallback when app is in foreground (no FCM needed)
+function notifyLocal(senderName, preview, isFile){
+  if (document.visibilityState === 'visible') { showToast(senderName, preview); return; }
+  if (Notification.permission === 'granted'){
+    new Notification(senderName, {
+      body: preview,
+      icon: './icon-192.png',
+      badge: './icon-192.png',
+      tag: 'navain-chat'
+    });
+  }
+}
 let selectedRole = 'admin';
 let msgUnsub = null;    // Firestore listener unsubscribe
 
@@ -520,6 +574,7 @@ function showApp(){
   document.getElementById('loginScreen').classList.remove('show');
   document.getElementById('appScreen').classList.add('show');
   initApp();
+  initNotifications();
 }
 
 // ── LOAD ALL USERS ──
@@ -687,9 +742,24 @@ function listenMessages(ch, isDm, targetUid, tv){
 
   const colPath = isDm ? `dm_messages/${dmKey(ME.uid, targetUid)}/msgs` : `channel_messages/${ch}/msgs`;
   const q = query(collection(db, colPath), orderBy('ts','asc'));
+  let isFirstLoad = true;
   msgUnsub = onSnapshot(q, snap => {
+    // Notify on new incoming messages after initial load
+    if (!isFirstLoad){
+      const lastDoc = snap.docs[snap.docs.length - 1];
+      if (lastDoc){
+        const m = lastDoc.data();
+        if (m.uid !== ME.uid){
+          const sender = ALL_USERS[m.uid];
+          const sname = sender ? sender.name : 'Someone';
+          const preview = m.file ? `📎 Shared a file: ${m.file.name}` : (m.text || '').slice(0,80);
+          notifyLocal(sname, preview);
+        }
+      }
+    }
     if (snap.empty){
       area.innerHTML = `<div class="empty-state"><i class="ti ti-messages"></i><span>No messages yet — start the conversation</span></div>`;
+      isFirstLoad = false;
       return;
     }
     let html = '', lastUid = '';
@@ -731,6 +801,7 @@ function listenMessages(ch, isDm, targetUid, tv){
     if (lastUid) html += '</div>';
     area.innerHTML = html;
     area.scrollTop = area.scrollHeight;
+    isFirstLoad = false;
   });
 }
 
