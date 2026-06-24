@@ -473,17 +473,21 @@ async function initNotifications(){
 }
 
 function notifyLocal(senderName, preview){
+  // Always show in-app toast if visible
   if (document.visibilityState === 'visible'){
     showToast(`${senderName}: ${preview}`);
-    return;
   }
+  // Also fire OS notification (works when tab is open but phone screen is off, or app in background)
   if (Notification.permission === 'granted'){
-    new Notification(senderName, {
-      body: preview,
-      icon: './icon-192.png',
-      badge: './icon-192.png',
-      tag: 'navain-chat'
-    });
+    try {
+      new Notification(senderName, {
+        body: preview,
+        icon: './icon-192.png',
+        badge: './icon-192.png',
+        tag: 'navain-msg-' + Date.now(), // unique tag = every message shows separately
+        silent: false
+      });
+    } catch(e){ console.warn('Notification error:', e); }
   }
 }
 let selectedRole = 'admin';
@@ -734,18 +738,20 @@ function listenMessages(ch, isDm, targetUid, tv){
   const q = query(collection(db, colPath), orderBy('ts','asc'));
   let isFirstLoad = true;
   msgUnsub = onSnapshot(q, snap => {
-    // Notify on new incoming messages after initial load
+    // Use docChanges to catch only brand-new messages, not edits or initial load
     if (!isFirstLoad){
-      const lastDoc = snap.docs[snap.docs.length - 1];
-      if (lastDoc){
-        const m = lastDoc.data();
-        if (m.uid !== ME.uid){
-          const sender = ALL_USERS[m.uid];
-          const sname = sender ? sender.name : 'Someone';
-          const preview = m.file ? `📎 Shared a file: ${m.file.name}` : (m.text || '').slice(0,80);
-          notifyLocal(sname, preview);
+      snap.docChanges().forEach(change => {
+        if (change.type === 'added'){
+          const m = change.doc.data();
+          // Skip own messages and messages still being written (hasPendingWrites = our own send)
+          if (m.uid !== ME.uid && !change.doc.metadata.hasPendingWrites){
+            const sender = ALL_USERS[m.uid];
+            const sname = sender ? sender.name : 'Someone';
+            const preview = m.file ? `📎 ${m.file.name}` : (m.text || '').slice(0, 80);
+            notifyLocal(sname, preview);
+          }
         }
-      }
+      });
     }
     if (snap.empty){
       area.innerHTML = `<div class="empty-state"><i class="ti ti-messages"></i><span>No messages yet — start the conversation</span></div>`;
@@ -841,12 +847,16 @@ window.confirmShare = async function(){
   const btn = document.getElementById('confirmShareBtn');
   btn.disabled = true; btn.textContent = 'Uploading…';
   try {
-    // 1. Upload to Firebase Storage
-    const path = `chat_files/${curCh}/${Date.now()}_${pendingFile.name}`;
+    // Sanitize filename — remove spaces/special chars that can break Storage URLs
+    const safeName = pendingFile.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+    const path = `chat_files/${curCh}/${Date.now()}_${safeName}`;
     const sRef = storageRef(storage, path);
-    await uploadBytes(sRef, pendingFile);
-    const url = await getDownloadURL(sRef);
-    // 2. Save message with url
+
+    // Upload with metadata
+    const meta = { contentType: pendingFile.type || 'application/octet-stream' };
+    const snap = await uploadBytes(sRef, pendingFile, meta);
+    const url  = await getDownloadURL(snap.ref);
+
     const ftype = pendingFtype || 'doc';
     const isDm  = curCh.startsWith('dm-');
     const targetUid = isDm ? curCh.replace('dm-','') : null;
@@ -855,11 +865,28 @@ window.confirmShare = async function(){
     await addDoc(collection(db, colPath), { uid: ME.uid, file: fileObj, ts: serverTimestamp() });
     await addDoc(collection(db,'shared_files'), { name: pendingFile.name, uid: ME.uid, ftype, url, ts: serverTimestamp() });
     renderSharedFiles();
+    closeFileModal(); // only close on success
   } catch(err){
-    alert('Upload failed: '+err.message);
+    console.error('Upload error:', err);
+    // Show error inside modal instead of alert
+    btn.disabled = false; btn.textContent = 'Retry upload';
+    let errEl = document.getElementById('uploadErrMsg');
+    if (!errEl){
+      errEl = document.createElement('p');
+      errEl.id = 'uploadErrMsg';
+      errEl.style.cssText = 'color:var(--text-danger);font-size:12px;margin-top:8px;text-align:center';
+      btn.parentElement.before(errEl);
+    }
+    // Give a human-readable reason
+    if (err.code === 'storage/unauthorized')
+      errEl.textContent = '⚠️ Storage permission denied — check Firebase Storage rules.';
+    else if (err.code === 'storage/canceled')
+      errEl.textContent = '⚠️ Upload cancelled.';
+    else if (err.code === 'storage/unknown' || err.message?.includes('CORS'))
+      errEl.textContent = '⚠️ CORS error — add your domain to Firebase Storage allowed origins.';
+    else
+      errEl.textContent = '⚠️ ' + (err.message || err.code || 'Upload failed');
   }
-  btn.disabled = false; btn.textContent = 'Share in channel';
-  closeFileModal();
 };
 
 // ── FIRST TIME SETUP (force create admin if bootstrap fails) ──
