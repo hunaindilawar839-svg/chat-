@@ -455,27 +455,11 @@ async function initOneSignal(uid){
         allowLocalhostAsSecureOrigin: true,
       });
 
+      // Link this device to the Firebase UID — this is how we target by user
+      await OneSignal.login(uid);
+
       // Request permission
-      const granted = await OneSignal.Notifications.requestPermission();
-      if (!granted) return;
-
-      // Save subscription id to Firestore immediately if available
-      async function saveSubId(){
-        const subId = OneSignal.User.PushSubscription.id;
-        if (subId) {
-          await setDoc(doc(db, 'chat_users', uid), { osPlayerId: subId }, { merge: true });
-          console.log('[OneSignal] player id saved:', subId);
-        }
-      }
-      await saveSubId();
-
-      // Also listen for changes (fires when subscription is first created)
-      OneSignal.User.PushSubscription.addEventListener('change', async () => {
-        await saveSubId();
-      });
-
-      // Tag with Firebase uid for segment targeting
-      OneSignal.User.addTag('uid', uid);
+      await OneSignal.Notifications.requestPermission();
     });
   } catch(e){ console.warn('OneSignal init error:', e.message); }
 }
@@ -486,10 +470,7 @@ async function saveTokenToSupabase(uid, token){
 
 async function sendPushTo(recipientUid, title, body){
   try {
-    const recipientDoc = await getDoc(doc(db, 'chat_users', recipientUid));
-    const playerId = recipientDoc.data()?.osPlayerId;
-    if (!playerId) return; // recipient hasn't registered with OneSignal yet
-    // Call OneSignal REST API via their notifications endpoint
+    // Target by Firebase UID (set as external_id via OneSignal.login())
     await fetch('https://onesignal.com/api/v1/notifications', {
       method: 'POST',
       headers: {
@@ -498,11 +479,11 @@ async function sendPushTo(recipientUid, title, body){
       },
       body: JSON.stringify({
         app_id: ONESIGNAL_APP_ID,
-        include_player_ids: [playerId],
+        include_aliases: { external_id: [recipientUid] },
+        target_channel: 'push',
         headings: { en: title },
         contents: { en: body },
         web_url: window.location.origin,
-        ios_attachments: {},
         priority: 10,
       })
     });
