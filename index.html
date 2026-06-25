@@ -877,7 +877,6 @@ window.confirmShare = async function(){
   if (!pendingFile) return;
   const btn = document.getElementById('confirmShareBtn');
   btn.disabled = true; btn.textContent = 'Uploading…';
-  alert('DEBUG: file name=' + pendingFile.name + ' type="' + pendingFile.type + '" size=' + pendingFile.size); // TEMP DEBUG
   try {
     // Sanitize filename — remove spaces/special chars that can break Storage URLs
     const safeName = pendingFile.name.replace(/[^a-zA-Z0-9._-]/g, '_');
@@ -909,7 +908,6 @@ window.confirmShare = async function(){
     closeFileModal(); // only close on success
   } catch(err){
     console.error('Upload error:', err);
-    alert('DEBUG: upload failed — ' + (err.message || JSON.stringify(err))); // TEMP DEBUG
     // Show error inside modal instead of alert
     btn.disabled = false; btn.textContent = 'Retry upload';
     let errEl = document.getElementById('uploadErrMsg');
