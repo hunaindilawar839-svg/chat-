@@ -448,16 +448,14 @@ const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // Saves/updates this user's push token in Supabase so the Edge Function can find it
 async function saveTokenToSupabase(uid, token){
   try {
-    const { error } = await sb.from('fcm_tokens').upsert({ uid, token, updated_at: new Date().toISOString() });
-    if (error) alert('DEBUG: Supabase upsert error — ' + JSON.stringify(error));
-  } catch(e){ alert('DEBUG: Supabase save threw — ' + e.message); }
+    await sb.from('fcm_tokens').upsert({ uid, token, updated_at: new Date().toISOString() });
+  } catch(e){ console.warn('Supabase token save failed:', e); }
 }
 
 // Calls the Supabase Edge Function to actually send a push to a specific user
 async function sendPushTo(recipientUid, title, body){
-  alert('DEBUG: sendPushTo called for ' + recipientUid); // TEMP DEBUG
   try {
-    const res = await fetch(`${SUPABASE_URL}/functions/v1/send-push`, {
+    await fetch(`${SUPABASE_URL}/functions/v1/send-push`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -465,11 +463,7 @@ async function sendPushTo(recipientUid, title, body){
       },
       body: JSON.stringify({ recipientUid, title, body })
     });
-    const txt = await res.text();
-    alert('DEBUG: response ' + res.status + ' — ' + txt); // TEMP DEBUG
-  } catch(e){
-    alert('DEBUG: push send threw error — ' + e.message); // TEMP DEBUG
-  }
+  } catch(e){ console.warn('Push send failed:', e); }
 }
 
 // ── STATE ──
@@ -481,13 +475,12 @@ let pendingFtype = null;
 
 // ── FCM PUSH NOTIFICATIONS (lazy — never blocks login) ──
 // Paste your VAPID key from: Firebase Console → Project Settings → Cloud Messaging → Web Push certificates
-const VAPID_KEY = 'N8TLTvol6AgVCJ16E2-_joIHf7m495PQ-UbjXvjiWxE';
+const VAPID_KEY = 'BMYYAcijAYYD18QWeR_hkqgRz2K6xP9vOfkNykVkNKTO1jrbjcDYktYrjMYEbT0P4Q3o_2hMlXMNXq1vOKq4Xg4';
 
 async function initNotifications(){
-  if (!('Notification' in window) || !('serviceWorker' in navigator)) { alert('DEBUG: Notification or SW not supported'); return; }
+  if (!('Notification' in window) || !('serviceWorker' in navigator)) return;
   try {
     const permission = await Notification.requestPermission();
-    alert('DEBUG: permission = ' + permission);
     if (permission !== 'granted') return;
     // Dynamically import FCM so a failure here never breaks login or the rest of the app
     const { getMessaging, getToken, onMessage } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging.js');
@@ -495,18 +488,16 @@ async function initNotifications(){
     if (VAPID_KEY !== 'YOUR_VAPID_KEY_HERE') {
       const sw = await navigator.serviceWorker.ready;
       const token = await getToken(messaging, { vapidKey: VAPID_KEY, serviceWorkerRegistration: sw });
-      alert('DEBUG: token = ' + (token ? token.slice(0,20)+'...' : 'NULL') + ' | ME.uid = ' + ME?.uid);
       if (token && ME?.uid) {
         await setDoc(doc(db,'chat_users', ME.uid), { fcmToken: token }, { merge: true });
         await saveTokenToSupabase(ME.uid, token);
-        alert('DEBUG: token saved to Firestore + Supabase successfully');
       }
     }
     onMessage(messaging, payload => {
       const { title, body } = payload.notification || {};
       showToast(`${title || 'New message'}${body ? ': ' + body : ''}`);
     });
-  } catch(e){ alert('DEBUG: initNotifications error — ' + e.message); }
+  } catch(e){ console.warn('Notifications unavailable:', e.message); }
 }
 
 function notifyLocal(senderName, preview){
