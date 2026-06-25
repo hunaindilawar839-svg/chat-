@@ -423,6 +423,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
 import { getFirestore, collection, doc, setDoc, getDoc, getDocs, addDoc, deleteDoc, onSnapshot, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDx8lHXrrLC0PxepECIu_vjF5-oybPQVkY",
@@ -438,6 +439,32 @@ const app     = initializeApp(firebaseConfig);
 const db      = getFirestore(app);
 const auth    = getAuth(app);
 const storage = getStorage(app);
+
+// ── SUPABASE (used only for push-notification token storage + sending) ──
+const SUPABASE_URL = 'https://uxwpgbdixtbuozvhxsdw.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_Tz2D21AiPxBq3ikZ3dDK0Q_jJKswC5x';
+const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// Saves/updates this user's push token in Supabase so the Edge Function can find it
+async function saveTokenToSupabase(uid, token){
+  try {
+    await sb.from('fcm_tokens').upsert({ uid, token, updated_at: new Date().toISOString() });
+  } catch(e){ console.warn('Supabase token save failed:', e); }
+}
+
+// Calls the Supabase Edge Function to actually send a push to a specific user
+async function sendPushTo(recipientUid, title, body){
+  try {
+    await fetch(`${SUPABASE_URL}/functions/v1/send-push`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+      },
+      body: JSON.stringify({ recipientUid, title, body })
+    });
+  } catch(e){ console.warn('Push send failed:', e); }
+}
 
 // ── STATE ──
 let ME = null;
@@ -463,6 +490,7 @@ async function initNotifications(){
       const token = await getToken(messaging, { vapidKey: VAPID_KEY, serviceWorkerRegistration: sw });
       if (token && ME?.uid) {
         await setDoc(doc(db,'chat_users', ME.uid), { fcmToken: token }, { merge: true });
+        await saveTokenToSupabase(ME.uid, token);
       }
     }
     onMessage(messaging, payload => {
@@ -813,6 +841,9 @@ window.sendMsg = async function(){
   const colPath = isDm ? `dm_messages/${dmKey(ME.uid, targetUid)}/msgs` : `channel_messages/${curCh}/msgs`;
   inp.value = ''; inp.style.height = 'auto';
   await addDoc(collection(db, colPath), { uid: ME.uid, text: txt, ts: serverTimestamp() });
+  if (isDm && targetUid){
+    sendPushTo(targetUid, ME.name || 'New message', txt);
+  }
 };
 
 // ── FILE SHARE ──
@@ -864,6 +895,9 @@ window.confirmShare = async function(){
     const fileObj = { name: pendingFile.name, size: (pendingFile.size/1024).toFixed(1)+' KB', ftype, url };
     await addDoc(collection(db, colPath), { uid: ME.uid, file: fileObj, ts: serverTimestamp() });
     await addDoc(collection(db,'shared_files'), { name: pendingFile.name, uid: ME.uid, ftype, url, ts: serverTimestamp() });
+    if (isDm && targetUid){
+      sendPushTo(targetUid, ME.name || 'New file', `Sent a file: ${pendingFile.name}`);
+    }
     renderSharedFiles();
     closeFileModal(); // only close on success
   } catch(err){
