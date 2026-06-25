@@ -422,8 +422,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getFirestore, collection, doc, setDoc, getDoc, getDocs, addDoc, deleteDoc, onSnapshot, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDx8lHXrrLC0PxepECIu_vjF5-oybPQVkY",
@@ -438,32 +436,20 @@ const firebaseConfig = {
 const app     = initializeApp(firebaseConfig);
 const db      = getFirestore(app);
 const auth    = getAuth(app);
-const storage = getStorage(app);
 
-// ── SUPABASE (used only for push-notification token storage + sending) ──
-const SUPABASE_URL = 'https://uxwpgbdixtbuozvhxsdw.supabase.co';
-const SUPABASE_ANON_KEY = 'sb_publishable_Tz2D21AiPxBq3ikZ3dDK0Q_jJKswC5x';
-const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// Saves/updates this user's push token in Supabase so the Edge Function can find it
+// ── FCM token stored in Firestore (same project, no external service needed) ──
 async function saveTokenToSupabase(uid, token){
-  try {
-    await sb.from('fcm_tokens').upsert({ uid, token, updated_at: new Date().toISOString() });
-  } catch(e){ console.warn('Supabase token save failed:', e); }
+  // Token is already saved to chat_users doc in initNotifications() via setDoc merge
+  // This function is kept as a no-op so call sites don't need to change
 }
 
-// Calls the Supabase Edge Function to actually send a push to a specific user
+// Push sending: tokens are stored in chat_users Firestore doc.
+// For server-side push delivery you need a Cloud Function with Admin SDK.
+// For now, in-app toasts + OS Notification API cover all active sessions.
 async function sendPushTo(recipientUid, title, body){
-  try {
-    await fetch(`${SUPABASE_URL}/functions/v1/send-push`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
-      },
-      body: JSON.stringify({ recipientUid, title, body })
-    });
-  } catch(e){ console.warn('Push send failed:', e); }
+  // No-op client side — OS notifications fire automatically via onMessage()
+  // for active sessions. Background push requires a Cloud Function (Firebase free tier supports it).
 }
 
 // ── STATE ──
@@ -882,17 +868,20 @@ window.confirmShare = async function(){
     const safeName = pendingFile.name.replace(/[^a-zA-Z0-9._-]/g, '_');
     const path = `chat_files/${curCh}/${Date.now()}_${safeName}`;
 
-    // Upload to Supabase Storage instead of Firebase Storage, with a hard timeout so it can never hang silently
-    const uploadPromise = sb.storage
-      .from('chat-files')
-      .upload(path, pendingFile, { contentType: pendingFile.type || 'application/octet-stream' });
-    const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Upload timed out after 15s')), 15000));
-
-    const { error: uploadError } = await Promise.race([uploadPromise, timeoutPromise]);
-    if (uploadError) throw uploadError;
-
-    const { data: urlData } = sb.storage.from('chat-files').getPublicUrl(path);
-    const url = urlData.publicUrl;
+    // Upload to Cloudinary (free, no credit card needed)
+    const CLOUDINARY_CLOUD = 'dxbemgl70';
+    const CLOUDINARY_PRESET = 'dxbemgl70';
+    const formData = new FormData();
+    formData.append('file', pendingFile);
+    formData.append('upload_preset', CLOUDINARY_PRESET);
+    formData.append('folder', `navain_chat/${curCh}`);
+    const uploadRes = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/upload`, {
+      method: 'POST',
+      body: formData
+    });
+    if (!uploadRes.ok) throw new Error('Cloudinary upload failed: ' + uploadRes.statusText);
+    const uploadData = await uploadRes.json();
+    const url = uploadData.secure_url;
 
     const ftype = pendingFtype || 'doc';
     const isDm  = curCh.startsWith('dm-');
