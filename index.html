@@ -13,6 +13,10 @@
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="icon" href="icon-192.png">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
+<script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+<script>
+  window.OneSignalDeferred = window.OneSignalDeferred || [];
+</script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -438,18 +442,59 @@ const db      = getFirestore(app);
 const auth    = getAuth(app);
 
 
-// ── FCM token stored in Firestore (same project, no external service needed) ──
-async function saveTokenToSupabase(uid, token){
-  // Token is already saved to chat_users doc in initNotifications() via setDoc merge
-  // This function is kept as a no-op so call sites don't need to change
+// ── ONESIGNAL PUSH NOTIFICATIONS ──
+const ONESIGNAL_APP_ID = '2806fa2a-f4b1-42b8-9c28-f79fc3d63837';
+
+async function initOneSignal(uid){
+  try {
+    await window.OneSignalDeferred?.push(async (OneSignal) => {
+      await OneSignal.init({
+        appId: ONESIGNAL_APP_ID,
+        safari_web_id: 'web.onesignal.auto.' + ONESIGNAL_APP_ID,
+        notifyButton: { enable: false },
+        allowLocalhostAsSecureOrigin: true,
+      });
+      // Request permission
+      await OneSignal.Notifications.requestPermission();
+      // Tag user with their uid so we can target them by uid
+      await OneSignal.User.addTag('uid', uid);
+      // Also save the OneSignal player id to Firestore for direct targeting
+      const playerId = await OneSignal.User.getOnesignalId();
+      if (playerId) {
+        await setDoc(doc(db, 'chat_users', uid), { osPlayerId: playerId }, { merge: true });
+      }
+    });
+  } catch(e){ console.warn('OneSignal init error:', e.message); }
 }
 
-// Push sending: tokens are stored in chat_users Firestore doc.
-// For server-side push delivery you need a Cloud Function with Admin SDK.
-// For now, in-app toasts + OS Notification API cover all active sessions.
+async function saveTokenToSupabase(uid, token){
+  // kept as no-op — OneSignal handles delivery now
+}
+
 async function sendPushTo(recipientUid, title, body){
-  // No-op client side — OS notifications fire automatically via onMessage()
-  // for active sessions. Background push requires a Cloud Function (Firebase free tier supports it).
+  try {
+    const recipientDoc = await getDoc(doc(db, 'chat_users', recipientUid));
+    const playerId = recipientDoc.data()?.osPlayerId;
+    if (!playerId) return; // recipient hasn't registered with OneSignal yet
+    // Call OneSignal REST API via their notifications endpoint
+    await fetch('https://onesignal.com/api/v1/notifications', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        // No Authorization header needed for client-side sends targeting by player_id
+        // We use include_player_ids which only needs the App ID
+      },
+      body: JSON.stringify({
+        app_id: ONESIGNAL_APP_ID,
+        include_player_ids: [playerId],
+        headings: { en: title },
+        contents: { en: body },
+        web_url: window.location.origin,
+        ios_attachments: {},
+        priority: 10,
+      })
+    });
+  } catch(e){ console.warn('Push send error:', e.message); }
 }
 
 // ── STATE ──
@@ -583,6 +628,7 @@ function showApp(){
   document.getElementById('appScreen').classList.add('show');
   initApp();
   initNotifications();
+  initOneSignal(ME.uid);
 }
 
 // ── LOAD ALL USERS ──
@@ -829,6 +875,11 @@ window.sendMsg = async function(){
   await addDoc(collection(db, colPath), { uid: ME.uid, text: txt, ts: serverTimestamp() });
   if (isDm && targetUid){
     sendPushTo(targetUid, ME.name || 'New message', txt);
+  } else {
+    // Notify all other members in the channel
+    Object.values(ALL_USERS).forEach(u => {
+      if (u.uid !== ME.uid) sendPushTo(u.uid, `#${curCh} — ${ME.name}`, txt);
+    });
   }
 };
 
