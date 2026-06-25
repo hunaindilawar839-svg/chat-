@@ -454,8 +454,9 @@ async function saveTokenToSupabase(uid, token){
 
 // Calls the Supabase Edge Function to actually send a push to a specific user
 async function sendPushTo(recipientUid, title, body){
+  alert('DEBUG: sendPushTo called for ' + recipientUid); // TEMP DEBUG
   try {
-    await fetch(`${SUPABASE_URL}/functions/v1/send-push`, {
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/send-push`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -463,7 +464,11 @@ async function sendPushTo(recipientUid, title, body){
       },
       body: JSON.stringify({ recipientUid, title, body })
     });
-  } catch(e){ console.warn('Push send failed:', e); }
+    const txt = await res.text();
+    alert('DEBUG: response ' + res.status + ' — ' + txt); // TEMP DEBUG
+  } catch(e){
+    alert('DEBUG: push send threw error — ' + e.message); // TEMP DEBUG
+  }
 }
 
 // ── STATE ──
