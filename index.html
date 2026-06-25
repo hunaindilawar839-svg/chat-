@@ -455,11 +455,23 @@ async function initOneSignal(uid){
         allowLocalhostAsSecureOrigin: true,
       });
 
-      // Link this device to the Firebase UID — this is how we target by user
+      // Link device to Firebase UID as external_id
       await OneSignal.login(uid);
 
       // Request permission
       await OneSignal.Notifications.requestPermission();
+
+      // Save the OneSignal subscription ID to Firestore
+      // Try immediately, then listen for changes
+      async function trySaveId(){
+        const subId = OneSignal.User.PushSubscription.id;
+        if (subId){
+          await setDoc(doc(db,'chat_users',uid),{ osPlayerId: subId },{ merge:true });
+          console.log('[OneSignal] saved subId:', subId);
+        }
+      }
+      await trySaveId();
+      OneSignal.User.PushSubscription.addEventListener('change', trySaveId);
     });
   } catch(e){ console.warn('OneSignal init error:', e.message); }
 }
@@ -470,23 +482,40 @@ async function saveTokenToSupabase(uid, token){
 
 async function sendPushTo(recipientUid, title, body){
   try {
-    // Target by Firebase UID (set as external_id via OneSignal.login())
-    await fetch('https://onesignal.com/api/v1/notifications', {
+    // Look up osPlayerId from Firestore first, fall back to external_id targeting
+    const recipientDoc = await getDoc(doc(db,'chat_users', recipientUid));
+    const data = recipientDoc.data();
+    if (!data) return;
+
+    const body2 = data.osPlayerId
+      ? {
+          app_id: ONESIGNAL_APP_ID,
+          include_subscription_ids: [data.osPlayerId],
+          headings: { en: title },
+          contents: { en: body },
+          web_url: window.location.origin,
+          priority: 10,
+        }
+      : {
+          app_id: ONESIGNAL_APP_ID,
+          include_aliases: { external_id: [recipientUid] },
+          target_channel: 'push',
+          headings: { en: title },
+          contents: { en: body },
+          web_url: window.location.origin,
+          priority: 10,
+        };
+
+    const res = await fetch('https://onesignal.com/api/v1/notifications', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Key os_v2_app_fadpukxuwfblrhbi66p4hvryg6l53yenm5ou4vngxgz2f753s5ikuyvdvfjtxptjenal5t7vqy365oj6rrohwnkelxmxgwiazgagayi',
       },
-      body: JSON.stringify({
-        app_id: ONESIGNAL_APP_ID,
-        include_aliases: { external_id: [recipientUid] },
-        target_channel: 'push',
-        headings: { en: title },
-        contents: { en: body },
-        web_url: window.location.origin,
-        priority: 10,
-      })
+      body: JSON.stringify(body2)
     });
+    const json = await res.json();
+    console.log('[OneSignal] push result:', json);
   } catch(e){ console.warn('Push send error:', e.message); }
 }
 
