@@ -877,15 +877,19 @@ window.confirmShare = async function(){
   if (!pendingFile) return;
   const btn = document.getElementById('confirmShareBtn');
   btn.disabled = true; btn.textContent = 'Uploading…';
+  alert('DEBUG: file name=' + pendingFile.name + ' type="' + pendingFile.type + '" size=' + pendingFile.size); // TEMP DEBUG
   try {
     // Sanitize filename — remove spaces/special chars that can break Storage URLs
     const safeName = pendingFile.name.replace(/[^a-zA-Z0-9._-]/g, '_');
     const path = `chat_files/${curCh}/${Date.now()}_${safeName}`;
 
-    // Upload to Supabase Storage instead of Firebase Storage
-    const { error: uploadError } = await sb.storage
+    // Upload to Supabase Storage instead of Firebase Storage, with a hard timeout so it can never hang silently
+    const uploadPromise = sb.storage
       .from('chat-files')
       .upload(path, pendingFile, { contentType: pendingFile.type || 'application/octet-stream' });
+    const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Upload timed out after 15s')), 15000));
+
+    const { error: uploadError } = await Promise.race([uploadPromise, timeoutPromise]);
     if (uploadError) throw uploadError;
 
     const { data: urlData } = sb.storage.from('chat-files').getPublicUrl(path);
@@ -905,6 +909,7 @@ window.confirmShare = async function(){
     closeFileModal(); // only close on success
   } catch(err){
     console.error('Upload error:', err);
+    alert('DEBUG: upload failed — ' + (err.message || JSON.stringify(err))); // TEMP DEBUG
     // Show error inside modal instead of alert
     btn.disabled = false; btn.textContent = 'Retry upload';
     let errEl = document.getElementById('uploadErrMsg');
