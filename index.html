@@ -481,8 +481,7 @@ async function sendPushTo(recipientUid, title, body){
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        // No Authorization header needed for client-side sends targeting by player_id
-        // We use include_player_ids which only needs the App ID
+        'Authorization': 'Key os_v2_app_fadpukxuwfblrhbi66p4hvryg6l53yenm5ou4vngxgz2f753s5ikuyvdvfjtxptjenal5t7vqy365oj6rrohwnkelxmxgwiazgagayi',
       },
       body: JSON.stringify({
         app_id: ONESIGNAL_APP_ID,
