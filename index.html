@@ -447,22 +447,35 @@ const ONESIGNAL_APP_ID = '2806fa2a-f4b1-42b8-9c28-f79fc3d63837';
 
 async function initOneSignal(uid){
   try {
-    await window.OneSignalDeferred?.push(async (OneSignal) => {
+    window.OneSignalDeferred = window.OneSignalDeferred || [];
+    window.OneSignalDeferred.push(async (OneSignal) => {
       await OneSignal.init({
         appId: ONESIGNAL_APP_ID,
-        safari_web_id: 'web.onesignal.auto.' + ONESIGNAL_APP_ID,
         notifyButton: { enable: false },
         allowLocalhostAsSecureOrigin: true,
       });
+
       // Request permission
-      await OneSignal.Notifications.requestPermission();
-      // Tag user with their uid so we can target them by uid
-      await OneSignal.User.addTag('uid', uid);
-      // Also save the OneSignal player id to Firestore for direct targeting
-      const playerId = await OneSignal.User.getOnesignalId();
-      if (playerId) {
-        await setDoc(doc(db, 'chat_users', uid), { osPlayerId: playerId }, { merge: true });
+      const granted = await OneSignal.Notifications.requestPermission();
+      if (!granted) return;
+
+      // Save subscription id to Firestore immediately if available
+      async function saveSubId(){
+        const subId = OneSignal.User.PushSubscription.id;
+        if (subId) {
+          await setDoc(doc(db, 'chat_users', uid), { osPlayerId: subId }, { merge: true });
+          console.log('[OneSignal] player id saved:', subId);
+        }
       }
+      await saveSubId();
+
+      // Also listen for changes (fires when subscription is first created)
+      OneSignal.User.PushSubscription.addEventListener('change', async () => {
+        await saveSubId();
+      });
+
+      // Tag with Firebase uid for segment targeting
+      OneSignal.User.addTag('uid', uid);
     });
   } catch(e){ console.warn('OneSignal init error:', e.message); }
 }
