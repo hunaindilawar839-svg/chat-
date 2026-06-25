@@ -875,7 +875,8 @@ window.confirmShare = async function(){
     formData.append('file', pendingFile);
     formData.append('upload_preset', CLOUDINARY_PRESET);
     formData.append('folder', `navain_chat/${curCh}`);
-    const uploadRes = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/upload`, {
+    const resourceType = pendingFtype === 'img' ? 'image' : 'raw';
+    const uploadRes = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/${resourceType}/upload`, {
       method: 'POST',
       body: formData
     });
