@@ -16,6 +16,7 @@
 <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
 <script>window.OneSignalDeferred = window.OneSignalDeferred || [];</script>
 <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js" defer></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -526,6 +527,105 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .al-item{display:flex;align-items:flex-start;gap:10px;padding:10px 14px;border-bottom:0.5px solid var(--border);transition:background .1s}
 .al-item:last-child{border-bottom:none}
 .al-item:hover{background:var(--bg-secondary)}
+
+/* ── ADMIN PORTAL ── */
+.ap-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);backdrop-filter:blur(2px);z-index:700;display:none;align-items:center;justify-content:center;padding:24px}
+.ap-overlay.open{display:flex}
+.ap-modal{background:var(--bg-primary);border-radius:var(--radius-xl);border:0.5px solid var(--border);width:min(1040px,100%);height:min(720px,100%);box-shadow:var(--shadow-lg);animation:modalIn .18s ease-out;display:flex;flex-direction:column;overflow:hidden}
+.ap-head{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:0.5px solid var(--border);flex-shrink:0}
+.ap-title{font-size:15px;font-weight:700;color:var(--text-primary);display:flex;align-items:center;gap:8px;letter-spacing:-.1px}
+.ap-title i{color:var(--green)}
+.ap-tabs{display:flex;gap:4px;padding:10px 20px 0;border-bottom:0.5px solid var(--border);flex-shrink:0}
+.ap-tab{background:none;border:none;padding:9px 14px;font-size:12.5px;font-weight:600;color:var(--text-tertiary);cursor:pointer;font-family:inherit;border-bottom:2px solid transparent;transition:color .12s,border-color .12s;display:flex;align-items:center;gap:6px}
+.ap-tab:hover{color:var(--text-primary)}
+.ap-tab.active{color:var(--text-success);border-bottom-color:var(--green)}
+.ap-body{flex:1;overflow-y:auto;padding:18px 20px;min-height:0}
+.ap-pane{display:none}
+.ap-pane.active{display:block}
+
+/* stat cards (overview) */
+.ap-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:20px}
+.ap-stat-card{background:var(--bg-secondary);border:0.5px solid var(--border);border-radius:var(--radius-md);padding:14px}
+.ap-stat-num{font-size:22px;font-weight:700;color:var(--text-primary);letter-spacing:-.5px}
+.ap-stat-lbl{font-size:11px;color:var(--text-tertiary);margin-top:2px;font-weight:500}
+.ap-subhead{font-size:11.5px;font-weight:700;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:.06em;margin:18px 0 8px}
+.ap-agent-row{display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border-bottom:0.5px solid var(--border);font-size:12.5px}
+.ap-agent-row:last-child{border-bottom:none}
+.ap-agent-row strong{color:var(--text-primary);font-weight:500}
+
+/* leads toolbar */
+.lead-toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
+.lead-search{flex:1;min-width:160px;position:relative}
+.lead-search input{width:100%;border:0.5px solid var(--border-md);border-radius:var(--radius-md);padding:8px 12px 8px 32px;font-size:13px;background:var(--bg-secondary);color:var(--text-primary);font-family:inherit;outline:none}
+.lead-search input:focus{border-color:var(--green);box-shadow:0 0 0 3px var(--green-glow)}
+.lead-search i{position:absolute;left:11px;top:50%;transform:translateY(-50%);font-size:14px;color:var(--text-tertiary)}
+.lead-select{border:0.5px solid var(--border-md);border-radius:var(--radius-md);padding:8px 10px;font-size:12.5px;background:var(--bg-secondary);color:var(--text-primary);font-family:inherit;outline:none;cursor:pointer}
+.lead-add-btn{background:var(--green);border:none;border-radius:var(--radius-md);padding:8px 14px;font-size:12.5px;font-weight:600;color:#fff;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:5px;white-space:nowrap}
+.lead-add-btn:hover{background:var(--green-dark)}
+
+/* leads table */
+.lead-table-wrap{border:0.5px solid var(--border);border-radius:var(--radius-md);overflow:hidden}
+.lead-row{display:grid;grid-template-columns:1.3fr 1fr 1.1fr 1fr .9fr .8fr 32px;gap:10px;align-items:center;padding:10px 12px;border-bottom:0.5px solid var(--border);cursor:pointer;transition:background .1s;font-size:12.5px}
+.lead-row:last-child{border-bottom:none}
+.lead-row:hover{background:var(--bg-secondary)}
+.lead-row.head{cursor:default;background:var(--bg-secondary);font-size:10.5px;font-weight:700;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:.05em}
+.lead-row.head:hover{background:var(--bg-secondary)}
+.lead-name{font-weight:600;color:var(--text-primary)}
+.lead-sub{color:var(--text-tertiary);font-size:11px}
+.lead-status-pill{font-size:10.5px;font-weight:600;padding:3px 8px;border-radius:8px;display:inline-block;white-space:nowrap}
+.lead-status-pill.new{background:var(--bg-info);color:var(--text-info)}
+.lead-status-pill.contacted{background:var(--bg-warning);color:var(--text-warning)}
+.lead-status-pill.interested{background:var(--bg-success);color:var(--text-success)}
+.lead-status-pill.closed{background:var(--green-glow);color:var(--text-success)}
+.lead-status-pill.lost{background:var(--bg-danger);color:var(--text-danger)}
+.lead-empty{padding:40px 20px;text-align:center;color:var(--text-tertiary);font-size:13px}
+.lead-trunc{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* lead detail modal */
+.ld-field{margin-bottom:12px}
+.ld-label{font-size:10.5px;font-weight:700;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px}
+.ld-value{font-size:13.5px;color:var(--text-primary);line-height:1.5}
+.ld-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.ld-status-row{display:flex;gap:6px;flex-wrap:wrap;margin-top:4px}
+.ld-status-opt{font-size:11px;font-weight:600;padding:5px 11px;border-radius:9px;cursor:pointer;border:0.5px solid var(--border-md);background:none;color:var(--text-secondary);font-family:inherit;transition:all .12s}
+.ld-status-opt.sel-new.active{background:var(--bg-info);color:var(--text-info);border-color:transparent}
+.ld-status-opt.sel-contacted.active{background:var(--bg-warning);color:var(--text-warning);border-color:transparent}
+.ld-status-opt.sel-interested.active{background:var(--bg-success);color:var(--text-success);border-color:transparent}
+.ld-status-opt.sel-closed.active{background:var(--green-glow);color:var(--text-success);border-color:transparent}
+.ld-status-opt.sel-lost.active{background:var(--bg-danger);color:var(--text-danger);border-color:transparent}
+
+/* ── BULK LEAD IMPORT ── */
+.bulk-modal{max-width:760px;width:95vw;max-height:85vh;display:flex;flex-direction:column}
+.bulk-steps{display:flex;gap:6px;margin-bottom:16px}
+.bulk-step{flex:1;text-align:center;font-size:11px;font-weight:600;color:var(--text-tertiary);padding:6px 4px;border-bottom:2px solid var(--border)}
+.bulk-step.active{color:var(--text-success);border-bottom-color:var(--green)}
+.bulk-step.done{color:var(--text-secondary)}
+.bulk-body{flex:1;overflow-y:auto;min-height:0}
+.bulk-map-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:center;padding:8px 0;border-bottom:0.5px solid var(--border)}
+.bulk-map-row:last-child{border-bottom:none}
+.bulk-map-csv{font-size:12.5px;color:var(--text-primary);font-weight:600}
+.bulk-map-csv span{display:block;font-size:11px;color:var(--text-tertiary);font-weight:400;margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bulk-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:10px;margin-bottom:16px}
+.bulk-sum-card{background:var(--bg-secondary);border:0.5px solid var(--border);border-radius:var(--radius-md);padding:12px;text-align:center}
+.bulk-sum-num{font-size:20px;font-weight:700;color:var(--text-primary)}
+.bulk-sum-num.warn{color:var(--text-warning)}
+.bulk-sum-num.bad{color:var(--text-danger)}
+.bulk-sum-num.good{color:var(--text-success)}
+.bulk-sum-lbl{font-size:10.5px;color:var(--text-tertiary);margin-top:2px}
+.bulk-preview-table{border:0.5px solid var(--border);border-radius:var(--radius-md);overflow:hidden;max-height:280px;overflow-y:auto}
+.bulk-prow{display:grid;grid-template-columns:1.2fr 1fr 1fr .7fr;gap:8px;padding:7px 10px;border-bottom:0.5px solid var(--border);font-size:12px;align-items:center}
+.bulk-prow:last-child{border-bottom:none}
+.bulk-prow.head{background:var(--bg-secondary);font-size:10px;font-weight:700;text-transform:uppercase;color:var(--text-tertiary);letter-spacing:.05em}
+.bulk-prow.skip{opacity:.45}
+.bulk-flag{font-size:10px;font-weight:600;padding:2px 6px;border-radius:6px}
+.bulk-flag.dup{background:var(--bg-warning);color:var(--text-warning)}
+.bulk-flag.miss{background:var(--bg-danger);color:var(--text-danger)}
+.bulk-flag.ok{background:var(--bg-success);color:var(--text-success)}
+.bulk-dropzone{border:1.5px dashed var(--border-md);border-radius:var(--radius-lg);padding:36px 20px;text-align:center;color:var(--text-tertiary);cursor:pointer;transition:border-color .15s,background .15s}
+.bulk-dropzone:hover{border-color:var(--green);background:var(--bg-secondary)}
+.bulk-dropzone i{font-size:28px;color:var(--text-tertiary);margin-bottom:8px;display:block}
+.bulk-progress-bar{height:6px;background:var(--bg-tertiary);border-radius:4px;overflow:hidden;margin:14px 0}
+.bulk-progress-fill{height:100%;background:var(--green);transition:width .2s;width:0%}
 .al-icon{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:12px}
 .al-icon.login{background:var(--bg-success);color:var(--text-success)}
 .al-icon.msg{background:var(--bg-info);color:var(--text-info)}
@@ -737,6 +837,7 @@ kbd{background:var(--bg-secondary);border:0.5px solid var(--border-md);border-ra
       <div class="search-results" id="searchResults"></div>
     </div>
     <div class="sb-scroll">
+      <button class="ch-item" id="adminPortalBtn" onclick="openAdminPortal()" style="display:none;width:calc(100% - 0px);text-align:left;background:none;border:none;font-family:inherit;cursor:pointer"><i class="ti ti-shield-lock" style="font-size:13px;flex-shrink:0;color:var(--text-success)"></i><span class="ch-label" style="font-weight:600;color:var(--text-success)">Admin Portal</span></button>
       <div class="sec-label">Channels</div>
       <div class="ch-item active" onclick="switchCh('general')" id="ch-general"><i class="ti ti-hash" style="font-size:13px;flex-shrink:0"></i><span class="ch-label" id="chlbl-general">general</span><span class="ml"><button class="ch-rename-btn" id="renameBtn-general" onclick="event.stopPropagation();openRenameChannel('general')" title="Rename channel"><i class="ti ti-pencil" style="font-size:12px"></i></button></span></div>
       <div class="ch-item" onclick="switchCh('sales')" id="ch-sales"><i class="ti ti-hash" style="font-size:13px;flex-shrink:0"></i><span class="ch-label" id="chlbl-sales">sales</span><span class="ml"><button class="ch-rename-btn" id="renameBtn-sales" onclick="event.stopPropagation();openRenameChannel('sales')" title="Rename channel"><i class="ti ti-pencil" style="font-size:12px"></i></button></span></div>
@@ -772,6 +873,9 @@ kbd{background:var(--bg-secondary);border:0.5px solid var(--border-md);border-ra
         </div>
       </div>
       <div class="topbar-r">
+        <button class="icon-btn" id="submitLeadBtn" onclick="openSubmitLead()" title="Submit a lead" style="color:var(--text-success);border-color:var(--green)"><i class="ti ti-user-plus" style="font-size:15px"></i></button>
+        <button class="icon-btn" id="bulkLeadBtn" onclick="document.getElementById('bulkLeadFileInput').click()" title="Bulk upload leads (CSV)" style="color:var(--text-success);border-color:var(--green)"><i class="ti ti-file-upload" style="font-size:15px"></i></button>
+        <input type="file" id="bulkLeadFileInput" style="display:none" accept=".csv" onchange="handleBulkLeadFile(event)">
         <button class="icon-btn" id="addUserBtn" onclick="openCreateUser()" title="Add team member" style="display:none"><i class="ti ti-user-plus" style="font-size:15px"></i></button>
         <button class="call-topbar-btn" id="voiceCallBtn" onclick="initiateCall()" title="Start voice call" style="display:none"><i class="ti ti-phone" style="font-size:15px"></i></button>
         <button class="icon-btn" onclick="openGlobalSearch()" title="Global search (Ctrl+K)"><i class="ti ti-search" style="font-size:15px"></i></button>
@@ -935,6 +1039,191 @@ kbd{background:var(--bg-secondary);border:0.5px solid var(--border-md);border-ra
     </div>
     <div class="modal-actions">
       <button class="btn-sec" onclick="closeAdminLog()">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- SUBMIT LEAD MODAL (any agent) -->
+<div class="modal-overlay" id="submitLeadModal">
+  <div class="modal" style="max-width:420px">
+    <h3>Submit a lead</h3>
+    <p class="modal-sub">Log a lead after a call. It goes straight to the admin leads portal.</p>
+    <div id="slErr" class="err-box"></div>
+    <label class="form-label">Full name *</label>
+    <input class="form-input" id="slName" placeholder="e.g. Dr. Sarah Mitchell">
+    <label class="form-label">Phone *</label>
+    <input class="form-input" id="slPhone" placeholder="+1-555-0000">
+    <label class="form-label">Email <span style="color:var(--text-tertiary);font-weight:400">(optional)</span></label>
+    <input class="form-input" id="slEmail" type="email" placeholder="sarah@practice.com">
+    <label class="form-label">Business / Company <span style="color:var(--text-tertiary);font-weight:400">(optional)</span></label>
+    <input class="form-input" id="slCompany" placeholder="e.g. Mitchell Dental Group">
+    <label class="form-label">Industry</label>
+    <select class="form-input" id="slIndustry">
+      <option value="dental">Dental Practice</option>
+      <option value="real_estate">Real Estate</option>
+      <option value="home_services">Home Services</option>
+      <option value="medical">Medical Clinic</option>
+      <option value="law">Law Firm</option>
+      <option value="other">Other</option>
+    </select>
+    <label class="form-label">Status</label>
+    <select class="form-input" id="slStatus">
+      <option value="new">New</option>
+      <option value="contacted">Contacted</option>
+      <option value="interested">Interested</option>
+      <option value="closed">Closed</option>
+      <option value="lost">Lost</option>
+    </select>
+    <label class="form-label">Notes <span style="color:var(--text-tertiary);font-weight:400">(optional)</span></label>
+    <textarea class="form-input" id="slNotes" rows="3" style="resize:vertical;font-family:inherit" placeholder="Call notes, objections, best time to follow up…"></textarea>
+    <div class="modal-actions">
+      <button class="btn-sec" onclick="closeSubmitLead()">Cancel</button>
+      <button class="btn-pri" id="slBtn" onclick="submitLead()">Submit lead</button>
+    </div>
+  </div>
+</div>
+
+<!-- BULK LEAD IMPORT MODAL -->
+<div class="modal-overlay" id="bulkLeadModal">
+  <div class="modal bulk-modal">
+    <h3>Bulk upload leads</h3>
+    <p class="modal-sub">Import a CSV of leads. We'll auto-match your columns — fix anything that looks wrong before importing.</p>
+    <div class="bulk-steps">
+      <div class="bulk-step active" id="bulkStepTab-map">1. Map columns</div>
+      <div class="bulk-step" id="bulkStepTab-preview">2. Preview</div>
+      <div class="bulk-step" id="bulkStepTab-done">3. Done</div>
+    </div>
+    <div id="bulkErr" class="err-box"></div>
+    <div class="bulk-body">
+      <!-- STEP 1: mapping -->
+      <div id="bulkStep-map">
+        <p style="font-size:11.5px;color:var(--text-tertiary);margin-bottom:10px"><strong id="bulkFileName"></strong> · <span id="bulkRowCount"></span> rows detected</p>
+        <div id="bulkMapRows"></div>
+      </div>
+      <!-- STEP 2: preview -->
+      <div id="bulkStep-preview" style="display:none">
+        <div class="bulk-summary" id="bulkSummary"></div>
+        <div class="bulk-preview-table" id="bulkPreviewTable"></div>
+      </div>
+      <!-- STEP 3: done -->
+      <div id="bulkStep-done" style="display:none">
+        <div class="bulk-progress-bar"><div class="bulk-progress-fill" id="bulkProgressFill"></div></div>
+        <p id="bulkDoneMsg" style="font-size:13px;color:var(--text-primary);text-align:center;padding:8px 0"></p>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-sec" id="bulkBackBtn" onclick="bulkGoBack()" style="display:none">Back</button>
+      <button class="btn-sec" onclick="closeBulkLeadModal()">Cancel</button>
+      <button class="btn-pri" id="bulkNextBtn" onclick="bulkGoNext()">Next: Preview</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADMIN PORTAL -->
+<div class="ap-overlay" id="adminPortalOverlay" onclick="if(event.target===this)closeAdminPortal()">
+  <div class="ap-modal">
+    <div class="ap-head">
+      <div class="ap-title"><i class="ti ti-shield-lock"></i> Admin Portal</div>
+      <button class="btn-sec" onclick="closeAdminPortal()" style="padding:5px 12px;font-size:12px">Close</button>
+    </div>
+    <div class="ap-tabs">
+      <button class="ap-tab active" id="apTab-overview" onclick="switchApTab('overview')"><i class="ti ti-layout-dashboard" style="font-size:14px"></i> Overview</button>
+      <button class="ap-tab" id="apTab-leads" onclick="switchApTab('leads')"><i class="ti ti-target-arrow" style="font-size:14px"></i> Leads</button>
+      <button class="ap-tab" id="apTab-team" onclick="switchApTab('team')"><i class="ti ti-users" style="font-size:14px"></i> Team</button>
+    </div>
+    <div class="ap-body">
+      <!-- OVERVIEW PANE -->
+      <div class="ap-pane active" id="apPane-overview">
+        <div class="ap-stats" id="apStats"></div>
+        <div class="ap-subhead">Leads per agent</div>
+        <div id="apAgentBreakdown"><div style="font-size:12px;color:var(--text-tertiary);padding:8px 0">Loading…</div></div>
+      </div>
+      <!-- LEADS PANE -->
+      <div class="ap-pane" id="apPane-leads">
+        <div class="lead-toolbar">
+          <div class="lead-search"><i class="ti ti-search"></i><input id="leadSearchInput" placeholder="Search name, phone, email, company…" oninput="renderLeadsList()"></div>
+          <select class="lead-select" id="leadStatusFilter" onchange="renderLeadsList()">
+            <option value="all">All statuses</option>
+            <option value="new">New</option>
+            <option value="contacted">Contacted</option>
+            <option value="interested">Interested</option>
+            <option value="closed">Closed</option>
+            <option value="lost">Lost</option>
+          </select>
+          <select class="lead-select" id="leadAgentFilter" onchange="renderLeadsList()">
+            <option value="all">All agents</option>
+          </select>
+          <select class="lead-select" id="leadIndustryFilter" onchange="renderLeadsList()">
+            <option value="all">All industries</option>
+            <option value="dental">Dental</option>
+            <option value="real_estate">Real Estate</option>
+            <option value="home_services">Home Services</option>
+            <option value="medical">Medical</option>
+            <option value="law">Law</option>
+            <option value="other">Other</option>
+          </select>
+          <button class="lead-add-btn" onclick="closeAdminPortal();openSubmitLead()"><i class="ti ti-plus" style="font-size:13px"></i>Add lead</button>
+          <button class="lead-add-btn" style="background:var(--text-info)" onclick="document.getElementById('bulkLeadFileInput').click()"><i class="ti ti-file-upload" style="font-size:13px"></i>Bulk upload</button>
+        </div>
+        <div class="lead-table-wrap">
+          <div class="lead-row head">
+            <div>Name</div><div>Phone</div><div>Email</div><div>Agent</div><div>Industry</div><div>Status</div><div></div>
+          </div>
+          <div id="leadsListArea"><div class="lead-empty">Loading…</div></div>
+        </div>
+      </div>
+      <!-- TEAM PANE -->
+      <div class="ap-pane" id="apPane-team">
+        <div class="ap-subhead">All members</div>
+        <div id="apTeamList"><div style="font-size:12px;color:var(--text-tertiary);padding:8px 0">Loading…</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- LEAD DETAIL MODAL -->
+<div class="modal-overlay" id="leadDetailModal">
+  <div class="modal" style="max-width:480px">
+    <h3 id="ldTitleName">Lead</h3>
+    <p class="modal-sub" id="ldSubmittedMeta"></p>
+    <div id="ldErr" class="err-box"></div>
+    <div class="ld-grid">
+      <div class="ld-field"><div class="ld-label">Phone</div><div class="ld-value" id="ldPhone">—</div></div>
+      <div class="ld-field"><div class="ld-label">Email</div><div class="ld-value" id="ldEmail">—</div></div>
+    </div>
+    <div class="ld-grid">
+      <div class="ld-field"><div class="ld-label">Company</div><div class="ld-value" id="ldCompany">—</div></div>
+      <div class="ld-field"><div class="ld-label">Industry</div><div class="ld-value" id="ldIndustry">—</div></div>
+    </div>
+    <div class="ld-field"><div class="ld-label">Assigned to</div><div class="ld-value" id="ldAgent">—</div></div>
+    <div class="ld-field">
+      <div class="ld-label">Status</div>
+      <div class="ld-status-row" id="ldStatusRow"></div>
+    </div>
+    <div class="ld-field"><div class="ld-label">Notes</div><div class="ld-value" id="ldNotes" style="white-space:pre-wrap">—</div></div>
+    <div class="modal-actions" style="justify-content:space-between">
+      <button class="btn-danger" id="ldDeleteBtn" onclick="deleteLead()" style="padding:8px 12px"><i class="ti ti-trash" style="font-size:13px;vertical-align:-2px"></i></button>
+      <div style="display:flex;gap:8px">
+        <button class="btn-sec" onclick="openSendLead()"><i class="ti ti-send" style="font-size:13px;vertical-align:-2px;margin-right:4px"></i>Send to…</button>
+        <button class="btn-sec" onclick="closeLeadDetail()">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SEND LEAD MODAL -->
+<div class="modal-overlay" id="sendLeadModal">
+  <div class="modal" style="max-width:400px">
+    <h3>Send lead</h3>
+    <p class="modal-sub" id="slSendPreview">Choose how you'd like to send this lead.</p>
+    <div class="role-toggle">
+      <div class="role-opt selected-admin" id="slModeReassign" onclick="setSendLeadMode('reassign')"><i class="ti ti-user-check"></i>Reassign</div>
+      <div class="role-opt" id="slModeShare" onclick="setSendLeadMode('share')"><i class="ti ti-corner-up-right"></i>Share to chat</div>
+    </div>
+    <div class="fwd-dest-list" id="sendLeadDestList"></div>
+    <div class="modal-actions">
+      <button class="btn-sec" onclick="closeSendLead()">Cancel</button>
+      <button class="btn-pri" id="sendLeadBtn" onclick="confirmSendLead()">Send</button>
     </div>
   </div>
 </div>
@@ -1255,7 +1544,7 @@ kbd{background:var(--bg-secondary);border:0.5px solid var(--border-md);border-ra
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getFirestore, collection, collectionGroup, doc, setDoc, getDoc, getDocs, addDoc, updateDoc, deleteDoc, onSnapshot, query, orderBy, limit, serverTimestamp, where, arrayUnion, arrayRemove, increment } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getFirestore, collection, collectionGroup, doc, setDoc, getDoc, getDocs, addDoc, updateDoc, deleteDoc, onSnapshot, query, orderBy, limit, serverTimestamp, where, arrayUnion, arrayRemove, increment, writeBatch } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 
@@ -1487,6 +1776,7 @@ async function initApp(){
   updateSfAvatar();
   document.getElementById('roleTag').innerHTML = u.isAdmin ? '<span class="badge-admin">Admin</span>' : '<span class="badge-emp">Agent</span>';
   document.querySelectorAll('#addUserBtn,#rpAddBtn,#rpLogBtn').forEach(b => b.style.display = u.isAdmin ? 'flex' : 'none');
+  document.getElementById('adminPortalBtn').style.display = u.isAdmin ? 'flex' : 'none';
   // hide rename buttons for non-admins
   document.querySelectorAll('.ch-rename-btn').forEach(b => b.style.display = u.isAdmin ? '' : 'none');
   // load dynamic channel names from Firestore
@@ -2483,7 +2773,10 @@ const ADMIN_LOG_LABELS = {
   promoted_to_admin: { icon:'ti-arrow-up-bar', color:'var(--text-info)', verb:'promoted' },
   demoted_to_agent: { icon:'ti-arrow-down-bar', color:'var(--text-warning)', verb:'demoted' },
   deleted_message: { icon:'ti-trash', color:'var(--text-danger)', verb:'deleted a message from' },
-  renamed_channel: { icon:'ti-edit', color:'var(--text-info)', verb:'renamed a channel to' }
+  renamed_channel: { icon:'ti-edit', color:'var(--text-info)', verb:'renamed a channel to' },
+  deleted_lead: { icon:'ti-trash', color:'var(--text-danger)', verb:'deleted lead' },
+  reassigned_lead: { icon:'ti-send', color:'var(--text-success)', verb:'reassigned lead' },
+  bulk_imported_leads: { icon:'ti-file-upload', color:'var(--text-success)', verb:'bulk imported' }
 };
 let adminLogUnsub = null;
 window.openAdminLog = function(){
@@ -3892,6 +4185,532 @@ renderMembers = function() {
 }
 
 // ══════════════════════════════════════════════════════════════════
+// FEATURE: LEADS + ADMIN PORTAL
+// ══════════════════════════════════════════════════════════════════
+let leadsUnsub = null;
+let allLeads = [];
+let currentLeadId = null;
+let sendLeadMode = 'reassign';
+let sendLeadDestSelected = null;
+
+const LEAD_STATUSES = ['new','contacted','interested','closed','lost'];
+const LEAD_STATUS_LABELS = { new:'New', contacted:'Contacted', interested:'Interested', closed:'Closed', lost:'Lost' };
+const LEAD_INDUSTRY_LABELS = { dental:'Dental', real_estate:'Real Estate', home_services:'Home Services', medical:'Medical', law:'Law', other:'Other' };
+
+// ── Submit lead (any signed-in agent) ──
+window.openSubmitLead = function(){
+  document.getElementById('slErr').style.display = 'none';
+  ['slName','slPhone','slEmail','slCompany','slNotes'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('slIndustry').value = 'dental';
+  document.getElementById('slStatus').value = 'new';
+  document.getElementById('submitLeadModal').classList.add('open');
+};
+window.closeSubmitLead = function(){ document.getElementById('submitLeadModal').classList.remove('open'); };
+window.submitLead = async function(){
+  const name = document.getElementById('slName').value.trim();
+  const phone = document.getElementById('slPhone').value.trim();
+  const email = document.getElementById('slEmail').value.trim();
+  const company = document.getElementById('slCompany').value.trim();
+  const industry = document.getElementById('slIndustry').value;
+  const status = document.getElementById('slStatus').value;
+  const notes = document.getElementById('slNotes').value.trim();
+  const errEl = document.getElementById('slErr');
+  const btn = document.getElementById('slBtn');
+  if (!name || !phone){ errEl.textContent = 'Name and phone are required.'; errEl.style.display = 'block'; return; }
+  btn.disabled = true; btn.textContent = 'Submitting…'; errEl.style.display = 'none';
+  try {
+    await addDoc(collection(db,'leads'), {
+      name, phone, email: email||null, company: company||null, industry, status, notes: notes||null,
+      submittedBy: ME.uid, submittedByName: ME.name,
+      assignedTo: ME.uid, assignedToName: ME.name,
+      ts: serverTimestamp(), updatedAt: serverTimestamp()
+    });
+    closeSubmitLead();
+    showToast('✓ Lead submitted');
+  } catch(e){ errEl.textContent = 'Failed to submit: ' + e.message; errEl.style.display = 'block'; }
+  btn.disabled = false; btn.textContent = 'Submit lead';
+};
+
+// ── Bulk lead import (CSV) ──
+let bulkCsvRows = [];      // raw parsed rows from PapaParse (array of objects keyed by csv header)
+let bulkCsvHeaders = [];   // original CSV header strings
+let bulkFieldMap = {};     // { ourField: csvHeaderOrNull }
+let bulkParsedLeads = [];  // [{ data, flag: 'ok'|'dup'|'miss' }]
+let bulkExistingPhones = new Set();
+
+const BULK_FIELDS = [
+  { key:'name', label:'Full name', required:true },
+  { key:'phone', label:'Phone', required:true },
+  { key:'email', label:'Email', required:false },
+  { key:'company', label:'Business / Company', required:false },
+  { key:'industry', label:'Industry', required:false },
+  { key:'notes', label:'Notes', required:false }
+];
+
+// Fuzzy header aliases for auto-matching common scraper/export column names
+const BULK_HEADER_ALIASES = {
+  name: ['name','full name','fullname','contact name','lead name','client name','owner name','business owner'],
+  phone: ['phone','phone number','telephone','mobile','cell','contact number','phone1','primary phone'],
+  email: ['email','email address','e-mail','contact email'],
+  company: ['company','business','business name','organization','org','practice','practice name','clinic','firm','agency'],
+  industry: ['industry','category','vertical','niche','business type','type'],
+  notes: ['notes','note','comments','comment','remarks','description','memo']
+};
+
+function normalizeHeader(h){ return String(h||'').toLowerCase().replace(/[^a-z0-9]/g,''); }
+
+function guessFieldForHeader(header){
+  const norm = normalizeHeader(header);
+  for (const [field, aliases] of Object.entries(BULK_HEADER_ALIASES)){
+    for (const alias of aliases){
+      if (normalizeHeader(alias) === norm) return field;
+    }
+  }
+  // partial match fallback
+  for (const [field, aliases] of Object.entries(BULK_HEADER_ALIASES)){
+    for (const alias of aliases){
+      const an = normalizeHeader(alias);
+      if (norm.includes(an) || an.includes(norm)) return field;
+    }
+  }
+  return null;
+}
+
+window.handleBulkLeadFile = function(ev){
+  const file = ev.target.files[0];
+  if (!file) return;
+  if (typeof Papa === 'undefined'){ showToast('CSV parser still loading — try again in a second'); ev.target.value=''; return; }
+  Papa.parse(file, {
+    header: true,
+    skipEmptyLines: true,
+    complete: function(results){
+      bulkCsvRows = results.data || [];
+      bulkCsvHeaders = results.meta?.fields || [];
+      if (!bulkCsvRows.length || !bulkCsvHeaders.length){
+        showToast('No rows found in that CSV');
+        ev.target.value = '';
+        return;
+      }
+      // Auto-map: for each of our fields, find best unclaimed csv header
+      bulkFieldMap = {};
+      const claimedHeaders = new Set();
+      BULK_FIELDS.forEach(f => {
+        const match = bulkCsvHeaders.find(h => !claimedHeaders.has(h) && guessFieldForHeader(h) === f.key);
+        if (match){ bulkFieldMap[f.key] = match; claimedHeaders.add(match); }
+        else bulkFieldMap[f.key] = '';
+      });
+      document.getElementById('bulkFileName').textContent = file.name;
+      document.getElementById('bulkRowCount').textContent = bulkCsvRows.length;
+      renderBulkMapStep();
+      openBulkLeadModalShell();
+    },
+    error: function(err){ showToast('Failed to read CSV: ' + err.message); }
+  });
+  ev.target.value = '';
+};
+
+function openBulkLeadModalShell(){
+  document.getElementById('bulkErr').style.display = 'none';
+  bulkSetStep('map');
+  document.getElementById('bulkLeadModal').classList.add('open');
+}
+window.closeBulkLeadModal = function(){
+  document.getElementById('bulkLeadModal').classList.remove('open');
+  bulkCsvRows = []; bulkCsvHeaders = []; bulkFieldMap = {}; bulkParsedLeads = [];
+};
+
+function bulkSetStep(step){
+  ['map','preview','done'].forEach(s => {
+    document.getElementById('bulkStepTab-'+s).classList.toggle('active', s===step);
+    document.getElementById('bulkStepTab-'+s).classList.toggle('done', ['map','preview','done'].indexOf(s) < ['map','preview','done'].indexOf(step));
+    document.getElementById('bulkStep-'+s).style.display = s===step ? '' : 'none';
+  });
+  document.getElementById('bulkBackBtn').style.display = step === 'map' ? 'none' : (step === 'done' ? 'none' : 'flex');
+  document.getElementById('bulkNextBtn').textContent = step === 'map' ? 'Next: Preview' : step === 'preview' ? 'Import leads' : 'Done';
+  document.getElementById('bulkNextBtn').style.display = step === 'done' ? 'none' : 'flex';
+  if (step === 'done') {
+    document.querySelector('#bulkLeadModal .modal-actions').insertAdjacentHTML('beforeend',
+      '<button class="btn-pri" onclick="closeBulkLeadModal()" id="bulkCloseDoneBtn">Close</button>');
+  } else {
+    document.getElementById('bulkCloseDoneBtn')?.remove();
+  }
+}
+
+function renderBulkMapStep(){
+  const el = document.getElementById('bulkMapRows');
+  el.innerHTML = BULK_FIELDS.map(f => {
+    const options = ['<option value="">— Don\'t import —</option>'].concat(
+      bulkCsvHeaders.map(h => `<option value="${escapeHtml(h)}" ${bulkFieldMap[f.key]===h?'selected':''}>${escapeHtml(h)}</option>`)
+    ).join('');
+    const sample = bulkFieldMap[f.key] ? (bulkCsvRows[0]?.[bulkFieldMap[f.key]] || '') : '';
+    return `<div class="bulk-map-row">
+      <div class="bulk-map-csv">${f.label}${f.required?' <span style="color:var(--text-danger)">*</span>':''}<span>e.g. "${escapeHtml(String(sample).slice(0,40))}"</span></div>
+      <select class="lead-select" style="width:100%" onchange="bulkFieldMap['${f.key}']=this.value">${options}</select>
+    </div>`;
+  }).join('');
+}
+
+window.bulkGoBack = function(){
+  const current = document.getElementById('bulkStepTab-preview').classList.contains('active') ? 'preview' : 'done';
+  if (current === 'preview') bulkSetStep('map');
+};
+
+window.bulkGoNext = async function(){
+  const onMap = document.getElementById('bulkStepTab-map').classList.contains('active');
+  const onPreview = document.getElementById('bulkStepTab-preview').classList.contains('active');
+  if (onMap){
+    if (!bulkFieldMap.name || !bulkFieldMap.phone){
+      const errEl = document.getElementById('bulkErr');
+      errEl.textContent = 'Map both Full name and Phone to continue — they\'re required.';
+      errEl.style.display = 'block';
+      return;
+    }
+    document.getElementById('bulkErr').style.display = 'none';
+    await bulkBuildPreview();
+    bulkSetStep('preview');
+  } else if (onPreview){
+    await bulkRunImport();
+  }
+};
+
+function normalizePhone(p){ return String(p||'').replace(/[^\d]/g,''); }
+
+async function bulkBuildPreview(){
+  // Pull existing phone numbers to flag duplicates. Admins already have allLeads loaded;
+  // agents (non-admin) can't list the collection, so duplicate-checking for them is best-effort
+  // against leads they can see (their own), which is fine — admin dedup happens portal-side.
+  bulkExistingPhones = new Set(allLeads.map(l => normalizePhone(l.phone)).filter(Boolean));
+
+  const seenInFile = new Set();
+  bulkParsedLeads = bulkCsvRows.map(row => {
+    const name = (row[bulkFieldMap.name]||'').trim();
+    const phone = (row[bulkFieldMap.phone]||'').trim();
+    const email = bulkFieldMap.email ? (row[bulkFieldMap.email]||'').trim() : '';
+    const company = bulkFieldMap.company ? (row[bulkFieldMap.company]||'').trim() : '';
+    const industryRaw = bulkFieldMap.industry ? (row[bulkFieldMap.industry]||'').trim() : '';
+    const notes = bulkFieldMap.notes ? (row[bulkFieldMap.notes]||'').trim() : '';
+    const normPhone = normalizePhone(phone);
+    const industry = guessIndustryValue(industryRaw);
+
+    let flag = 'ok';
+    if (!name || !phone) flag = 'miss';
+    else if (normPhone && (bulkExistingPhones.has(normPhone) || seenInFile.has(normPhone))) flag = 'dup';
+    if (normPhone && flag !== 'miss') seenInFile.add(normPhone);
+
+    return { name, phone, email, company, industry, notes, flag };
+  });
+
+  renderBulkPreview();
+}
+
+function guessIndustryValue(raw){
+  const norm = normalizeHeader(raw);
+  if (!norm) return 'other';
+  if (norm.includes('dental') || norm.includes('dentist')) return 'dental';
+  if (norm.includes('realestate') || norm.includes('realtor') || norm.includes('property')) return 'real_estate';
+  if (norm.includes('home') || norm.includes('hvac') || norm.includes('plumb') || norm.includes('roof') || norm.includes('electric')) return 'home_services';
+  if (norm.includes('medical') || norm.includes('clinic') || norm.includes('health')) return 'medical';
+  if (norm.includes('law') || norm.includes('legal') || norm.includes('attorney')) return 'law';
+  return 'other';
+}
+
+function renderBulkPreview(){
+  const okCount = bulkParsedLeads.filter(l => l.flag === 'ok').length;
+  const dupCount = bulkParsedLeads.filter(l => l.flag === 'dup').length;
+  const missCount = bulkParsedLeads.filter(l => l.flag === 'miss').length;
+  document.getElementById('bulkSummary').innerHTML = `
+    <div class="bulk-sum-card"><div class="bulk-sum-num">${bulkParsedLeads.length}</div><div class="bulk-sum-lbl">Total rows</div></div>
+    <div class="bulk-sum-card"><div class="bulk-sum-num good">${okCount}</div><div class="bulk-sum-lbl">Will import</div></div>
+    <div class="bulk-sum-card"><div class="bulk-sum-num warn">${dupCount}</div><div class="bulk-sum-lbl">Duplicates (skipped)</div></div>
+    <div class="bulk-sum-card"><div class="bulk-sum-num bad">${missCount}</div><div class="bulk-sum-lbl">Missing name/phone (skipped)</div></div>
+  `;
+  const rows = bulkParsedLeads.slice(0, 200); // cap preview render for very large files
+  const flagLabel = { ok:'Import', dup:'Duplicate', miss:'Missing data' };
+  document.getElementById('bulkPreviewTable').innerHTML =
+    `<div class="bulk-prow head"><div>Name</div><div>Phone</div><div>Company</div><div>Status</div></div>` +
+    rows.map(l => `<div class="bulk-prow ${l.flag!=='ok'?'skip':''}">
+      <div class="lead-trunc">${escapeHtml(l.name||'—')}</div>
+      <div class="lead-trunc">${escapeHtml(l.phone||'—')}</div>
+      <div class="lead-trunc">${escapeHtml(l.company||'—')}</div>
+      <div><span class="bulk-flag ${l.flag}">${flagLabel[l.flag]}</span></div>
+    </div>`).join('') +
+    (bulkParsedLeads.length > 200 ? `<div style="padding:8px 12px;font-size:11px;color:var(--text-tertiary);text-align:center">+ ${bulkParsedLeads.length-200} more rows not shown in preview</div>` : '');
+}
+
+async function bulkRunImport(){
+  const toImport = bulkParsedLeads.filter(l => l.flag === 'ok');
+  if (!toImport.length){ showToast('Nothing to import'); return; }
+  bulkSetStep('done');
+  document.getElementById('bulkDoneMsg').textContent = `Importing ${toImport.length} leads…`;
+  const fill = document.getElementById('bulkProgressFill');
+  fill.style.width = '0%';
+
+  const CHUNK = 450; // stay under Firestore's 500-write batch limit
+  let imported = 0;
+  try {
+    for (let i = 0; i < toImport.length; i += CHUNK){
+      const chunk = toImport.slice(i, i + CHUNK);
+      const batch = writeBatch(db);
+      chunk.forEach(l => {
+        const ref = doc(collection(db,'leads'));
+        batch.set(ref, {
+          name: l.name, phone: l.phone, email: l.email||null, company: l.company||null,
+          industry: l.industry||'other', status: 'new', notes: l.notes||null,
+          submittedBy: ME.uid, submittedByName: ME.name,
+          assignedTo: ME.uid, assignedToName: ME.name,
+          ts: serverTimestamp(), updatedAt: serverTimestamp(),
+          importedFromCsv: true
+        });
+      });
+      await batch.commit();
+      imported += chunk.length;
+      fill.style.width = Math.round((imported/toImport.length)*100) + '%';
+      document.getElementById('bulkDoneMsg').textContent = `Imported ${imported} of ${toImport.length}…`;
+    }
+    const skippedDup = bulkParsedLeads.filter(l => l.flag === 'dup').length;
+    const skippedMiss = bulkParsedLeads.filter(l => l.flag === 'miss').length;
+    document.getElementById('bulkDoneMsg').innerHTML =
+      `<i class="ti ti-circle-check" style="color:var(--text-success);font-size:18px;vertical-align:-3px"></i> Imported ${imported} leads.` +
+      (skippedDup ? `<br>${skippedDup} duplicate${skippedDup===1?'':'s'} skipped.` : '') +
+      (skippedMiss ? `<br>${skippedMiss} row${skippedMiss===1?'':'s'} skipped (missing name/phone).` : '');
+    logAdminAction('bulk_imported_leads', `${imported} leads`, 'via CSV');
+    showToast(`✓ Imported ${imported} leads`);
+  } catch(e){
+    document.getElementById('bulkDoneMsg').textContent = 'Import failed: ' + e.message;
+    showToast('Bulk import failed');
+  }
+}
+
+// ── Admin Portal shell ──
+window.openAdminPortal = function(){
+  if (!ME.isAdmin) return;
+  document.getElementById('adminPortalOverlay').classList.add('open');
+  switchApTab('overview');
+};
+window.closeAdminPortal = function(){ document.getElementById('adminPortalOverlay').classList.remove('open'); };
+
+window.switchApTab = function(tab){
+  document.querySelectorAll('.ap-tab').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.ap-pane').forEach(p => p.classList.remove('active'));
+  document.getElementById('apTab-'+tab).classList.add('active');
+  document.getElementById('apPane-'+tab).classList.add('active');
+  if (tab === 'overview') renderApOverview();
+  if (tab === 'leads') { populateLeadAgentFilter(); renderLeadsList(); }
+  if (tab === 'team') renderApTeam();
+};
+
+function renderApOverview(){
+  const total = allLeads.length;
+  const today = new Date(); today.setHours(0,0,0,0);
+  const leadsToday = allLeads.filter(l => l.ts?.toDate && l.ts.toDate() >= today).length;
+  const interested = allLeads.filter(l => l.status === 'interested').length;
+  const closed = allLeads.filter(l => l.status === 'closed').length;
+  const teamSize = Object.keys(ALL_USERS).length;
+  document.getElementById('apStats').innerHTML = `
+    <div class="ap-stat-card"><div class="ap-stat-num">${total}</div><div class="ap-stat-lbl">Total leads</div></div>
+    <div class="ap-stat-card"><div class="ap-stat-num">${leadsToday}</div><div class="ap-stat-lbl">Added today</div></div>
+    <div class="ap-stat-card"><div class="ap-stat-num">${interested}</div><div class="ap-stat-lbl">Interested</div></div>
+    <div class="ap-stat-card"><div class="ap-stat-num">${closed}</div><div class="ap-stat-lbl">Closed</div></div>
+    <div class="ap-stat-card"><div class="ap-stat-num">${teamSize}</div><div class="ap-stat-lbl">Team members</div></div>
+  `;
+  const byAgent = {};
+  allLeads.forEach(l => {
+    const key = l.assignedTo || l.submittedBy || 'unknown';
+    byAgent[key] = (byAgent[key]||0) + 1;
+  });
+  const rows = Object.entries(byAgent).sort((a,b)=>b[1]-a[1]);
+  const el = document.getElementById('apAgentBreakdown');
+  if (!rows.length){ el.innerHTML = '<div class="lead-empty">No leads yet.</div>'; return; }
+  el.innerHTML = rows.map(([uid,count]) => {
+    const name = ALL_USERS[uid]?.name || 'Unknown';
+    return `<div class="ap-agent-row"><strong>${name}</strong><span>${count} lead${count===1?'':'s'}</span></div>`;
+  }).join('');
+}
+
+function renderApTeam(){
+  const el = document.getElementById('apTeamList');
+  const users = Object.values(ALL_USERS).sort((a,b)=>(a.name||'').localeCompare(b.name||''));
+  if (!users.length){ el.innerHTML = '<div class="lead-empty">No members.</div>'; return; }
+  el.innerHTML = users.map(u => `
+    <div class="ap-agent-row">
+      <strong>${u.name||'Unknown'}${u.isAdmin?' <span class="badge-admin">Admin</span>':' <span class="badge-emp">Agent</span>'}</strong>
+      <span style="color:var(--text-tertiary)">${u.status||'offline'}</span>
+    </div>`).join('');
+}
+
+function populateLeadAgentFilter(){
+  const sel = document.getElementById('leadAgentFilter');
+  const current = sel.value;
+  const agentIds = [...new Set(allLeads.map(l => l.assignedTo).filter(Boolean))];
+  sel.innerHTML = '<option value="all">All agents</option>' + agentIds.map(uid =>
+    `<option value="${uid}">${(ALL_USERS[uid]?.name)||'Unknown'}</option>`).join('');
+  if ([...sel.options].some(o=>o.value===current)) sel.value = current;
+}
+
+// ── Leads list render / search / filter ──
+window.renderLeadsList = function(){
+  const q = (document.getElementById('leadSearchInput')?.value||'').trim().toLowerCase();
+  const statusF = document.getElementById('leadStatusFilter')?.value || 'all';
+  const agentF = document.getElementById('leadAgentFilter')?.value || 'all';
+  const industryF = document.getElementById('leadIndustryFilter')?.value || 'all';
+
+  let filtered = allLeads;
+  if (statusF !== 'all') filtered = filtered.filter(l => l.status === statusF);
+  if (agentF !== 'all') filtered = filtered.filter(l => l.assignedTo === agentF);
+  if (industryF !== 'all') filtered = filtered.filter(l => l.industry === industryF);
+  if (q) {
+    filtered = filtered.filter(l =>
+      (l.name||'').toLowerCase().includes(q) ||
+      (l.phone||'').toLowerCase().includes(q) ||
+      (l.email||'').toLowerCase().includes(q) ||
+      (l.company||'').toLowerCase().includes(q)
+    );
+  }
+
+  const el = document.getElementById('leadsListArea');
+  if (!filtered.length){ el.innerHTML = '<div class="lead-empty">No leads match your search.</div>'; return; }
+  el.innerHTML = filtered.map(l => {
+    const agentName = ALL_USERS[l.assignedTo]?.name || l.assignedToName || 'Unassigned';
+    const industryLbl = LEAD_INDUSTRY_LABELS[l.industry] || 'Other';
+    return `<div class="lead-row" onclick="openLeadDetail('${l.id}')">
+      <div class="lead-name lead-trunc">${escapeHtml(l.name||'—')}</div>
+      <div class="lead-trunc">${escapeHtml(l.phone||'—')}</div>
+      <div class="lead-trunc">${escapeHtml(l.email||'—')}</div>
+      <div class="lead-trunc">${escapeHtml(agentName)}</div>
+      <div class="lead-trunc">${industryLbl}</div>
+      <div><span class="lead-status-pill ${l.status}">${LEAD_STATUS_LABELS[l.status]||'New'}</span></div>
+      <div style="text-align:right"><i class="ti ti-chevron-right" style="font-size:14px;color:var(--text-tertiary)"></i></div>
+    </div>`;
+  }).join('');
+};
+
+function escapeHtml(str){
+  return String(str).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+// ── Lead detail ──
+window.openLeadDetail = function(leadId){
+  const l = allLeads.find(x => x.id === leadId);
+  if (!l) return;
+  currentLeadId = leadId;
+  document.getElementById('ldErr').style.display = 'none';
+  document.getElementById('ldTitleName').textContent = l.name || 'Lead';
+  const submitterName = ALL_USERS[l.submittedBy]?.name || l.submittedByName || 'Unknown';
+  document.getElementById('ldSubmittedMeta').textContent = `Submitted by ${submitterName} · ${l.ts?fmtRelative(l.ts):''}`;
+  document.getElementById('ldPhone').textContent = l.phone || '—';
+  document.getElementById('ldEmail').textContent = l.email || '—';
+  document.getElementById('ldCompany').textContent = l.company || '—';
+  document.getElementById('ldIndustry').textContent = LEAD_INDUSTRY_LABELS[l.industry] || 'Other';
+  document.getElementById('ldAgent').textContent = ALL_USERS[l.assignedTo]?.name || l.assignedToName || 'Unassigned';
+  document.getElementById('ldNotes').textContent = l.notes || '—';
+  document.getElementById('ldStatusRow').innerHTML = LEAD_STATUSES.map(s =>
+    `<button class="ld-status-opt sel-${s} ${l.status===s?'active':''}" onclick="setLeadStatus('${s}')">${LEAD_STATUS_LABELS[s]}</button>`).join('');
+  document.getElementById('leadDetailModal').classList.add('open');
+};
+window.closeLeadDetail = function(){ document.getElementById('leadDetailModal').classList.remove('open'); currentLeadId = null; };
+
+window.setLeadStatus = async function(status){
+  if (!currentLeadId) return;
+  try {
+    await updateDoc(doc(db,'leads',currentLeadId), { status, updatedAt: serverTimestamp() });
+    document.querySelectorAll('.ld-status-opt').forEach(b => b.classList.remove('active'));
+    document.querySelector('.ld-status-opt.sel-'+status)?.classList.add('active');
+    showToast('Status updated');
+  } catch(e){ showToast('Failed: ' + e.message); }
+};
+
+window.deleteLead = async function(){
+  if (!ME.isAdmin || !currentLeadId) return;
+  if (!confirm('Delete this lead permanently? This cannot be undone.')) return;
+  try {
+    const l = allLeads.find(x => x.id === currentLeadId);
+    await deleteDoc(doc(db,'leads',currentLeadId));
+    logAdminAction('deleted_lead', l?.name || 'Unknown lead');
+    closeLeadDetail();
+    showToast('🗑️ Lead deleted');
+  } catch(e){ showToast('Failed: ' + e.message); }
+};
+
+// ── Send lead (reassign or share to chat) ──
+window.openSendLead = function(){
+  if (!currentLeadId) return;
+  sendLeadDestSelected = null;
+  setSendLeadMode('reassign');
+  document.getElementById('sendLeadModal').classList.add('open');
+};
+window.closeSendLead = function(){ document.getElementById('sendLeadModal').classList.remove('open'); sendLeadDestSelected = null; };
+
+window.setSendLeadMode = function(mode){
+  sendLeadMode = mode;
+  document.getElementById('slModeReassign').classList.toggle('selected-admin', mode==='reassign');
+  document.getElementById('slModeShare').classList.toggle('selected-admin', mode==='share');
+  sendLeadDestSelected = null;
+  const list = document.getElementById('sendLeadDestList');
+  if (mode === 'reassign'){
+    const items = Object.values(ALL_USERS).filter(u => u.uid !== currentLeadAssignee());
+    list.innerHTML = items.map(u => `
+      <div class="fwd-dest-item" id="sld-${u.uid}" onclick="selectSendLeadDest('${u.uid}')">
+        <i class="ti ti-user" style="font-size:13px;color:var(--text-tertiary)"></i>
+        <span style="font-size:13px;color:var(--text-primary)">${u.name}${u.isAdmin?' (Admin)':''}</span>
+        <i class="ti ti-check fwd-check" id="sldck-${u.uid}"></i>
+      </div>`).join('');
+  } else {
+    const items = [];
+    CHANNEL_IDS.forEach(id => items.push({ key:id, label:`# ${CHANNEL_NAMES[id]||id}`, icon:'ti-hash' }));
+    Object.values(ALL_USERS).filter(u=>u.uid!==ME.uid).forEach(u => {
+      const canDm = ME.isAdmin || u.isAdmin;
+      if (canDm) items.push({ key:`dm-${u.uid}`, label:u.name+(u.isAdmin?' (Admin)':''), icon:'ti-user' });
+    });
+    list.innerHTML = items.map(it => `
+      <div class="fwd-dest-item" id="sld-${it.key}" onclick="selectSendLeadDest('${it.key}')">
+        <i class="ti ${it.icon}" style="font-size:13px;color:var(--text-tertiary)"></i>
+        <span style="font-size:13px;color:var(--text-primary)">${it.label}</span>
+        <i class="ti ti-check fwd-check" id="sldck-${it.key}"></i>
+      </div>`).join('');
+  }
+};
+
+function currentLeadAssignee(){
+  const l = allLeads.find(x => x.id === currentLeadId);
+  return l?.assignedTo;
+}
+
+window.selectSendLeadDest = function(key){
+  if (sendLeadDestSelected) document.getElementById('sld-'+sendLeadDestSelected)?.classList.remove('selected');
+  sendLeadDestSelected = key;
+  document.getElementById('sld-'+key)?.classList.add('selected');
+};
+
+window.confirmSendLead = async function(){
+  if (!currentLeadId || !sendLeadDestSelected){ showToast('Choose a destination first'); return; }
+  const l = allLeads.find(x => x.id === currentLeadId);
+  if (!l) return;
+  const btn = document.getElementById('sendLeadBtn');
+  btn.disabled = true; btn.textContent = 'Sending…';
+  try {
+    if (sendLeadMode === 'reassign'){
+      const newAgentName = ALL_USERS[sendLeadDestSelected]?.name || 'Unknown';
+      await updateDoc(doc(db,'leads',currentLeadId), {
+        assignedTo: sendLeadDestSelected, assignedToName: newAgentName, updatedAt: serverTimestamp()
+      });
+      logAdminAction('reassigned_lead', l.name, `→ ${newAgentName}`);
+      sendPushTo(sendLeadDestSelected, 'New lead assigned', `${l.name} was assigned to you`);
+      showToast(`✓ Lead reassigned to ${newAgentName}`);
+    } else {
+      const isDmDest = sendLeadDestSelected.startsWith('dm-');
+      const targetUid = isDmDest ? sendLeadDestSelected.replace('dm-','') : null;
+      const destPath = isDmDest ? `dm_messages/${dmKey(ME.uid,targetUid)}/msgs` : `channel_messages/${sendLeadDestSelected}/msgs`;
+      const summary = `📋 **Lead: ${l.name}**\nPhone: ${l.phone||'—'}${l.email?`\nEmail: ${l.email}`:''}${l.company?`\nCompany: ${l.company}`:''}\nIndustry: ${LEAD_INDUSTRY_LABELS[l.industry]||'Other'}\nStatus: ${LEAD_STATUS_LABELS[l.status]||'New'}${l.notes?`\nNotes: ${l.notes}`:''}`;
+      await addDoc(collection(db,destPath), { uid: ME.uid, text: summary, ts: serverTimestamp(), readBy:[ME.uid] });
+      if (isDmDest && targetUid) sendPushTo(targetUid, ME.name, `Shared lead: ${l.name}`);
+      showToast('✓ Lead shared to chat');
+    }
+    closeSendLead();
+  } catch(e){ showToast('Failed: ' + e.message); }
+  btn.disabled = false; btn.textContent = 'Send';
+};
+
+// ══════════════════════════════════════════════════════════════════
 // INIT NEW FEATURES on app start
 // ══════════════════════════════════════════════════════════════════
 const _origInitAppNewFeatures = initApp;
@@ -3910,6 +4729,18 @@ initApp = async function() {
       const myOpen = allTickets.filter(t => (t.assignedTo === ME.uid || t.createdBy === ME.uid) && t.status !== 'resolved').length;
       const badge = document.getElementById('ticketsBadge');
       if (badge) badge.style.display = myOpen > 0 ? 'block' : 'none';
+    }, () => {});
+  }
+  // Admin-only: live leads listener for the Leads Portal
+  if (ME.isAdmin && !leadsUnsub) {
+    const _lq = query(collection(db, 'leads'), orderBy('ts', 'desc'), limit(500));
+    leadsUnsub = onSnapshot(_lq, snap => {
+      allLeads = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      if (document.getElementById('adminPortalOverlay')?.classList.contains('open')) {
+        const activeTab = document.querySelector('.ap-tab.active')?.id?.replace('apTab-','') || 'overview';
+        if (activeTab === 'overview') renderApOverview();
+        if (activeTab === 'leads') { populateLeadAgentFilter(); renderLeadsList(); }
+      }
     }, () => {});
   }
 }
