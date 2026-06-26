@@ -420,6 +420,149 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .msg-pinned-indicator{font-size:10px;color:var(--text-warning);display:flex;align-items:center;gap:3px;margin-top:3px}
 .msg-pinned-indicator i{font-size:11px}
 .ma-btn.pin-active{color:var(--text-warning)}
+
+/* ── DARK MODE TOGGLE ── */
+:root[data-theme="dark"]{
+  --bg-primary:#1e1e1c;--bg-secondary:#282825;--bg-tertiary:#242422;
+  --bg-info:#042c53;--bg-success:#04342c;--bg-warning:#412402;--bg-danger:#501313;
+  --text-primary:#f0efeb;--text-secondary:#b4b2a9;--text-tertiary:#777570;
+  --text-info:#85b7eb;--text-success:#5dcaa5;--text-warning:#ef9f27;--text-danger:#f09595;
+  --border:rgba(255,255,255,.08);--border-md:rgba(255,255,255,.15);
+  --green-glow:rgba(29,158,117,.2);
+  --shadow-sm:0 1px 3px rgba(0,0,0,.3);--shadow-md:0 4px 12px rgba(0,0,0,.4);--shadow-lg:0 8px 32px rgba(0,0,0,.5);
+}
+:root[data-theme="light"]{
+  --bg-primary:#fff;--bg-secondary:#f5f5f4;--bg-tertiary:#eeede9;
+  --bg-info:#e6f1fb;--bg-success:#e1f5ee;--bg-warning:#faeeda;--bg-danger:#fcebeb;
+  --text-primary:#1a1a18;--text-secondary:#5f5e5a;--text-tertiary:#888780;
+  --text-info:#185fa5;--text-success:#0f6e56;--text-warning:#854f0b;--text-danger:#a32d2d;
+  --border:rgba(0,0,0,.1);--border-md:rgba(0,0,0,.18);
+  --green-glow:rgba(29,158,117,.15);
+  --shadow-sm:0 1px 3px rgba(0,0,0,.06),0 1px 2px rgba(0,0,0,.04);
+  --shadow-md:0 4px 12px rgba(0,0,0,.08),0 2px 4px rgba(0,0,0,.04);
+  --shadow-lg:0 8px 32px rgba(0,0,0,.12),0 4px 8px rgba(0,0,0,.06);
+}
+.theme-toggle-btn{background:none;border:none;cursor:pointer;color:var(--text-tertiary);padding:5px;border-radius:var(--radius-md);transition:color .12s,background .12s;font-size:16px;display:flex;align-items:center}
+.theme-toggle-btn:hover{color:var(--text-primary);background:var(--bg-secondary)}
+
+/* ── GLOBAL SEARCH MODAL ── */
+.global-search-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(4px);z-index:700;display:none;align-items:flex-start;justify-content:center;padding-top:80px}
+.global-search-overlay.open{display:flex}
+.global-search-box{background:var(--bg-primary);border:0.5px solid var(--border-md);border-radius:var(--radius-xl);width:min(560px,92vw);box-shadow:var(--shadow-lg);overflow:hidden;animation:modalIn .15s ease-out}
+.gs-input-row{display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:0.5px solid var(--border)}
+.gs-input-row i{font-size:17px;color:var(--text-tertiary);flex-shrink:0}
+.gs-input{flex:1;border:none;background:transparent;font-size:15px;color:var(--text-primary);font-family:inherit;outline:none}
+.gs-input::placeholder{color:var(--text-tertiary)}
+.gs-close{background:none;border:0.5px solid var(--border);border-radius:var(--radius-sm);padding:3px 7px;font-size:11px;color:var(--text-tertiary);cursor:pointer;font-family:inherit}
+.gs-results{max-height:420px;overflow-y:auto}
+.gs-section-label{font-size:10px;font-weight:700;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:.08em;padding:10px 16px 4px}
+.gs-item{display:flex;flex-direction:column;gap:3px;padding:10px 16px;cursor:pointer;border-bottom:0.5px solid var(--border);transition:background .1s}
+.gs-item:hover{background:var(--bg-secondary)}
+.gs-item-top{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--text-tertiary)}
+.gs-item-top .gs-ch{font-weight:600;color:var(--text-secondary)}
+.gs-item-text{font-size:13.5px;color:var(--text-primary);line-height:1.5}
+.gs-empty{padding:32px 16px;text-align:center;font-size:13px;color:var(--text-tertiary)}
+.gs-hint{padding:12px 16px;font-size:11.5px;color:var(--text-tertiary);display:flex;align-items:center;justify-content:space-between;border-top:0.5px solid var(--border)}
+.gs-hint kbd{background:var(--bg-secondary);border:0.5px solid var(--border-md);border-radius:4px;padding:2px 5px;font-size:10.5px;font-family:inherit;color:var(--text-secondary)}
+
+/* ── VOICE MESSAGE ── */
+.voice-record-btn{background:none;border:none;cursor:pointer;color:var(--text-tertiary);padding:5px 6px;border-radius:var(--radius-sm);display:flex;align-items:center;transition:background .12s,color .12s}
+.voice-record-btn:hover{background:var(--bg-primary);color:var(--green)}
+.voice-record-btn.recording{color:#E24B4A;animation:recordPulse 1s ease-in-out infinite}
+@keyframes recordPulse{0%,100%{opacity:1}50%{opacity:.5}}
+.voice-recording-bar{display:none;align-items:center;gap:10px;padding:8px 14px;background:var(--bg-danger);border-radius:var(--radius-md);margin:6px 0 4px;font-size:12.5px;color:var(--text-danger);font-weight:500}
+.voice-recording-bar.show{display:flex}
+.voice-timer{min-width:36px;font-variant-numeric:tabular-nums;font-size:13px;font-weight:600}
+.voice-waveform{flex:1;display:flex;align-items:center;gap:2px;height:20px}
+.voice-waveform span{width:3px;background:var(--text-danger);border-radius:2px;animation:waveAnim 0.7s ease-in-out infinite;min-height:4px}
+.voice-waveform span:nth-child(2){animation-delay:.1s}
+.voice-waveform span:nth-child(3){animation-delay:.2s}
+.voice-waveform span:nth-child(4){animation-delay:.3s}
+.voice-waveform span:nth-child(5){animation-delay:.4s}
+@keyframes waveAnim{0%,100%{height:4px}50%{height:16px}}
+.voice-cancel-btn{background:none;border:none;cursor:pointer;color:var(--text-danger);font-size:13px;padding:3px;display:flex;align-items:center}
+.voice-bubble{background:var(--bg-secondary);border-radius:var(--radius-lg);padding:8px 12px;display:flex;align-items:center;gap:10px;max-width:260px;margin-top:2px}
+.voice-bubble.own{background:var(--bg-success)}
+.voice-play-btn{width:32px;height:32px;background:var(--green);border:none;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .12s}
+.voice-play-btn:hover{background:var(--green-dark)}
+.voice-play-btn i{font-size:14px;color:#fff}
+.voice-progress{flex:1;height:3px;background:var(--border-md);border-radius:2px;position:relative;cursor:pointer}
+.voice-progress-fill{height:100%;background:var(--green);border-radius:2px;transition:width .1s linear;width:0%}
+.voice-duration{font-size:11px;color:var(--text-tertiary);white-space:nowrap}
+
+/* ── MESSAGE FORWARD ── */
+.fwd-dest-list{max-height:220px;overflow-y:auto;margin:10px 0;border:0.5px solid var(--border);border-radius:var(--radius-md);overflow:hidden}
+.fwd-dest-item{display:flex;align-items:center;gap:10px;padding:9px 12px;cursor:pointer;transition:background .1s;border-bottom:0.5px solid var(--border)}
+.fwd-dest-item:last-child{border-bottom:none}
+.fwd-dest-item:hover{background:var(--bg-secondary)}
+.fwd-dest-item.selected{background:var(--bg-success)}
+.fwd-dest-item.selected .fwd-check{opacity:1}
+.fwd-check{margin-left:auto;color:var(--text-success);opacity:0;transition:opacity .1s;font-size:14px}
+.fwd-preview{background:var(--bg-secondary);border-left:2.5px solid var(--green);border-radius:0 var(--radius-sm) var(--radius-sm) 0;padding:8px 10px;font-size:12px;color:var(--text-secondary);line-height:1.5;margin-bottom:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fwd-badge{background:var(--bg-info);color:var(--text-info);font-size:10px;font-weight:600;padding:1px 6px;border-radius:4px;margin-right:4px}
+
+/* ── ANNOUNCEMENT MODE ── */
+.announcement-bar{background:var(--bg-info);border-bottom:0.5px solid rgba(24,95,165,.2);padding:7px 18px;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text-info);flex-shrink:0}
+.announcement-bar i{font-size:13px;flex-shrink:0}
+.ch-announce-icon{font-size:11px;color:var(--text-warning);margin-left:2px}
+
+/* ── SCHEDULED SEND ── */
+.schedule-panel{border:0.5px solid var(--border);border-radius:var(--radius-md);padding:12px;margin-top:8px;background:var(--bg-secondary)}
+.schedule-panel label{font-size:11.5px;font-weight:500;color:var(--text-secondary);display:block;margin-bottom:5px}
+.schedule-panel input[type="datetime-local"]{width:100%;border:0.5px solid var(--border-md);border-radius:var(--radius-sm);padding:8px 10px;font-size:13px;color:var(--text-primary);background:var(--bg-primary);font-family:inherit;outline:none}
+.schedule-panel input:focus{border-color:var(--green)}
+.scheduled-msg-bubble{background:var(--bg-warning);border-radius:var(--radius-lg);padding:8px 12px;font-size:13px;color:var(--text-warning);display:flex;align-items:center;gap:7px;max-width:320px;margin-top:2px}
+.scheduled-msg-bubble i{font-size:14px;flex-shrink:0}
+
+/* ── ACTIVITY LOG (admin) ── */
+.activity-log-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);backdrop-filter:blur(2px);z-index:600;display:none;align-items:center;justify-content:center}
+.activity-log-overlay.open{display:flex}
+.activity-log-modal{background:var(--bg-primary);border-radius:var(--radius-xl);border:0.5px solid var(--border);padding:24px;width:min(600px,95vw);max-height:80vh;display:flex;flex-direction:column;box-shadow:var(--shadow-lg);animation:modalIn .18s ease-out}
+.al-filters{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap}
+.al-filter-btn{background:none;border:0.5px solid var(--border);border-radius:10px;padding:4px 10px;font-size:11.5px;cursor:pointer;color:var(--text-secondary);transition:background .1s,border-color .1s,color .1s;font-family:inherit}
+.al-filter-btn:hover{background:var(--bg-secondary)}
+.al-filter-btn.active{background:var(--bg-success);border-color:var(--green);color:var(--text-success);font-weight:600}
+.al-list{flex:1;overflow-y:auto;border:0.5px solid var(--border);border-radius:var(--radius-md);overflow:hidden}
+.al-item{display:flex;align-items:flex-start;gap:10px;padding:10px 14px;border-bottom:0.5px solid var(--border);transition:background .1s}
+.al-item:last-child{border-bottom:none}
+.al-item:hover{background:var(--bg-secondary)}
+.al-icon{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:12px}
+.al-icon.login{background:var(--bg-success);color:var(--text-success)}
+.al-icon.msg{background:var(--bg-info);color:var(--text-info)}
+.al-icon.file{background:var(--bg-warning);color:var(--text-warning)}
+.al-icon.logout{background:var(--bg-danger);color:var(--text-danger)}
+.al-text{flex:1;min-width:0}
+.al-main{font-size:13px;color:var(--text-primary);line-height:1.4}
+.al-time{font-size:11px;color:var(--text-tertiary);margin-top:2px}
+
+/* ── CUSTOM STATUS ── */
+.status-input-row{display:flex;gap:8px;align-items:center;margin-bottom:12px}
+.status-emoji-btn{background:var(--bg-secondary);border:0.5px solid var(--border-md);border-radius:var(--radius-sm);padding:8px;font-size:18px;cursor:pointer;line-height:1;transition:background .1s}
+.status-emoji-btn:hover{background:var(--bg-tertiary)}
+.status-text-input{flex:1;border:0.5px solid var(--border-md);border-radius:var(--radius-md);padding:9px 12px;font-size:13px;color:var(--text-primary);background:var(--bg-secondary);font-family:inherit;outline:none}
+.status-text-input:focus{border-color:var(--green);box-shadow:0 0 0 3px var(--green-glow)}
+.status-quick-row{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px}
+.status-quick-btn{background:none;border:0.5px solid var(--border);border-radius:10px;padding:4px 10px;font-size:12px;cursor:pointer;color:var(--text-secondary);transition:background .1s,border-color .1s;font-family:inherit}
+.status-quick-btn:hover{background:var(--bg-secondary);border-color:var(--border-md)}
+.custom-status-pill{display:inline-flex;align-items:center;gap:4px;font-size:11px;color:var(--text-secondary);background:var(--bg-secondary);border:0.5px solid var(--border);border-radius:10px;padding:2px 7px;max-width:140px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+
+/* ── KEYBOARD SHORTCUTS PANEL ── */
+.kb-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);backdrop-filter:blur(2px);z-index:650;display:none;align-items:center;justify-content:center}
+.kb-overlay.open{display:flex}
+.kb-modal{background:var(--bg-primary);border-radius:var(--radius-xl);border:0.5px solid var(--border);padding:24px;width:min(460px,92vw);box-shadow:var(--shadow-lg);animation:modalIn .15s ease-out}
+.kb-grid{display:grid;grid-template-columns:1fr 1fr;gap:0;border:0.5px solid var(--border);border-radius:var(--radius-md);overflow:hidden}
+.kb-row{display:contents}
+.kb-row > div{padding:9px 12px;border-bottom:0.5px solid var(--border);border-right:0.5px solid var(--border);font-size:12.5px}
+.kb-row > div:nth-child(even){border-right:none}
+.kb-row:last-child > div{border-bottom:none}
+.kb-row > div:first-child{color:var(--text-secondary)}
+.kb-row > div:last-child{display:flex;gap:4px;align-items:center}
+kbd{background:var(--bg-secondary);border:0.5px solid var(--border-md);border-radius:4px;padding:2px 6px;font-size:11px;font-family:inherit;color:var(--text-secondary)}
+
+/* ── BULK DOWNLOAD ── */
+.bulk-dl-btn{background:none;border:0.5px solid var(--border);border-radius:var(--radius-sm);padding:4px 9px;font-size:11px;cursor:pointer;color:var(--text-secondary);display:flex;align-items:center;gap:5px;font-family:inherit;transition:background .1s,border-color .1s;margin-top:8px;width:100%}
+.bulk-dl-btn:hover{background:var(--bg-secondary);border-color:var(--green);color:var(--text-success)}
+.bulk-dl-btn i{font-size:13px}
 </style>
 </head>
 <body>
@@ -491,6 +634,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
           <div class="av-edit-overlay"><i class="ti ti-camera"></i></div>
         </div>
         <div><div class="sf-name" id="sfName"></div><div class="sf-sub" id="sfSub"></div></div>
+        <button class="theme-toggle-btn" id="themeToggleBtn" onclick="toggleTheme()" title="Toggle dark/light mode"><i class="ti ti-moon" id="themeIcon"></i></button>
+        <button class="theme-toggle-btn" onclick="openKeyboardShortcuts()" title="Keyboard shortcuts"><i class="ti ti-keyboard"></i></button>
         <button class="install-btn" id="installBtn" onclick="installApp()" title="Install app"><i class="ti ti-download" style="font-size:16px"></i></button>
         <button class="logout-btn" onclick="doLogout()" title="Sign out"><i class="ti ti-logout" style="font-size:16px"></i></button>
       </div>
@@ -509,6 +654,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       </div>
       <div class="topbar-r">
         <button class="icon-btn" id="addUserBtn" onclick="openCreateUser()" title="Add team member" style="display:none"><i class="ti ti-user-plus" style="font-size:15px"></i></button>
+        <button class="icon-btn" onclick="openGlobalSearch()" title="Global search (Ctrl+K)"><i class="ti ti-search" style="font-size:15px"></i></button>
+        <button class="icon-btn" id="activityLogBtn" onclick="openActivityLog()" title="Activity log" style="display:none"><i class="ti ti-activity" style="font-size:15px"></i></button>
+        <button class="icon-btn" id="announceModeBtn" onclick="toggleAnnounceMode()" title="Announcement mode" style="display:none"><i class="ti ti-speakerphone" style="font-size:15px"></i></button>
         <button class="icon-btn" id="pinnedBtn" onclick="togglePinnedPanel()" title="Pinned messages" style="display:none"><i class="ti ti-pin" style="font-size:15px"></i></button>
         <button class="icon-btn" onclick="document.getElementById('fileInMedia').click()" title="Attach image/video"><i class="ti ti-paperclip" style="font-size:15px"></i></button>
         <button class="icon-btn team-toggle-btn" onclick="toggleRightPanel()" title="Team"><i class="ti ti-users" style="font-size:15px"></i></button>
@@ -518,10 +666,20 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       </div>
     </div>
     <div id="pinBanner" style="display:none"></div>
+    <div id="announceBanner" style="display:none"></div>
     <div class="msgs" id="msgsArea"></div>
     <div id="typingIndicator"></div>
     <div class="input-area" id="inputArea">
       <div id="replyBar" style="display:none"></div>
+      <div id="voiceRecordingBar" class="voice-recording-bar">
+        <i class="ti ti-microphone" style="color:var(--text-danger)"></i>
+        <span class="voice-timer" id="voiceTimer">0:00</span>
+        <div class="voice-waveform"><span></span><span></span><span></span><span></span><span></span></div>
+        <button class="voice-cancel-btn" onclick="cancelVoiceRecord()" title="Cancel"><i class="ti ti-x"></i></button>
+      </div>
+      <div id="scheduledMsgPreview" style="display:none;margin-bottom:6px">
+        <div class="scheduled-msg-bubble"><i class="ti ti-clock"></i><span id="scheduledMsgTime"></span><button style="background:none;border:none;cursor:pointer;color:var(--text-warning);margin-left:auto;font-size:12px;padding:2px" onclick="clearSchedule()"><i class="ti ti-x"></i></button></div>
+      </div>
       <div class="mention-popup" id="mentionPopup" style="display:none"></div>
       <div class="input-box">
         <div class="input-toolbar">
@@ -532,6 +690,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
           <button class="tool-btn" onclick="document.getElementById('fileInMedia').click()" title="Photo / Video"><i class="ti ti-photo"></i></button>
           <button class="tool-btn" onclick="document.getElementById('fileInCSV').click()" title="CSV / Spreadsheet"><i class="ti ti-table"></i></button>
           <button class="tool-btn" onclick="document.getElementById('fileInPDF').click()" title="PDF / Document"><i class="ti ti-file-type-pdf"></i></button>
+          <div style="width:0.5px;height:16px;background:var(--border);margin:0 3px;flex-shrink:0"></div>
+          <button class="tool-btn voice-record-btn" id="voiceRecordBtn" onclick="toggleVoiceRecord()" title="Voice message"><i class="ti ti-microphone" id="voiceIcon"></i></button>
+          <button class="tool-btn" onclick="openScheduleSend()" title="Schedule message"><i class="ti ti-clock-send"></i></button>
         </div>
         <div class="input-row">
           <textarea id="msgInput" rows="1" onkeydown="kd(event)" oninput="ar(this);handleTyping()" placeholder="Message #general…"></textarea>
@@ -563,6 +724,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <div class="drop-zone" onclick="document.getElementById('fileInMedia').click()">
         <i class="ti ti-cloud-upload"></i>Drop or click to share a file
       </div>
+      <button class="bulk-dl-btn" id="bulkDlBtn" onclick="bulkDownloadFiles()" title="Download all files in this channel as ZIP">
+        <i class="ti ti-file-zip"></i>Download all as ZIP
+      </button>
     </div>
   </div>
 
@@ -695,6 +859,117 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <div class="modal-actions">
       <button class="btn-sec" onclick="closeRenameChannel()">Cancel</button>
       <button class="btn-pri" id="renameChBtn" onclick="saveChannelRename()">Rename</button>
+    </div>
+  </div>
+</div>
+
+<!-- GLOBAL SEARCH MODAL -->
+<div class="global-search-overlay" id="globalSearchOverlay" onclick="closeGlobalSearch(event)">
+  <div class="global-search-box" onclick="event.stopPropagation()">
+    <div class="gs-input-row">
+      <i class="ti ti-search"></i>
+      <input class="gs-input" id="gsInput" placeholder="Search all channels and DMs…" oninput="globalSearch(this.value)" autocomplete="off">
+      <button class="gs-close" onclick="closeGlobalSearch()">Esc</button>
+    </div>
+    <div class="gs-results" id="gsResults">
+      <div class="gs-empty">Start typing to search all messages</div>
+    </div>
+    <div class="gs-hint">
+      <span><kbd>↑</kbd><kbd>↓</kbd> navigate &nbsp; <kbd>Enter</kbd> jump to message</span>
+      <span><kbd>Esc</kbd> close</span>
+    </div>
+  </div>
+</div>
+
+<!-- FORWARD MESSAGE MODAL -->
+<div class="modal-overlay" id="forwardModal">
+  <div class="modal" style="max-width:400px">
+    <h3>Forward message</h3>
+    <p class="modal-sub">Choose where to forward this message.</p>
+    <div class="fwd-preview" id="fwdPreview"></div>
+    <div class="fwd-dest-list" id="fwdDestList"></div>
+    <div class="modal-actions">
+      <button class="btn-sec" onclick="closeForwardModal()">Cancel</button>
+      <button class="btn-pri" id="fwdSendBtn" onclick="confirmForward()">Forward</button>
+    </div>
+  </div>
+</div>
+
+<!-- SCHEDULE SEND MODAL -->
+<div class="modal-overlay" id="scheduleModal">
+  <div class="modal" style="max-width:360px">
+    <h3><i class="ti ti-clock-send" style="color:var(--green)"></i> Schedule message</h3>
+    <p class="modal-sub">Write your message in the input box, then pick when to send it.</p>
+    <div class="schedule-panel">
+      <label>Send at</label>
+      <input type="datetime-local" id="scheduleDateInput">
+    </div>
+    <div class="modal-actions">
+      <button class="btn-sec" onclick="closeScheduleModal()">Cancel</button>
+      <button class="btn-pri" onclick="confirmSchedule()">Schedule</button>
+    </div>
+  </div>
+</div>
+
+<!-- ACTIVITY LOG MODAL (admin) -->
+<div class="activity-log-overlay" id="activityLogModal">
+  <div class="activity-log-modal">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+      <h3 style="font-size:15px;font-weight:600;color:var(--text-primary)"><i class="ti ti-activity" style="color:var(--green)"></i> Activity Log</h3>
+      <button class="btn-sec" onclick="closeActivityLog()" style="padding:5px 12px;font-size:12px">Close</button>
+    </div>
+    <div class="al-filters">
+      <button class="al-filter-btn active" onclick="filterActivity('all',this)">All</button>
+      <button class="al-filter-btn" onclick="filterActivity('login',this)">Logins</button>
+      <button class="al-filter-btn" onclick="filterActivity('msg',this)">Messages</button>
+      <button class="al-filter-btn" onclick="filterActivity('file',this)">Files</button>
+    </div>
+    <div class="al-list" id="alList"><div style="padding:24px;text-align:center;font-size:13px;color:var(--text-tertiary)">Loading…</div></div>
+  </div>
+</div>
+
+<!-- CUSTOM STATUS MODAL -->
+<div class="modal-overlay" id="customStatusModal">
+  <div class="modal" style="max-width:360px">
+    <h3>Set your status</h3>
+    <p class="modal-sub">Let your team know what you're up to.</p>
+    <div class="status-input-row">
+      <button class="status-emoji-btn" id="statusEmojiBtn" onclick="cycleStatusEmoji()">😊</button>
+      <input class="status-text-input" id="statusTextInput" placeholder="What's your status?" maxlength="60" onkeydown="if(event.key==='Enter')saveCustomStatus()">
+    </div>
+    <div class="status-quick-row">
+      <button class="status-quick-btn" onclick="setQuickStatus('🎧','In a call')">🎧 In a call</button>
+      <button class="status-quick-btn" onclick="setQuickStatus('✈️','Out of office')">✈️ Out of office</button>
+      <button class="status-quick-btn" onclick="setQuickStatus('🍽️','Lunch break')">🍽️ Lunch break</button>
+      <button class="status-quick-btn" onclick="setQuickStatus('🎯','Deep focus')">🎯 Deep focus</button>
+      <button class="status-quick-btn" onclick="setQuickStatus('🏠','Working remotely')">🏠 Working remotely</button>
+      <button class="status-quick-btn" onclick="setQuickStatus('','')">✕ Clear status</button>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-sec" onclick="closeCustomStatusModal()">Cancel</button>
+      <button class="btn-pri" onclick="saveCustomStatus()">Save status</button>
+    </div>
+  </div>
+</div>
+
+<!-- KEYBOARD SHORTCUTS PANEL -->
+<div class="kb-overlay" id="kbOverlay" onclick="closeKeyboardShortcuts(event)">
+  <div class="kb-modal" onclick="event.stopPropagation()">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <h3 style="font-size:15px;font-weight:600;color:var(--text-primary)">⌨️ Keyboard Shortcuts</h3>
+      <button class="btn-sec" onclick="closeKeyboardShortcuts()" style="padding:5px 12px;font-size:12px">Close</button>
+    </div>
+    <div class="kb-grid">
+      <div class="kb-row"><div>Global search</div><div><kbd>Ctrl</kbd>+<kbd>K</kbd></div></div>
+      <div class="kb-row"><div>Send message</div><div><kbd>Enter</kbd></div></div>
+      <div class="kb-row"><div>New line</div><div><kbd>Shift</kbd>+<kbd>Enter</kbd></div></div>
+      <div class="kb-row"><div>Bold text</div><div><kbd>**text**</kbd></div></div>
+      <div class="kb-row"><div>Italic text</div><div><kbd>_text_</kbd></div></div>
+      <div class="kb-row"><div>Inline code</div><div><kbd>`code`</kbd></div></div>
+      <div class="kb-row"><div>Mention user</div><div><kbd>@name</kbd></div></div>
+      <div class="kb-row"><div>Shortcuts panel</div><div><kbd>?</kbd></div></div>
+      <div class="kb-row"><div>Close overlay</div><div><kbd>Esc</kbd></div></div>
+      <div class="kb-row"><div>Schedule message</div><div><kbd>Ctrl</kbd>+<kbd>S</kbd></div></div>
     </div>
   </div>
 </div>
@@ -948,6 +1223,13 @@ async function initApp(){
   window.addEventListener('beforeunload', () => {
     setDoc(doc(db,'chat_users', ME.uid), { status:'offline' }, { merge:true });
   });
+  // ── NEW FEATURE INIT ──
+  await loadAnnounceSettings();
+  if (ME.isAdmin){
+    document.getElementById('activityLogBtn').style.display='flex';
+    document.getElementById('announceModeBtn').style.display='flex';
+  }
+  updateSfStatusPill();
 }
 
 function updateSfAvatar(){
@@ -1206,118 +1488,115 @@ function listenMessages(ch, isDm, targetUid, tv){
 }
 
 function renderMsgsFromSnap(snap, colPath, ch, area){
-    if (snap.empty){
-      const isDmView = ch.startsWith('dm-');
-      const partnerName = isDmView ? (ALL_USERS[ch.replace('dm-','')]?.name||'this person') : '#'+(_CH[ch]?.name||ch);
-      area.innerHTML = `<div class="empty-state"><i class="ti ti-messages"></i><div class="es-title">No messages yet</div><div class="es-sub">Start the conversation in ${partnerName}</div></div>`;
-      return;
-    }
-    let html = '', lastUid = '', lastDateStr = '';
-    const isDm = ch.startsWith('dm-');
-    snap.docs.forEach((d, idx) => {
-      const msg = d.data();
-      const docId = d.id;
-      const mu = ALL_USERS[msg.uid] || { name:'Unknown', uid:msg.uid };
-      const isOwn = msg.uid === ME.uid;
-      const col = avatarColor(msg.uid);
-      const sameSender = msg.uid===lastUid && !msg.file;
-      const ts = fmtTime(msg.ts);
-      const dateStr = fmtDate(msg.ts);
-      // date divider
-      if (dateStr && dateStr !== lastDateStr){
-        if (lastUid) html += '</div>';
-        html += `<div class="date-divider">${dateStr}</div>`;
-        lastUid = ''; lastDateStr = dateStr;
-      }
-      // avatar with profile pic
-      const avContent = mu.photoURL ? `<img class="av-img" src="${mu.photoURL}" alt="${mu.name}">` : initials(mu.name);
-      const avStyle = mu.photoURL ? 'background:transparent' : (AV_STYLES[col]||'');
+  if (snap.empty){
+    const isDmView = ch.startsWith('dm-');
+    const partnerName = isDmView ? (ALL_USERS[ch.replace('dm-','')]?.name||'this person') : '#'+(_CH[ch]?.name||ch);
+    area.innerHTML = `<div class="empty-state"><i class="ti ti-messages"></i><div class="es-title">No messages yet</div><div class="es-sub">Start the conversation in ${partnerName}</div></div>`;
+    return;
+  }
+  let html = '', lastUid = '', lastDateStr = '';
+  const isDm = ch.startsWith('dm-');
+  // track last own message for channel read receipts
+  const ownDocIds = snap.docs.filter(d=>d.data().uid===ME.uid).map(d=>d.id);
+  const lastOwnDocId = ownDocIds[ownDocIds.length-1];
 
-      if (!sameSender){
-        if (lastUid) html += '</div>';
-        html += `<div class="msg-group${idx===snap.docs.length-1?' new-msg':''}">
-          <div class="msg-meta">
-            <div class="msg-av" style="${avStyle};width:28px;height:28px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0;margin-right:8px;vertical-align:middle">${avContent}</div>
-            <span class="msg-sender">${mu.name}${mu.isAdmin?'<span class="admin-tag">Admin</span>':''}</span>
-            <span class="msg-time">${ts}</span>
-          </div>`;
-      }
-      // reactions
-      const reactions = msg.reactions || {};
-      let reactionHtml = '';
-      if (Object.keys(reactions).length > 0){
-        const grouped = {};
-        Object.entries(reactions).forEach(([uid,emoji]) => {
-          if (!grouped[emoji]) grouped[emoji] = [];
-          grouped[emoji].push(uid);
-        });
-        reactionHtml = '<div class="reaction-row">';
-        Object.entries(grouped).forEach(([emoji,uids]) => {
-          const mine = uids.includes(ME.uid);
-          reactionHtml += `<button class="reaction-pill${mine?' mine':''}" onclick="toggleReaction('${colPath}','${docId}','${emoji}')" title="${uids.map(u=>ALL_USERS[u]?.name||'?').join(', ')}">${emoji}<span class="reaction-count">${uids.length}</span></button>`;
-        });
-        reactionHtml += '</div>';
-      }
-      // read receipts (DM only, own messages)
-      let readReceiptHtml = '';
-      if (isDm && isOwn){
-        const readBy = (msg.readBy || []).filter(uid => uid !== ME.uid);
-        if (readBy.length > 0){
-          const names = readBy.map(uid => ALL_USERS[uid]?.name?.split(' ')[0] || 'Someone').join(', ');
-          readReceiptHtml = `<div style="font-size:10px;color:var(--text-tertiary);display:flex;align-items:center;gap:3px;margin-top:2px"><i class="ti ti-checks" style="font-size:12px;color:var(--green)"></i> Seen by ${names}</div>`;
-        }
-      }
-      // pin indicator
-      const isPinned = (msg.pinnedIn||[]).includes(ch);
-      const pinIndicator = isPinned ? `<div class="msg-pinned-indicator"><i class="ti ti-pin"></i> Pinned</div>` : '';
-      const editedLabel = msg.edited ? '<span class="edit-label">(edited)</span>' : '';
-      // action buttons
-      const canEdit = isOwn && !msg.file;
-      const canPin = !isDm; // only in channels
-      const actionsHtml = `<div class="msg-actions">
-        <button class="ma-btn" onclick="openEmojiPicker(event,'${colPath}','${docId}')" title="React"><i class="ti ti-mood-smile"></i></button>
-        <button class="ma-btn" onclick="startReply('${docId}','${(msg.text||msg.file?.name||'').replace(/'/g,"\\'").replace(/\n/g,' ').slice(0,80)}','${(mu.name||'').replace(/'/g,"\\'")}','${colPath}')" title="Reply"><i class="ti ti-arrow-back-up"></i></button>
-        ${canPin ? `<button class="ma-btn${isPinned?' pin-active':''}" onclick="togglePin('${colPath}','${docId}','${ch}')" title="${isPinned?'Unpin':'Pin message'}"><i class="ti ti-pin"></i></button>` : ''}
-        ${canEdit ? `<button class="ma-btn" onclick="openEdit('${colPath}','${docId}',this)" title="Edit"><i class="ti ti-pencil"></i></button>` : ''}
-        ${isOwn||ME.isAdmin ? `<button class="ma-btn danger" onclick="deleteMsg('${colPath}','${docId}')" title="Delete"><i class="ti ti-trash"></i></button>` : ''}
-      </div>`;
-      html += `<div class="msg-row" id="msg-${docId}">
-        <div class="msg-av" style="${avStyle}">${avContent}</div>
-        <div class="bubble-wrap">`;
-      // reply quote bubble
-      if (msg.replyTo){
-        const rSender = ALL_USERS[msg.replyTo.uid];
-        const rName = rSender?.name || msg.replyTo.senderName || 'Someone';
-        const rText = msg.replyTo.text || (msg.replyTo.file ? `📎 ${msg.replyTo.file}` : '…');
-        html += `<div class="reply-preview-bubble" onclick="scrollToMsg('${msg.replyTo.docId||''}')">
-          <div class="rp-sender">${rName}</div>
-          <div class="rp-text">${rText.slice(0,120)}</div>
+  snap.docs.forEach((d, idx) => {
+    const msg = d.data();
+    const docId = d.id;
+    const mu = ALL_USERS[msg.uid] || { name:'Unknown', uid:msg.uid };
+    const isOwn = msg.uid === ME.uid;
+    const col = avatarColor(msg.uid);
+    const sameSender = msg.uid===lastUid && !msg.file && !msg.voice;
+    const ts = fmtTime(msg.ts);
+    const dateStr = fmtDate(msg.ts);
+    if (dateStr && dateStr !== lastDateStr){
+      if (lastUid) html += '</div>';
+      html += `<div class="date-divider">${dateStr}</div>`;
+      lastUid = ''; lastDateStr = dateStr;
+    }
+    const avContent = mu.photoURL ? `<img class="av-img" src="${mu.photoURL}" alt="${mu.name}">` : initials(mu.name);
+    const avStyle = mu.photoURL ? 'background:transparent' : (AV_STYLES[col]||'');
+    if (!sameSender){
+      if (lastUid) html += '</div>';
+      html += `<div class="msg-group${idx===snap.docs.length-1?' new-msg':''}">
+        <div class="msg-meta">
+          <div class="msg-av" style="${avStyle};width:28px;height:28px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0;margin-right:8px;vertical-align:middle">${avContent}</div>
+          <span class="msg-sender">${mu.name}${mu.isAdmin?'<span class="admin-tag">Admin</span>':''}</span>
+          <span class="msg-time">${ts}</span>
         </div>`;
+    }
+    // reactions
+    const reactions = msg.reactions || {};
+    let reactionHtml = '';
+    if (Object.keys(reactions).length > 0){
+      const grouped = {};
+      Object.entries(reactions).forEach(([uid,emoji]) => { if (!grouped[emoji]) grouped[emoji]=[]; grouped[emoji].push(uid); });
+      reactionHtml = '<div class="reaction-row">';
+      Object.entries(grouped).forEach(([emoji,uids]) => {
+        const mine = uids.includes(ME.uid);
+        reactionHtml += `<button class="reaction-pill${mine?' mine':''}" onclick="toggleReaction('${colPath}','${docId}','${emoji}')">${emoji}<span class="reaction-count">${uids.length}</span></button>`;
+      });
+      reactionHtml += '</div>';
+    }
+    // read receipts — DM: "Seen" on any own msg; Channel: "Seen by X" on last own msg only
+    let readReceiptHtml = '';
+    if (isOwn){
+      const readers = (msg.readBy||[]).filter(uid=>uid!==ME.uid);
+      if (isDm && readers.length){
+        readReceiptHtml = `<div style="font-size:10px;color:var(--text-tertiary);display:flex;align-items:center;gap:3px;margin-top:2px"><i class="ti ti-checks" style="font-size:12px;color:var(--green)"></i> Seen</div>`;
+      } else if (!isDm && docId===lastOwnDocId && readers.length){
+        const names = readers.map(uid=>ALL_USERS[uid]?.name?.split(' ')[0]||'?').join(', ');
+        readReceiptHtml = `<div style="font-size:10px;color:var(--text-tertiary);display:flex;align-items:center;gap:3px;margin-top:2px"><i class="ti ti-checks" style="font-size:12px;color:var(--green)"></i> Seen by ${names}</div>`;
       }
-      if (msg.file){
-        const t = msg.file.ftype;
-        const url = msg.file.url||'#';
-        if (t==='img'&&url!=='#'){
-          html += `<a href="${url}" target="_blank" rel="noopener" style="display:block;margin-top:2px">
-            <img src="${url}" style="max-width:280px;max-height:200px;border-radius:var(--radius-md);border:0.5px solid var(--border);display:block;cursor:pointer" loading="lazy">
-            <div class="fs" style="margin-top:3px">${msg.file.name} · ${msg.file.size}</div></a>`;
-        } else {
-          const icon = t==='csv'?'ti-table':t==='pdf'?'ti-file-type-pdf':'ti-file';
-          html += `<a href="${url}" target="_blank" rel="noopener" style="text-decoration:none">
-            <div class="file-card"><div class="fic ${t}"><i class="ti ${icon}"></i></div>
-            <div><div class="fn">${msg.file.name}</div><div class="fs">${msg.file.size}</div></div>
-            <i class="ti ti-download dl-ico"></i></div></a>`;
-        }
+    }
+    const isPinned = (msg.pinnedIn||[]).includes(ch);
+    const pinIndicator = isPinned ? `<div class="msg-pinned-indicator"><i class="ti ti-pin"></i> Pinned</div>` : '';
+    const editedLabel = msg.edited ? '<span class="edit-label">(edited)</span>' : '';
+    const canEdit = isOwn && !msg.file && !msg.voice;
+    const canPin = !isDm;
+    const replyText = (msg.text||msg.file?.name||msg.voice?'🎤 Voice message':'').replace(/'/g,"\\'").replace(/\n/g,' ').slice(0,80);
+    const fwdSafeText = (msg.text||msg.file?.name||'Voice message').replace(/'/g,"\\'").replace(/\n/g,' ').slice(0,80);
+    const actionsHtml = `<div class="msg-actions">
+      <button class="ma-btn" onclick="openEmojiPicker(event,'${colPath}','${docId}')" title="React"><i class="ti ti-mood-smile"></i></button>
+      <button class="ma-btn" onclick="startReply('${docId}','${replyText}','${(mu.name||'').replace(/'/g,"\\'")}','${colPath}')" title="Reply"><i class="ti ti-arrow-back-up"></i></button>
+      <button class="ma-btn" onclick="openForwardModal('${colPath}','${docId}','${fwdSafeText}','${(msg.file?.name||'').replace(/'/g,"\\'")}')" title="Forward"><i class="ti ti-corner-up-right"></i></button>
+      ${canPin ? `<button class="ma-btn${isPinned?' pin-active':''}" onclick="togglePin('${colPath}','${docId}','${ch}')" title="${isPinned?'Unpin':'Pin'}"><i class="ti ti-pin"></i></button>` : ''}
+      ${canEdit ? `<button class="ma-btn" onclick="openEdit('${colPath}','${docId}',this)" title="Edit"><i class="ti ti-pencil"></i></button>` : ''}
+      ${isOwn||ME.isAdmin ? `<button class="ma-btn danger" onclick="deleteMsg('${colPath}','${docId}')" title="Delete"><i class="ti ti-trash"></i></button>` : ''}
+    </div>`;
+    const fwdBadge = msg.forwarded ? `<div style="font-size:11px;color:var(--text-tertiary);margin-bottom:3px;display:flex;align-items:center;gap:4px"><i class="ti ti-corner-up-right" style="font-size:12px"></i>Forwarded from <strong>${msg.forwarded.senderName}</strong></div>` : '';
+    html += `<div class="msg-row" id="msg-${docId}">
+      <div class="msg-av" style="${avStyle}">${avContent}</div>
+      <div class="bubble-wrap">${fwdBadge}`;
+    if (msg.replyTo){
+      const rSender = ALL_USERS[msg.replyTo.uid];
+      const rName = rSender?.name || msg.replyTo.senderName || 'Someone';
+      const rText = msg.replyTo.text || (msg.replyTo.file ? `📎 ${msg.replyTo.file}` : '…');
+      html += `<div class="reply-preview-bubble" onclick="scrollToMsg('${msg.replyTo.docId||''}')"><div class="rp-sender">${rName}</div><div class="rp-text">${rText.slice(0,120)}</div></div>`;
+    }
+    if (msg.voice){
+      html += renderVoiceBubble(msg, isOwn, docId);
+    } else if (msg.file){
+      const t = msg.file.ftype, url = msg.file.url||'#';
+      if (t==='img'&&url!=='#'){
+        html += `<a href="${url}" target="_blank" rel="noopener" style="display:block;margin-top:2px"><img src="${url}" style="max-width:280px;max-height:200px;border-radius:var(--radius-md);border:0.5px solid var(--border);display:block;cursor:pointer" loading="lazy"><div class="fs" style="margin-top:3px">${msg.file.name} · ${msg.file.size}</div></a>`;
       } else {
-        html += `<div class="bubble${isOwn?' own':''}" data-raw="${(msg.text||'').replace(/"/g,'&quot;')}">${parseMarkdown(msg.text||'')}${editedLabel}</div>`;
+        const icon = t==='csv'?'ti-table':t==='pdf'?'ti-file-type-pdf':'ti-file';
+        html += `<a href="${url}" target="_blank" rel="noopener" style="text-decoration:none"><div class="file-card"><div class="fic ${t}"><i class="ti ${icon}"></i></div><div><div class="fn">${msg.file.name}</div><div class="fs">${msg.file.size}</div></div><i class="ti ti-download dl-ico"></i></div></a>`;
       }
-      html += `${reactionHtml}${readReceiptHtml}${pinIndicator}</div>${actionsHtml}</div>`;
-      lastUid = msg.uid;
-    });
-    if (lastUid) html += '</div>';
-    area.innerHTML = html;
-    // attach long-press / right-click context menu to every msg-row
-    area.querySelectorAll('.msg-row').forEach(row => attachCtxListeners(row, colPath, ch));
+    } else {
+      html += `<div class="bubble${isOwn?' own':''}" data-raw="${(msg.text||'').replace(/"/g,'&quot;')}">${parseMarkdown(msg.text||'')}${editedLabel}</div>`;
+    }
+    html += `${reactionHtml}${readReceiptHtml}${pinIndicator}</div>${actionsHtml}</div>`;
+    lastUid = msg.uid;
+  });
+  if (lastUid) html += '</div>';
+  area.innerHTML = html;
+  area.querySelectorAll('.msg-row').forEach(row => attachCtxListeners(row, colPath, ch));
+  // Mark channel messages as read
+  if (!isDm){
+    snap.docs.forEach(d => { const m=d.data(); if(m.uid!==ME.uid && !(m.readBy||[]).includes(ME.uid)){ updateDoc(d.ref,{readBy:arrayUnion(ME.uid)}).catch(()=>{}); } });
+  }
 }
 
 // ── REACTIONS ──
@@ -1981,8 +2260,620 @@ window.closeCtxMenu = function(){
   ctxCurrentData = null;
 };
 
-// close on Escape key
-document.addEventListener('keydown', e => { if(e.key==='Escape') closeCtxMenu(); });
+// ── DARK/LIGHT MODE TOGGLE ──
+function applyTheme(theme){
+  document.documentElement.setAttribute('data-theme', theme);
+  localStorage.setItem('navain-theme', theme);
+  const icon = document.getElementById('themeIcon');
+  if (icon) icon.className = theme === 'dark' ? 'ti ti-sun' : 'ti ti-moon';
+}
+window.toggleTheme = function(){
+  const cur = document.documentElement.getAttribute('data-theme');
+  applyTheme(cur === 'dark' ? 'light' : 'dark');
+};
+(function initTheme(){
+  const saved = localStorage.getItem('navain-theme');
+  if (saved){ applyTheme(saved); return; }
+  const prefersDark = window.matchMedia('(prefers-color-scheme:dark)').matches;
+  applyTheme(prefersDark ? 'dark' : 'light');
+})();
+
+// ── GLOBAL SEARCH ──
+let gsDebounce = null;
+window.openGlobalSearch = function(){
+  document.getElementById('globalSearchOverlay').classList.add('open');
+  setTimeout(()=>document.getElementById('gsInput').focus(), 80);
+};
+window.closeGlobalSearch = function(e){
+  if (e && e.target !== document.getElementById('globalSearchOverlay')) return;
+  document.getElementById('globalSearchOverlay').classList.remove('open');
+  document.getElementById('gsInput').value = '';
+  document.getElementById('gsResults').innerHTML = '<div class="gs-empty">Start typing to search all messages</div>';
+};
+window.globalSearch = function(val){
+  if (gsDebounce) clearTimeout(gsDebounce);
+  const res = document.getElementById('gsResults');
+  if (!val.trim()){ res.innerHTML = '<div class="gs-empty">Start typing to search all messages</div>'; return; }
+  res.innerHTML = '<div class="gs-empty">Searching all channels…</div>';
+  gsDebounce = setTimeout(async()=>{
+    try {
+      const q2 = val.toLowerCase();
+      const allResults = [];
+      // Search all channels
+      for (const chId of CHANNEL_IDS){
+        const snap = await getDocs(query(collection(db,`channel_messages/${chId}/msgs`), orderBy('ts','desc')));
+        snap.docs.forEach(d=>{
+          if ((d.data().text||'').toLowerCase().includes(q2)){
+            allResults.push({ d, chId, chName: CHANNEL_NAMES[chId]||chId, isDm:false });
+          }
+        });
+      }
+      // Search all DMs accessible to current user
+      const dmPartners = Object.keys(ALL_USERS).filter(uid=>uid!==ME.uid);
+      for (const uid of dmPartners){
+        const key = dmKey(ME.uid, uid);
+        const snap = await getDocs(query(collection(db,`dm_messages/${key}/msgs`), orderBy('ts','desc')));
+        snap.docs.forEach(d=>{
+          if ((d.data().text||'').toLowerCase().includes(q2)){
+            allResults.push({ d, chId:`dm-${uid}`, chName:ALL_USERS[uid]?.name||'DM', isDm:true });
+          }
+        });
+      }
+      // Sort by timestamp descending
+      allResults.sort((a,b)=>{
+        const ta = a.d.data().ts?.toDate?.() || 0;
+        const tb = b.d.data().ts?.toDate?.() || 0;
+        return tb - ta;
+      });
+      const top = allResults.slice(0,12);
+      if (!top.length){ res.innerHTML='<div class="gs-empty">No results found across all channels</div>'; return; }
+      const hiRe = new RegExp(val.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'gi');
+      res.innerHTML = top.map(({d,chId,chName,isDm})=>{
+        const m = d.data();
+        const sender = ALL_USERS[m.uid];
+        const ts = fmtTime(m.ts);
+        const hi = (m.text||'').replace(hiRe,s=>`<mark style="background:var(--bg-warning);border-radius:2px;padding:0 1px">${s}</mark>`);
+        const icon = isDm ? 'ti-user' : 'ti-hash';
+        return `<div class="gs-item" onclick="gsJumpTo('${chId}','${d.id}')">
+          <div class="gs-item-top"><i class="ti ${icon}" style="font-size:11px"></i><span class="gs-ch">${chName}</span><span style="color:var(--text-tertiary)">·</span><span>${sender?.name||'Unknown'}</span><span style="margin-left:auto">${ts}</span></div>
+          <div class="gs-item-text">${hi.slice(0,140)}</div>
+        </div>`;
+      }).join('');
+    } catch(e){ res.innerHTML='<div class="gs-empty">Search failed</div>'; }
+  }, 350);
+};
+window.gsJumpTo = function(chId, docId){
+  document.getElementById('globalSearchOverlay').classList.remove('open');
+  switchCh(chId);
+  // wait for messages to load then scroll
+  setTimeout(()=>{ window.jumpToMsg(docId); }, 600);
+};
+
+// ── VOICE MESSAGES ──
+let mediaRecorder = null, audioChunks = [], voiceTimerInterval = null, voiceSeconds = 0;
+window.toggleVoiceRecord = async function(){
+  if (mediaRecorder && mediaRecorder.state === 'recording'){
+    mediaRecorder.stop();
+  } else {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio:true });
+      mediaRecorder = new MediaRecorder(stream);
+      audioChunks = []; voiceSeconds = 0;
+      mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+      mediaRecorder.onstop = async () => {
+        clearInterval(voiceTimerInterval);
+        document.getElementById('voiceRecordBtn').classList.remove('recording');
+        document.getElementById('voiceIcon').className = 'ti ti-microphone';
+        document.getElementById('voiceRecordingBar').classList.remove('show');
+        stream.getTracks().forEach(t=>t.stop());
+        const blob = new Blob(audioChunks, { type:'audio/webm' });
+        await uploadVoiceMessage(blob, voiceSeconds);
+      };
+      mediaRecorder.start();
+      document.getElementById('voiceRecordBtn').classList.add('recording');
+      document.getElementById('voiceIcon').className = 'ti ti-player-stop';
+      document.getElementById('voiceRecordingBar').classList.add('show');
+      voiceTimerInterval = setInterval(()=>{
+        voiceSeconds++;
+        const m = Math.floor(voiceSeconds/60), s = voiceSeconds%60;
+        document.getElementById('voiceTimer').textContent = `${m}:${s.toString().padStart(2,'0')}`;
+        if (voiceSeconds >= 120) mediaRecorder.stop(); // max 2 min
+      }, 1000);
+    } catch(e){ showToast('Microphone access denied'); }
+  }
+};
+window.cancelVoiceRecord = function(){
+  if (mediaRecorder && mediaRecorder.state==='recording'){
+    mediaRecorder.onstop = ()=>{}; // suppress upload
+    mediaRecorder.stop();
+  }
+  clearInterval(voiceTimerInterval);
+  document.getElementById('voiceRecordBtn').classList.remove('recording');
+  document.getElementById('voiceIcon').className = 'ti ti-microphone';
+  document.getElementById('voiceRecordingBar').classList.remove('show');
+};
+async function uploadVoiceMessage(blob, durationSec){
+  const isDm = curCh.startsWith('dm-');
+  const targetUid = isDm ? curCh.replace('dm-','') : null;
+  const colPath = isDm ? `dm_messages/${dmKey(ME.uid,targetUid)}/msgs` : `channel_messages/${curCh}/msgs`;
+  showToast('Uploading voice message…');
+  try {
+    const CLOUDINARY_CLOUD='dxbemgl70', CLOUDINARY_PRESET='dxbemgl70';
+    const fd = new FormData();
+    fd.append('file', new File([blob],'voice.webm',{type:'audio/webm'}));
+    fd.append('upload_preset', CLOUDINARY_PRESET);
+    fd.append('folder', `navain_chat/${curCh}/voice`);
+    const r = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/video/upload`,{method:'POST',body:fd});
+    const data = await r.json();
+    const m = Math.floor(durationSec/60), s = durationSec%60;
+    const durStr = `${m}:${s.toString().padStart(2,'0')}`;
+    await addDoc(collection(db,colPath),{ uid:ME.uid, ts:serverTimestamp(), readBy:[ME.uid], voice:{ url:data.secure_url, duration:durStr } });
+    showToast('🎤 Voice message sent');
+  } catch(e){ showToast('Voice upload failed'); }
+}
+// Render voice bubble (called from renderMsgsFromSnap addition)
+function renderVoiceBubble(msg, isOwn, docId){
+  const dur = msg.voice.duration || '0:00';
+  return `<div class="voice-bubble${isOwn?' own':''}" id="vb-${docId}">
+    <button class="voice-play-btn" onclick="playVoice('${msg.voice.url}','${docId}')" title="Play"><i class="ti ti-player-play" id="vplay-${docId}"></i></button>
+    <div style="flex:1;display:flex;flex-direction:column;gap:4px">
+      <div class="voice-progress" onclick="seekVoice(event,'${docId}')"><div class="voice-progress-fill" id="vprog-${docId}"></div></div>
+      <div class="voice-duration" id="vdur-${docId}">${dur}</div>
+    </div>
+  </div>`;
+}
+const voicePlayers = {};
+window.playVoice = function(url, docId){
+  if (voicePlayers[docId]){
+    const p = voicePlayers[docId];
+    if (!p.paused){ p.pause(); document.getElementById('vplay-'+docId).className='ti ti-player-play'; return; }
+    p.play(); document.getElementById('vplay-'+docId).className='ti ti-player-pause'; return;
+  }
+  const audio = new Audio(url);
+  voicePlayers[docId] = audio;
+  audio.play();
+  document.getElementById('vplay-'+docId).className='ti ti-player-pause';
+  audio.ontimeupdate = ()=>{
+    const pct = audio.duration ? (audio.currentTime/audio.duration*100) : 0;
+    const el = document.getElementById('vprog-'+docId);
+    if (el) el.style.width = pct+'%';
+    const d = Math.floor(audio.currentTime), m=Math.floor(d/60),s=d%60;
+    const durEl = document.getElementById('vdur-'+docId);
+    if (durEl) durEl.textContent = `${m}:${s.toString().padStart(2,'0')}`;
+  };
+  audio.onended = ()=>{ document.getElementById('vplay-'+docId).className='ti ti-player-play'; };
+};
+window.seekVoice = function(e, docId){
+  const p = voicePlayers[docId]; if (!p || !p.duration) return;
+  const rect = e.currentTarget.getBoundingClientRect();
+  p.currentTime = ((e.clientX - rect.left)/rect.width) * p.duration;
+};
+
+// ── MESSAGE FORWARDING ──
+let fwdMsgData = null, fwdDestSelected = null;
+window.openForwardModal = function(colPath, docId, rawText, fileName){
+  fwdMsgData = { colPath, docId, rawText, fileName };
+  fwdDestSelected = null;
+  document.getElementById('fwdPreview').textContent = (rawText||fileName||'File attachment').slice(0,100);
+  // Build destinations list: all channels + all DM-able users
+  const items = [];
+  CHANNEL_IDS.forEach(id=>{
+    items.push({ key:id, label:`# ${CHANNEL_NAMES[id]||id}`, icon:'ti-hash', isDm:false });
+  });
+  Object.values(ALL_USERS).filter(u=>u.uid!==ME.uid).forEach(u=>{
+    const canDm = ME.isAdmin || u.isAdmin;
+    if (canDm) items.push({ key:`dm-${u.uid}`, label:u.name+(u.isAdmin?' (Admin)':''), icon:'ti-user', isDm:true });
+  });
+  document.getElementById('fwdDestList').innerHTML = items.map(it=>`
+    <div class="fwd-dest-item" id="fwd-${it.key}" onclick="selectFwdDest('${it.key}')">
+      <i class="ti ${it.icon}" style="font-size:13px;color:var(--text-tertiary)"></i>
+      <span style="font-size:13px;color:var(--text-primary)">${it.label}</span>
+      <i class="ti ti-check fwd-check" id="fwdck-${it.key}"></i>
+    </div>`).join('');
+  document.getElementById('forwardModal').classList.add('open');
+};
+window.selectFwdDest = function(key){
+  if (fwdDestSelected){
+    document.getElementById('fwd-'+fwdDestSelected)?.classList.remove('selected');
+  }
+  fwdDestSelected = key;
+  document.getElementById('fwd-'+key)?.classList.add('selected');
+};
+window.closeForwardModal = function(){ document.getElementById('forwardModal').classList.remove('open'); fwdMsgData=null; fwdDestSelected=null; };
+window.confirmForward = async function(){
+  if (!fwdMsgData || !fwdDestSelected){ showToast('Choose a destination first'); return; }
+  const btn = document.getElementById('fwdSendBtn');
+  btn.disabled=true; btn.textContent='Forwarding…';
+  try {
+    // Fetch original message data
+    const origSnap = await getDoc(doc(db, fwdMsgData.colPath, fwdMsgData.docId));
+    if (!origSnap.exists()){ showToast('Original message not found'); return; }
+    const orig = origSnap.data();
+    const isDmDest = fwdDestSelected.startsWith('dm-');
+    const targetUid = isDmDest ? fwdDestSelected.replace('dm-','') : null;
+    const destPath = isDmDest ? `dm_messages/${dmKey(ME.uid,targetUid)}/msgs` : `channel_messages/${fwdDestSelected}/msgs`;
+    const fwdMsg = {
+      uid: ME.uid, ts: serverTimestamp(), readBy:[ME.uid],
+      forwarded: { from: fwdMsgData.colPath.split('/')[1]||'unknown', senderName: ALL_USERS[orig.uid]?.name||'Unknown' },
+    };
+    if (orig.text) fwdMsg.text = orig.text;
+    if (orig.file) fwdMsg.file = orig.file;
+    if (orig.voice) fwdMsg.voice = orig.voice;
+    await addDoc(collection(db,destPath), fwdMsg);
+    if (isDmDest && targetUid) sendPushTo(targetUid, ME.name, `Forwarded: ${orig.text||orig.file?.name||'Voice message'}`);
+    closeForwardModal();
+    showToast('✓ Message forwarded');
+  } catch(e){ showToast('Failed to forward message'); }
+  btn.disabled=false; btn.textContent='Forward';
+};
+
+// ── SCHEDULED SEND ──
+let scheduledSendTime = null;
+window.openScheduleSend = function(){
+  // Set min datetime to now + 1 min
+  const now = new Date(Date.now() + 60000);
+  const local = new Date(now - now.getTimezoneOffset()*60000).toISOString().slice(0,16);
+  document.getElementById('scheduleDateInput').min = local;
+  document.getElementById('scheduleDateInput').value = local;
+  document.getElementById('scheduleModal').classList.add('open');
+};
+window.closeScheduleModal = function(){ document.getElementById('scheduleModal').classList.remove('open'); };
+window.confirmSchedule = function(){
+  const val = document.getElementById('scheduleDateInput').value;
+  if (!val){ showToast('Pick a date and time'); return; }
+  scheduledSendTime = new Date(val);
+  if (scheduledSendTime <= new Date()){ showToast('Pick a future time'); return; }
+  closeScheduleModal();
+  const fmt = scheduledSendTime.toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'});
+  document.getElementById('scheduledMsgTime').textContent = `Scheduled: ${fmt}`;
+  document.getElementById('scheduledMsgPreview').style.display = 'block';
+  showToast(`⏰ Message will send at ${fmt}`);
+};
+window.clearSchedule = function(){ scheduledSendTime=null; document.getElementById('scheduledMsgPreview').style.display='none'; };
+
+// ── ANNOUNCEMENT MODE ──
+let ANNOUNCE_CHANNELS = {};
+async function loadAnnounceSettings(){
+  try {
+    const snap = await getDoc(doc(db,'app_settings','announce'));
+    if (snap.exists()) ANNOUNCE_CHANNELS = snap.data()||{};
+  } catch(e){}
+}
+window.toggleAnnounceMode = async function(){
+  if (!ME.isAdmin) return;
+  const ch = curCh; if (ch.startsWith('dm-')) return;
+  ANNOUNCE_CHANNELS[ch] = !ANNOUNCE_CHANNELS[ch];
+  await setDoc(doc(db,'app_settings','announce'), ANNOUNCE_CHANNELS, {merge:true});
+  renderAnnounceBanner(ch);
+  showToast(ANNOUNCE_CHANNELS[ch] ? '📢 Announcement mode ON — only admins can post' : '💬 Announcement mode OFF');
+};
+function renderAnnounceBanner(ch){
+  const banner = document.getElementById('announceBanner');
+  const btn = document.getElementById('announceModeBtn');
+  if (ANNOUNCE_CHANNELS[ch]){
+    banner.style.display='block';
+    banner.innerHTML=`<div class="announcement-bar"><i class="ti ti-speakerphone"></i><span><strong>Announcement mode</strong> — Only admins can post in this channel</span></div>`;
+    if (btn) btn.style.color='var(--text-warning)';
+  } else {
+    banner.style.display='none';
+    if (btn) btn.style.color='';
+  }
+  // restrict input for non-admins
+  const inputArea = document.getElementById('inputArea');
+  if (inputArea) inputArea.style.display = (!ME.isAdmin && ANNOUNCE_CHANNELS[ch]) ? 'none' : 'block';
+}
+
+// ── READ RECEIPTS IN CHANNELS ──
+// The existing markRead function already marks channel messages.
+// We add a "seen by N" display integrated into renderMsgsFromSnap via the readReceiptHtml variable.
+// Channel read receipts show as "Seen by X" under the last message from self.
+function buildChannelReadReceipt(msg, isLastOwnMsg, snap){
+  if (!isLastOwnMsg || !msg.readBy || msg.readBy.length <= 1) return '';
+  const readers = (msg.readBy||[]).filter(uid=>uid!==ME.uid);
+  if (!readers.length) return '';
+  const names = readers.map(uid=>ALL_USERS[uid]?.name?.split(' ')[0]||'?').join(', ');
+  return `<div style="font-size:10px;color:var(--text-tertiary);margin-top:3px;display:flex;align-items:center;gap:3px"><i class="ti ti-check" style="font-size:11px;color:var(--text-success)"></i><i class="ti ti-check" style="font-size:11px;color:var(--text-success);margin-left:-7px"></i> Seen by ${names}</div>`;
+}
+
+// ── ACTIVITY LOG ──
+let alAllEvents = [], alCurrentFilter = 'all';
+window.openActivityLog = async function(){
+  if (!ME.isAdmin) return;
+  document.getElementById('activityLogModal').classList.add('open');
+  await loadActivityLog();
+};
+window.closeActivityLog = function(){ document.getElementById('activityLogModal').classList.remove('open'); };
+async function loadActivityLog(){
+  const listEl = document.getElementById('alList');
+  listEl.innerHTML = '<div style="padding:24px;text-align:center;font-size:13px;color:var(--text-tertiary)">Loading…</div>';
+  try {
+    const logs = [];
+    // Gather message activity from all channels
+    for (const chId of CHANNEL_IDS){
+      const snap = await getDocs(query(collection(db,`channel_messages/${chId}/msgs`), orderBy('ts','desc')));
+      snap.docs.slice(0,30).forEach(d=>{
+        const m = d.data();
+        if (m.ts) logs.push({ type: m.file ? 'file' : 'msg', uid:m.uid, ts:m.ts, detail: m.file ? `Shared ${m.file.name} in #${CHANNEL_NAMES[chId]||chId}` : `Sent a message in #${CHANNEL_NAMES[chId]||chId}` });
+      });
+    }
+    // Sort by time
+    logs.sort((a,b)=>{ const ta=a.ts?.toDate?.() || 0; const tb=b.ts?.toDate?.() || 0; return tb-ta; });
+    alAllEvents = logs.slice(0,80);
+    renderActivityList();
+  } catch(e){ listEl.innerHTML='<div style="padding:24px;text-align:center;font-size:13px;color:var(--text-danger)">Failed to load activity</div>'; }
+}
+function renderActivityList(){
+  const listEl = document.getElementById('alList');
+  const items = alCurrentFilter==='all' ? alAllEvents : alAllEvents.filter(e=>e.type===alCurrentFilter);
+  if (!items.length){ listEl.innerHTML='<div style="padding:24px;text-align:center;font-size:13px;color:var(--text-tertiary)">No activity found</div>'; return; }
+  listEl.innerHTML = items.map(e=>{
+    const user = ALL_USERS[e.uid];
+    const name = user?.name||'Unknown';
+    const ts = fmtTime(e.ts);
+    const dateStr = fmtDate(e.ts);
+    const iconMap = { login:'login ti-login', msg:'msg ti-message', file:'file ti-file', logout:'logout ti-logout' };
+    const [cls,ico] = (iconMap[e.type]||'msg ti-message').split(' ');
+    return `<div class="al-item">
+      <div class="al-icon ${cls}"><i class="ti ${ico}"></i></div>
+      <div class="al-text"><div class="al-main"><strong>${name}</strong> — ${e.detail}</div><div class="al-time">${dateStr} · ${ts}</div></div>
+    </div>`;
+  }).join('');
+}
+window.filterActivity = function(filter, btn){
+  alCurrentFilter = filter;
+  document.querySelectorAll('.al-filter-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderActivityList();
+};
+
+// ── BULK FILE DOWNLOAD ──
+window.bulkDownloadFiles = async function(){
+  const isDm = curCh.startsWith('dm-');
+  if (isDm){ showToast('Bulk download available for channels only'); return; }
+  showToast('Preparing ZIP… (opening files in new tabs)');
+  try {
+    const snap = await getDocs(collection(db,`channel_messages/${curCh}/msgs`));
+    const files = snap.docs.map(d=>d.data().file).filter(Boolean);
+    if (!files.length){ showToast('No files in this channel'); return; }
+    // Open each file URL in a new tab (browsers block zip generation of cross-origin URLs)
+    files.forEach((f,i) => setTimeout(()=>window.open(f.url,'_blank'), i*300));
+    showToast(`Opening ${files.length} file${files.length!==1?'s':''} — allow popups if blocked`);
+  } catch(e){ showToast('Failed to fetch files'); }
+};
+
+// ── MESSAGE DRAFTS ──
+const DRAFTS = {};
+const _origSendMsg = window.sendMsg;
+window.sendMsg = async function(){
+  if (scheduledSendTime){
+    const inp = document.getElementById('msgInput');
+    const txt = inp.value.trim();
+    if (!txt){ showToast('Type a message first'); return; }
+    const delay = scheduledSendTime - new Date();
+    if (delay <= 0){ clearSchedule(); await _origSendMsg(); return; }
+    inp.value=''; inp.style.height='auto';
+    clearSchedule();
+    DRAFTS['scheduled-'+Date.now()] = { txt, ch:curCh, delay };
+    showToast(`⏰ Scheduled — will send in ${Math.round(delay/60000)} min`);
+    setTimeout(async()=>{
+      const isDm = curCh.startsWith('dm-');
+      const targetUid = isDm ? curCh.replace('dm-','') : null;
+      const colPath = isDm ? `dm_messages/${dmKey(ME.uid,targetUid)}/msgs` : `channel_messages/${curCh}/msgs`;
+      await addDoc(collection(db,colPath), { uid:ME.uid, text:txt, ts:serverTimestamp(), readBy:[ME.uid] });
+      showToast('⏰ Scheduled message sent!');
+    }, delay);
+    return;
+  }
+  await _origSendMsg();
+};
+
+function saveDraft(){
+  const val = document.getElementById('msgInput')?.value || '';
+  if (curCh) DRAFTS[curCh] = val;
+}
+function loadDraft(){
+  const inp = document.getElementById('msgInput');
+  if (!inp) return;
+  const draft = DRAFTS[curCh] || '';
+  inp.value = draft;
+  inp.style.height = 'auto';
+  if (draft) inp.style.height = Math.min(inp.scrollHeight,140)+'px';
+}
+// ── SWITCH CHANNEL: draft save/load + announce banner ──
+const _origSwitchCh = window.switchCh;
+window.switchCh = function(ch){
+  saveDraft();
+  _origSwitchCh(ch);
+  setTimeout(()=>{ loadDraft(); renderAnnounceBanner(ch); }, 200);
+};
+const STATUS_EMOJIS = ['😊','🎧','✈️','🍽️','🎯','🏠','🤒','🏖️','💤','🔕','🎉','💼'];
+let statusEmojiIndex = 0;
+window.cycleStatusEmoji = function(){
+  statusEmojiIndex = (statusEmojiIndex+1) % STATUS_EMOJIS.length;
+  document.getElementById('statusEmojiBtn').textContent = STATUS_EMOJIS[statusEmojiIndex];
+};
+window.setQuickStatus = function(emoji, text){
+  document.getElementById('statusEmojiBtn').textContent = emoji || '😊';
+  document.getElementById('statusTextInput').value = text;
+};
+window.openCustomStatusModal = function(){
+  const cur = ME.customStatus || {};
+  document.getElementById('statusEmojiBtn').textContent = cur.emoji || '😊';
+  document.getElementById('statusTextInput').value = cur.text || '';
+  document.getElementById('customStatusModal').classList.add('open');
+};
+window.closeCustomStatusModal = function(){ document.getElementById('customStatusModal').classList.remove('open'); };
+window.saveCustomStatus = async function(){
+  const emoji = document.getElementById('statusEmojiBtn').textContent;
+  const text = document.getElementById('statusTextInput').value.trim();
+  ME.customStatus = text ? { emoji, text } : null;
+  await setDoc(doc(db,'chat_users',ME.uid), { customStatus: ME.customStatus || null }, {merge:true});
+  updateSfStatusPill();
+  closeCustomStatusModal();
+  showToast(text ? `Status set: ${emoji} ${text}` : 'Status cleared');
+};
+function updateSfStatusPill(){
+  const sub = document.getElementById('sfSub');
+  if (!sub) return;
+  if (ME.customStatus?.text){
+    sub.innerHTML = `<span class="custom-status-pill">${ME.customStatus.emoji} ${ME.customStatus.text}</span>`;
+  } else {
+    sub.textContent = ME.isAdmin ? 'Admin' : 'Agent';
+  }
+}
+
+// ── KEYBOARD SHORTCUTS PANEL ──
+window.openKeyboardShortcuts = function(){ document.getElementById('kbOverlay').classList.add('open'); };
+window.closeKeyboardShortcuts = function(e){
+  if (e && e.target !== document.getElementById('kbOverlay')) return;
+  document.getElementById('kbOverlay').classList.remove('open');
+};
+// Global keyboard shortcuts
+document.addEventListener('keydown', e => {
+  if ((e.key==='k'||e.key==='K') && (e.ctrlKey||e.metaKey)){ e.preventDefault(); openGlobalSearch(); return; }
+  if (e.key==='?' && !e.ctrlKey && !e.metaKey && e.target.tagName!=='INPUT' && e.target.tagName!=='TEXTAREA'){ openKeyboardShortcuts(); return; }
+  if ((e.key==='s'||e.key==='S') && e.ctrlKey && !e.metaKey && e.target.tagName==='TEXTAREA'){ e.preventDefault(); openScheduleSend(); return; }
+  if (e.key==='Escape'){
+    closeGlobalSearch({target:document.getElementById('globalSearchOverlay')});
+    closeKeyboardShortcuts({target:document.getElementById('kbOverlay')});
+    document.getElementById('activityLogModal')?.classList.remove('open');
+    document.getElementById('customStatusModal')?.classList.remove('open');
+  }
+});
+
+// Click avatar/name to open custom status
+document.addEventListener('click', e => {
+  if (e.target.closest('#sfName') || e.target.closest('#sfSub') || e.target.closest('.sf-av-wrap')) return; // handled by profileModal
+});
+// Make sfSub click open status instead of profile
+setTimeout(()=>{
+  const sfSub = document.getElementById('sfSub');
+  if (sfSub) sfSub.style.cursor='pointer';
+  const sfName = document.getElementById('sfName');
+  if (sfName) sfName.onclick = openCustomStatusModal;
+}, 2000);
+
+// (initApp extended inline — see below)
+
+// (switchCh already patched above with drafts + announce banner)
+
+// Patch renderMsgsFromSnap to support voice messages, forwarding, channel read receipts
+const _origRender = renderMsgsFromSnap;
+window.renderMsgsFromSnap = function(snap, colPath, ch, area){
+  // Call original
+  if (snap.empty){
+    const isDmView = ch.startsWith('dm-');
+    const partnerName = isDmView ? (ALL_USERS[ch.replace('dm-','')]?.name||'this person') : '#'+(_CH[ch]?.name||ch);
+    area.innerHTML = `<div class="empty-state"><i class="ti ti-messages"></i><div class="es-title">No messages yet</div><div class="es-sub">Start the conversation in ${partnerName}</div></div>`;
+    return;
+  }
+  // Re-render with voice and forward support
+  let html = '', lastUid = '', lastDateStr = '';
+  const isDm = ch.startsWith('dm-');
+  const ownMsgDocIds = snap.docs.filter(d=>d.data().uid===ME.uid).map(d=>d.id);
+  const lastOwnDocId = ownMsgDocIds[ownMsgDocIds.length-1];
+
+  snap.docs.forEach((d,idx)=>{
+    const msg = d.data(); const docId = d.id;
+    const mu = ALL_USERS[msg.uid]||{name:'Unknown',uid:msg.uid};
+    const isOwn = msg.uid===ME.uid;
+    const col = avatarColor(msg.uid);
+    const sameSender = msg.uid===lastUid && !msg.file && !msg.voice;
+    const ts = fmtTime(msg.ts);
+    const dateStr = fmtDate(msg.ts);
+    if (dateStr && dateStr!==lastDateStr){ if (lastUid) html+='</div>'; html+=`<div class="date-divider">${dateStr}</div>`; lastUid=''; lastDateStr=dateStr; }
+    const avContent = mu.photoURL ? `<img class="av-img" src="${mu.photoURL}" alt="${mu.name}">` : initials(mu.name);
+    const avStyle = mu.photoURL ? 'background:transparent' : (AV_STYLES[col]||'');
+    if (!sameSender){
+      if (lastUid) html+='</div>';
+      html+=`<div class="msg-group${idx===snap.docs.length-1?' new-msg':''}">
+        <div class="msg-meta">
+          <div class="msg-av" style="${avStyle};width:28px;height:28px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0;margin-right:8px;vertical-align:middle">${avContent}</div>
+          <span class="msg-sender">${mu.name}${mu.isAdmin?'<span class="admin-tag">Admin</span>':''}</span>
+          <span class="msg-time">${ts}</span>
+        </div>`;
+    }
+    // reactions
+    const reactions = msg.reactions||{};
+    let reactionHtml='';
+    if (Object.keys(reactions).length>0){
+      const grouped={};
+      Object.entries(reactions).forEach(([uid,e])=>{ grouped[e]=(grouped[e]||[]);grouped[e].push(uid); });
+      reactionHtml='<div class="reaction-row">'+Object.entries(grouped).map(([e,uids])=>{
+        const mine=uids.includes(ME.uid);
+        return `<button class="reaction-pill${mine?' mine':''}" onclick="toggleReaction('${colPath}','${docId}','${e}')">${e}<span class="reaction-count">${uids.length}</span></button>`;
+      }).join('')+'</div>';
+    }
+    // channel read receipts (last own message only)
+    const isLastOwn = docId === lastOwnDocId;
+    const readReceiptHtml = !isDm && isOwn ? buildChannelReadReceipt(msg, isLastOwn, snap) : (isDm && isOwn && (msg.readBy||[]).length>1 ? `<div style="font-size:10px;color:var(--text-tertiary);margin-top:3px;display:flex;align-items:center;gap:3px"><i class="ti ti-check" style="font-size:11px;color:var(--text-success)"></i><i class="ti ti-check" style="font-size:11px;color:var(--text-success);margin-left:-7px"></i> Seen</div>` : '');
+    const isPinned = (msg.pinnedIn||[]).includes(ch);
+    const pinIndicator = isPinned?`<div class="msg-pinned-indicator"><i class="ti ti-pin"></i> Pinned</div>`:'';
+    const editedLabel = msg.edited?'<span class="edit-label">(edited)</span>':'';
+    const canEdit = isOwn && !msg.file && !msg.voice;
+    const canPin = !isDm;
+    const fwdText = (msg.text||msg.file?.name||'Voice message').replace(/'/g,"\\'").replace(/\n/g,' ').slice(0,80);
+    const actionsHtml=`<div class="msg-actions">
+      <button class="ma-btn" onclick="openEmojiPicker(event,'${colPath}','${docId}')" title="React"><i class="ti ti-mood-smile"></i></button>
+      <button class="ma-btn" onclick="startReply('${docId}','${(msg.text||msg.file?.name||'Voice message').replace(/'/g,"\\'").replace(/\n/g,' ').slice(0,80)}','${(mu.name||'').replace(/'/g,"\\'")}','${colPath}')" title="Reply"><i class="ti ti-arrow-back-up"></i></button>
+      <button class="ma-btn" onclick="openForwardModal('${colPath}','${docId}','${fwdText}','${(msg.file?.name||'').replace(/'/g,"\\'")}')" title="Forward"><i class="ti ti-corner-up-right"></i></button>
+      ${canPin?`<button class="ma-btn${isPinned?' pin-active':''}" onclick="togglePin('${colPath}','${docId}','${ch}')" title="${isPinned?'Unpin':'Pin message'}"><i class="ti ti-pin"></i></button>`:''}
+      ${canEdit?`<button class="ma-btn" onclick="openEdit('${colPath}','${docId}',this)" title="Edit"><i class="ti ti-pencil"></i></button>`:''}
+      ${isOwn||ME.isAdmin?`<button class="ma-btn danger" onclick="deleteMsg('${colPath}','${docId}')" title="Delete"><i class="ti ti-trash"></i></button>`:''}
+    </div>`;
+    // Forwarded badge
+    const fwdBadge = msg.forwarded ? `<div style="font-size:11px;color:var(--text-tertiary);margin-bottom:3px;display:flex;align-items:center;gap:4px"><i class="ti ti-corner-up-right" style="font-size:12px"></i>Forwarded from <strong>${msg.forwarded.senderName}</strong></div>` : '';
+    html+=`<div class="msg-row" id="msg-${docId}">
+      <div class="msg-av" style="${avStyle}">${avContent}</div>
+      <div class="bubble-wrap">${fwdBadge}`;
+    if (msg.replyTo){
+      const rSender=ALL_USERS[msg.replyTo.uid];
+      const rName=rSender?.name||msg.replyTo.senderName||'Someone';
+      const rText=msg.replyTo.text||(msg.replyTo.file?`📎 ${msg.replyTo.file}`:'…');
+      html+=`<div class="reply-preview-bubble" onclick="scrollToMsg('${msg.replyTo.docId||''}')"><div class="rp-sender">${rName}</div><div class="rp-text">${rText.slice(0,120)}</div></div>`;
+    }
+    if (msg.voice){
+      html += renderVoiceBubble(msg, isOwn, docId);
+    } else if (msg.file){
+      const t=msg.file.ftype, url=msg.file.url||'#';
+      if (t==='img'&&url!=='#'){
+        html+=`<a href="${url}" target="_blank" rel="noopener" style="display:block;margin-top:2px"><img src="${url}" style="max-width:280px;max-height:200px;border-radius:var(--radius-md);border:0.5px solid var(--border);display:block;cursor:pointer" loading="lazy"><div class="fs" style="margin-top:3px">${msg.file.name} · ${msg.file.size}</div></a>`;
+      } else {
+        const icon=t==='csv'?'ti-table':t==='pdf'?'ti-file-type-pdf':'ti-file';
+        html+=`<a href="${url}" target="_blank" rel="noopener" style="text-decoration:none"><div class="file-card"><div class="fic ${t}"><i class="ti ${icon}"></i></div><div><div class="fn">${msg.file.name}</div><div class="fs">${msg.file.size}</div></div><i class="ti ti-download dl-ico"></i></div></a>`;
+      }
+    } else {
+      html+=`<div class="bubble${isOwn?' own':''}" data-raw="${(msg.text||'').replace(/"/g,'&quot;')}">${parseMarkdown(msg.text||'')}${editedLabel}</div>`;
+    }
+    html+=`${reactionHtml}${readReceiptHtml}${pinIndicator}</div>${actionsHtml}</div>`;
+    lastUid=msg.uid;
+  });
+  if (lastUid) html+='</div>';
+  area.innerHTML=html;
+  area.querySelectorAll('.msg-row').forEach(row=>attachCtxListeners(row,colPath,ch));
+  // Mark channel messages as read
+  if (!isDm){
+    snap.docs.forEach(d=>{ const m=d.data(); if(m.uid!==ME.uid && !(m.readBy||[]).includes(ME.uid)){ updateDoc(d.ref,{readBy:arrayUnion(ME.uid)}).catch(()=>{}); } });
+  }
+};
+
+// Patch context menu to add Forward option
+const _origOpenCtxMenu = openCtxMenu;
+function openCtxMenu(docId, colPath, ch){
+  _origOpenCtxMenu(docId, colPath, ch);
+  // Add forward to ctx actions
+  const actions = document.getElementById('ctxActions');
+  if (actions && ctxCurrentData){
+    const {rawText, isFile, senderName} = ctxCurrentData;
+    const fwdTxt = (rawText||'File').replace(/'/g,"\\'").replace(/\n/g,' ').slice(0,80);
+    const fwdBtn = document.createElement('button');
+    fwdBtn.className='ctx-action';
+    fwdBtn.innerHTML=`<i class="ti ti-corner-up-right" style="color:var(--text-info)"></i>Forward message`;
+    fwdBtn.onclick=()=>{ closeCtxMenu(); openForwardModal(colPath,docId,fwdTxt,isFile?senderName:''); };
+    actions.insertBefore(fwdBtn, actions.children[1]);
+  }
+}
+
 
 // ── HELPERS ──
 function showToast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),3200); }
