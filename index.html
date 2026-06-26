@@ -506,11 +506,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .fwd-preview{background:var(--bg-secondary);border-left:2.5px solid var(--green);border-radius:0 var(--radius-sm) var(--radius-sm) 0;padding:8px 10px;font-size:12px;color:var(--text-secondary);line-height:1.5;margin-bottom:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .fwd-badge{background:var(--bg-info);color:var(--text-info);font-size:10px;font-weight:600;padding:1px 6px;border-radius:4px;margin-right:4px}
 
-/* ── ANNOUNCEMENT MODE ── */
-.announcement-bar{background:var(--bg-info);border-bottom:0.5px solid rgba(24,95,165,.2);padding:7px 18px;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text-info);flex-shrink:0}
-.announcement-bar i{font-size:13px;flex-shrink:0}
-.ch-announce-icon{font-size:11px;color:var(--text-warning);margin-left:2px}
-
 /* ── SCHEDULED SEND ── */
 .schedule-panel{border:0.5px solid var(--border);border-radius:var(--radius-md);padding:12px;margin-top:8px;background:var(--bg-secondary)}
 .schedule-panel label{font-size:11.5px;font-weight:500;color:var(--text-secondary);display:block;margin-bottom:5px}
@@ -661,7 +656,6 @@ kbd{background:var(--bg-secondary);border:0.5px solid var(--border-md);border-ra
         <button class="icon-btn" id="addUserBtn" onclick="openCreateUser()" title="Add team member" style="display:none"><i class="ti ti-user-plus" style="font-size:15px"></i></button>
         <button class="icon-btn" onclick="openGlobalSearch()" title="Global search (Ctrl+K)"><i class="ti ti-search" style="font-size:15px"></i></button>
         <button class="icon-btn" id="activityLogBtn" onclick="openActivityLog()" title="Activity log" style="display:none"><i class="ti ti-activity" style="font-size:15px"></i></button>
-        <button class="icon-btn" id="announceModeBtn" onclick="toggleAnnounceMode()" title="Announcement mode" style="display:none"><i class="ti ti-speakerphone" style="font-size:15px"></i></button>
         <button class="icon-btn" id="pinnedBtn" onclick="togglePinnedPanel()" title="Pinned messages" style="display:none"><i class="ti ti-pin" style="font-size:15px"></i></button>
         <button class="icon-btn" onclick="document.getElementById('fileInMedia').click()" title="Attach image/video"><i class="ti ti-paperclip" style="font-size:15px"></i></button>
         <button class="icon-btn team-toggle-btn" onclick="toggleRightPanel()" title="Team"><i class="ti ti-users" style="font-size:15px"></i></button>
@@ -671,7 +665,6 @@ kbd{background:var(--bg-secondary);border:0.5px solid var(--border-md);border-ra
       </div>
     </div>
     <div id="pinBanner" style="display:none"></div>
-    <div id="announceBanner" style="display:none"></div>
     <div class="msgs" id="msgsArea"></div>
     <div id="typingIndicator"></div>
     <div class="input-area" id="inputArea">
@@ -1281,10 +1274,8 @@ async function initApp(){
     setDoc(doc(db,'chat_users', ME.uid), { status:'offline' }, { merge:true });
   });
   // ── NEW FEATURE INIT ──
-  await loadAnnounceSettings();
   if (ME.isAdmin){
     document.getElementById('activityLogBtn').style.display='flex';
-    document.getElementById('announceModeBtn').style.display='flex';
   }
   updateSfStatusPill();
 }
@@ -1465,11 +1456,16 @@ function displaySharedFiles(){
 }
 function renderSharedFiles(){
   const el = document.getElementById('sfList');
-  getDocs(query(collection(db,'shared_files'), orderBy('ts','desc'))).then(snap => {
+  const ch = curCh;
+  // Scope to the channel/DM currently open — files shared in a private DM
+  // must never leak into a channel's file list (or anyone else's DMs), and
+  // vice versa. Falls back to filtering legacy docs that predate the `ch`
+  // field by simply excluding them (safer than showing them everywhere).
+  getDocs(query(collection(db,'shared_files'), where('ch','==',ch), orderBy('ts','desc'))).then(snap => {
     if (snap.empty){ allSharedFiles=[]; el.innerHTML='<div style="font-size:12px;color:var(--text-tertiary);padding:4px 0">No files shared yet</div>'; return; }
     allSharedFiles = snap.docs.map(d => d.data());
     displaySharedFiles();
-  });
+  }).catch(()=>{ allSharedFiles=[]; el.innerHTML='<div style="font-size:12px;color:var(--text-tertiary);padding:4px 0">No files shared yet</div>'; });
 }
 
 // ── TYPING INDICATOR ──
@@ -1518,6 +1514,7 @@ window.switchCh = function(ch){
   listenTyping(ch);
   listenMessages(ch, isDm, targetUid, tv);
   listenPinned(ch);
+  renderSharedFiles();
   // show pin button only for channels (not DMs)
   const pinnedBtn = document.getElementById('pinnedBtn');
   if (pinnedBtn) pinnedBtn.style.display = isDm ? 'none' : 'flex';
@@ -2034,7 +2031,7 @@ window.confirmShare = async function(){
     const colPath = isDm ? `dm_messages/${dmKey(ME.uid,targetUid)}/msgs` : `channel_messages/${curCh}/msgs`;
     const fileObj = { name:pendingFile.name, size:(pendingFile.size/1024).toFixed(1)+' KB', ftype, url };
     await addDoc(collection(db, colPath), { uid:ME.uid, file:fileObj, ts:serverTimestamp() });
-    await addDoc(collection(db,'shared_files'), { name:pendingFile.name, uid:ME.uid, ftype, url, ts:serverTimestamp() });
+    await addDoc(collection(db,'shared_files'), { name:pendingFile.name, uid:ME.uid, ftype, url, ch:curCh, isDm, ts:serverTimestamp() });
     if (isDm && targetUid) sendPushTo(targetUid, ME.name||'File shared', `Sent a file: ${pendingFile.name}`);
     renderSharedFiles(); closeFileModal(); showToast('File shared');
   } catch(err){
@@ -2723,38 +2720,6 @@ window.confirmSchedule = function(){
 };
 window.clearSchedule = function(){ scheduledSendTime=null; document.getElementById('scheduledMsgPreview').style.display='none'; };
 
-// ── ANNOUNCEMENT MODE ──
-let ANNOUNCE_CHANNELS = {};
-async function loadAnnounceSettings(){
-  try {
-    const snap = await getDoc(doc(db,'app_settings','announce'));
-    if (snap.exists()) ANNOUNCE_CHANNELS = snap.data()||{};
-  } catch(e){}
-}
-window.toggleAnnounceMode = async function(){
-  if (!ME.isAdmin) return;
-  const ch = curCh; if (ch.startsWith('dm-')) return;
-  ANNOUNCE_CHANNELS[ch] = !ANNOUNCE_CHANNELS[ch];
-  await setDoc(doc(db,'app_settings','announce'), ANNOUNCE_CHANNELS, {merge:true});
-  renderAnnounceBanner(ch);
-  showToast(ANNOUNCE_CHANNELS[ch] ? '📢 Announcement mode ON — only admins can post' : '💬 Announcement mode OFF');
-};
-function renderAnnounceBanner(ch){
-  const banner = document.getElementById('announceBanner');
-  const btn = document.getElementById('announceModeBtn');
-  if (ANNOUNCE_CHANNELS[ch]){
-    banner.style.display='block';
-    banner.innerHTML=`<div class="announcement-bar"><i class="ti ti-speakerphone"></i><span><strong>Announcement mode</strong> — Only admins can post in this channel</span></div>`;
-    if (btn) btn.style.color='var(--text-warning)';
-  } else {
-    banner.style.display='none';
-    if (btn) btn.style.color='';
-  }
-  // restrict input for non-admins
-  const inputArea = document.getElementById('inputArea');
-  if (inputArea) inputArea.style.display = (!ME.isAdmin && ANNOUNCE_CHANNELS[ch]) ? 'none' : 'block';
-}
-
 // ── READ RECEIPTS IN CHANNELS ──
 // The existing markRead function already marks channel messages.
 // We add a "seen by N" display integrated into renderMsgsFromSnap via the readReceiptHtml variable.
@@ -2871,12 +2836,12 @@ function loadDraft(){
   inp.style.height = 'auto';
   if (draft) inp.style.height = Math.min(inp.scrollHeight,140)+'px';
 }
-// ── SWITCH CHANNEL: draft save/load + announce banner ──
+// ── SWITCH CHANNEL: draft save/load ──
 const _origSwitchCh = window.switchCh;
 window.switchCh = function(ch){
   saveDraft();
   _origSwitchCh(ch);
-  setTimeout(()=>{ loadDraft(); renderAnnounceBanner(ch); }, 200);
+  setTimeout(()=>{ loadDraft(); }, 200);
 };
 const STATUS_EMOJIS = ['😊','🎧','✈️','🍽️','🎯','🏠','🤒','🏖️','💤','🔕','🎉','💼'];
 let statusEmojiIndex = 0;
@@ -2947,7 +2912,7 @@ setTimeout(()=>{
 
 // (initApp extended inline — see below)
 
-// (switchCh already patched above with drafts + announce banner)
+// (switchCh already patched above with drafts)
 
 // Patch renderMsgsFromSnap to support voice messages, forwarding, channel read receipts
 const _origRender = renderMsgsFromSnap;
