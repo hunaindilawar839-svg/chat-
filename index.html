@@ -631,6 +631,49 @@ kbd{background:var(--bg-secondary);border:0.5px solid var(--border-md);border-ra
 
 /* ── MUTE USER ── */
 .muted-label{background:var(--bg-danger);color:var(--text-danger);font-size:10px;font-weight:600;padding:2px 6px;border-radius:4px;margin-left:4px}
+
+/* ── VOICE CALL ── */
+.call-overlay{position:fixed;inset:0;background:rgba(0,0,0,.72);backdrop-filter:blur(12px);z-index:2000;display:none;align-items:center;justify-content:center}
+.call-overlay.open{display:flex}
+.call-modal{background:var(--bg-primary);border:0.5px solid var(--border-md);border-radius:24px;padding:36px 32px 28px;width:min(340px,92vw);display:flex;flex-direction:column;align-items:center;gap:0;box-shadow:var(--shadow-lg);animation:callIn .22s cubic-bezier(.34,1.56,.64,1)}
+@keyframes callIn{from{opacity:0;transform:scale(.88) translateY(16px)}to{opacity:1;transform:scale(1) translateY(0)}}
+.call-av-ring{position:relative;width:88px;height:88px;margin-bottom:18px}
+.call-av-ring::before{content:'';position:absolute;inset:-8px;border-radius:50%;border:2.5px solid var(--green);opacity:.35;animation:callRing 1.8s ease-in-out infinite}
+.call-av-ring::after{content:'';position:absolute;inset:-16px;border-radius:50%;border:2px solid var(--green);opacity:.15;animation:callRing 1.8s ease-in-out infinite .4s}
+@keyframes callRing{0%,100%{transform:scale(1);opacity:.35}50%{transform:scale(1.05);opacity:.6}}
+.call-av-ring.connected::before,.call-av-ring.connected::after{animation:none;opacity:0}
+.call-av-big{width:88px;height:88px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:700;flex-shrink:0}
+.call-name{font-size:18px;font-weight:700;color:var(--text-primary);letter-spacing:-.3px;margin-bottom:4px;text-align:center}
+.call-status{font-size:12.5px;color:var(--text-tertiary);margin-bottom:24px;letter-spacing:.01em;min-height:18px;text-align:center}
+.call-status.connected{color:var(--text-success)}
+.call-timer{font-size:13px;font-weight:600;color:var(--text-success);font-variant-numeric:tabular-nums;margin-bottom:24px}
+.call-btns{display:flex;gap:16px;align-items:center;justify-content:center}
+.call-btn{width:52px;height:52px;border-radius:50%;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px;transition:transform .12s,background .12s;flex-shrink:0}
+.call-btn:active{transform:scale(.92)}
+.call-btn.end{background:#E24B4A;color:#fff}
+.call-btn.end:hover{background:#c73b3a}
+.call-btn.mute{background:var(--bg-secondary);color:var(--text-secondary);border:0.5px solid var(--border-md)}
+.call-btn.mute:hover{background:var(--bg-tertiary)}
+.call-btn.mute.active{background:var(--bg-danger);color:var(--text-danger);border-color:transparent}
+.call-btn.speaker{background:var(--bg-secondary);color:var(--text-secondary);border:0.5px solid var(--border-md)}
+.call-btn.speaker:hover{background:var(--bg-tertiary)}
+.call-btn.speaker.active{background:var(--bg-success);color:var(--text-success);border-color:transparent}
+/* Incoming call toast */
+.incoming-call-toast{position:fixed;top:16px;right:16px;background:var(--bg-primary);border:0.5px solid var(--border-md);border-radius:var(--radius-xl);padding:14px 16px;width:min(300px,90vw);box-shadow:var(--shadow-lg);z-index:1900;display:none;animation:toastIn .2s ease-out}
+.incoming-call-toast.show{display:flex;align-items:center;gap:12px}
+@keyframes toastIn{from{opacity:0;transform:translateY(-12px)}to{opacity:1;transform:translateY(0)}}
+.ict-av{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0}
+.ict-info{flex:1;min-width:0}
+.ict-name{font-size:13px;font-weight:600;color:var(--text-primary)}
+.ict-sub{font-size:11px;color:var(--text-tertiary);margin-top:1px}
+.ict-btns{display:flex;gap:7px}
+.ict-btn{width:34px;height:34px;border-radius:50%;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;transition:transform .1s}
+.ict-btn:active{transform:scale(.9)}
+.ict-btn.accept{background:#22c55e;color:#fff}
+.ict-btn.decline{background:#E24B4A;color:#fff}
+/* Call button in topbar */
+.call-topbar-btn{background:none;border:0.5px solid var(--border);border-radius:var(--radius-md);padding:6px 8px;cursor:pointer;color:var(--text-secondary);display:flex;align-items:center;transition:background .12s,border-color .12s,color .12s}
+.call-topbar-btn:hover{background:var(--bg-success);border-color:var(--green);color:var(--text-success)}
 </style>
 </head>
 <body>
@@ -723,6 +766,7 @@ kbd{background:var(--bg-secondary);border:0.5px solid var(--border-md);border-ra
       </div>
       <div class="topbar-r">
         <button class="icon-btn" id="addUserBtn" onclick="openCreateUser()" title="Add team member" style="display:none"><i class="ti ti-user-plus" style="font-size:15px"></i></button>
+        <button class="call-topbar-btn" id="voiceCallBtn" onclick="initiateCall()" title="Start voice call" style="display:none"><i class="ti ti-phone" style="font-size:15px"></i></button>
         <button class="icon-btn" onclick="openGlobalSearch()" title="Global search (Ctrl+K)"><i class="ti ti-search" style="font-size:15px"></i></button>
         <button class="icon-btn" id="activityLogBtn" onclick="openActivityLog()" title="Activity log" style="display:none"><i class="ti ti-activity" style="font-size:15px"></i></button>
         <button class="icon-btn" id="ticketsBtn" onclick="openTickets()" title="Tickets / Tasks"><i class="ti ti-ticket" style="font-size:15px"></i><span id="ticketsBadge" style="display:none;position:absolute;top:2px;right:2px;width:7px;height:7px;background:#E24B4A;border-radius:50%"></span></button>
@@ -1075,6 +1119,36 @@ kbd{background:var(--bg-secondary);border:0.5px solid var(--border-md);border-ra
 </div>
 
 <!-- FIREBASE -->
+
+<!-- INCOMING CALL TOAST -->
+<div class="incoming-call-toast" id="incomingCallToast">
+  <div class="ict-av" id="ictAv"></div>
+  <div class="ict-info">
+    <div class="ict-name" id="ictName">Incoming call</div>
+    <div class="ict-sub">Voice call</div>
+  </div>
+  <div class="ict-btns">
+    <button class="ict-btn accept" onclick="acceptCall()" title="Accept"><i class="ti ti-phone"></i></button>
+    <button class="ict-btn decline" onclick="declineCall()" title="Decline"><i class="ti ti-phone-off"></i></button>
+  </div>
+</div>
+
+<!-- ACTIVE CALL MODAL -->
+<div class="call-overlay" id="callOverlay">
+  <div class="call-modal">
+    <div class="call-av-ring" id="callAvRing">
+      <div class="call-av-big" id="callAv"></div>
+    </div>
+    <div class="call-name" id="callName">Calling…</div>
+    <div class="call-status" id="callStatus">Calling…</div>
+    <div class="call-timer" id="callTimer" style="display:none">0:00</div>
+    <div class="call-btns">
+      <button class="call-btn mute" id="callMuteBtn" onclick="toggleCallMute()" title="Mute / Unmute"><i class="ti ti-microphone" id="callMuteIcon"></i></button>
+      <button class="call-btn end" onclick="endCall()" title="End call"><i class="ti ti-phone-off"></i></button>
+      <button class="call-btn speaker" id="callSpeakerBtn" onclick="toggleSpeaker()" title="Speaker"><i class="ti ti-volume" id="callSpeakerIcon"></i></button>
+    </div>
+  </div>
+</div>
 
 <!-- IMAGE LIGHTBOX -->
 <div class="lightbox-overlay" id="lightboxOverlay" onclick="closeLightbox(event)">
@@ -3838,6 +3912,471 @@ ADMIN_LOG_LABELS['muted_user'] = { icon:'ti-volume-off', color:'var(--text-warni
 ADMIN_LOG_LABELS['unmuted_user'] = { icon:'ti-volume', color:'var(--text-success)', verb:'unmuted' };
 ADMIN_LOG_LABELS['shift_start'] = { icon:'ti-clock-play', color:'var(--text-success)', verb:'clocked in' };
 ADMIN_LOG_LABELS['shift_end'] = { icon:'ti-clock-stop', color:'var(--text-tertiary)', verb:'clocked out' };
+
+// ══════════════════════════════════════════════════════════════════
+// VOICE CALL SYSTEM
+// ══════════════════════════════════════════════════════════════════
+// Rules:
+//   - Admin can call anyone (other admins in DM, employees in DM, general channel)
+//   - Employee can only call an admin from a DM (no employee→employee calls)
+//   - General channel call button is shown to admins only (calls all members)
+//
+// Signalling via Firestore collection: voice_calls/{callId}
+//   Fields: callerId, calleeId, channelId, status, ts, offer, answer, [ice candidates subcollection]
+// WebRTC peer connection is established after signalling.
+// ──────────────────────────────────────────────────────────────────
+
+let CALL_STATE = {
+  active: false,
+  callId: null,
+  peerId: null,       // uid of remote peer (null for group/general)
+  isOutgoing: false,
+  isGroup: false,
+  pc: null,           // RTCPeerConnection
+  localStream: null,
+  remoteStream: null,
+  muted: false,
+  speakerOn: false,
+  timerInterval: null,
+  timerSec: 0,
+  unsub: null,        // Firestore listener unsub
+  ringtoneInterval: null,
+};
+
+const CALL_CONFIG = {
+  iceServers: [
+    { urls: 'stun:stun.l.google.com:19302' },
+    { urls: 'stun:stun1.l.google.com:19302' },
+  ]
+};
+
+// ── Firestore call doc helpers ──────────────────────────────────────
+function callDocRef(callId){ return doc(db, 'voice_calls', callId); }
+function calleeCandidatesRef(callId){ return collection(db, 'voice_calls', callId, 'callee_candidates'); }
+function callerCandidatesRef(callId){ return collection(db, 'voice_calls', callId, 'caller_candidates'); }
+
+// ── Update topbar call button visibility ──────────────────────────
+function updateCallButton(){
+  const btn = document.getElementById('voiceCallBtn');
+  if (!btn) return;
+  const isDm = curCh.startsWith('dm-');
+  const targetUid = isDm ? curCh.replace('dm-', '') : null;
+  const targetUser = targetUid ? ALL_USERS[targetUid] : null;
+  // Show call button?
+  // Admin: always show when in a DM or in general/channels
+  // Employee: only show when in DM with an admin
+  let show = false;
+  if (ME.isAdmin) {
+    show = isDm || (!isDm); // admins can call from DMs and channels
+  } else {
+    // Employee: only in DM with admin
+    show = isDm && targetUser && targetUser.isAdmin;
+  }
+  btn.style.display = show ? 'flex' : 'none';
+}
+
+// Patch switchCh to update call button
+const _origSwitchChCall = window.switchCh;
+window.switchCh = function(ch){
+  _origSwitchChCall(ch);
+  updateCallButton();
+};
+
+// ── Initiate a call ───────────────────────────────────────────────
+window.initiateCall = async function(){
+  if (CALL_STATE.active){ showToast('You are already in a call.'); return; }
+  const isDm = curCh.startsWith('dm-');
+  const targetUid = isDm ? curCh.replace('dm-', '') : null;
+  const targetUser = targetUid ? ALL_USERS[targetUid] : null;
+
+  // Permission check
+  if (isDm && !ME.isAdmin && (!targetUser || !targetUser.isAdmin)){
+    showToast('You can only call admins.'); return;
+  }
+  if (!isDm && !ME.isAdmin){
+    showToast('Only admins can start a channel call.'); return;
+  }
+
+  // Request mic permission first
+  let stream;
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+  } catch(e){
+    showToast('Microphone access denied. Please allow mic access and try again.'); return;
+  }
+
+  CALL_STATE.localStream = stream;
+  CALL_STATE.isOutgoing = true;
+  CALL_STATE.peerId = targetUid;
+  CALL_STATE.isGroup = !isDm;
+  CALL_STATE.active = true;
+
+  // Create call doc in Firestore
+  const callId = `${ME.uid}_${Date.now()}`;
+  CALL_STATE.callId = callId;
+
+  const callData = {
+    callerId: ME.uid,
+    callerName: ME.name,
+    calleeId: targetUid || null,
+    channelId: curCh,
+    isGroup: !isDm,
+    status: 'ringing',
+    ts: serverTimestamp(),
+  };
+
+  await setDoc(callDocRef(callId), callData);
+
+  // Show outgoing call UI
+  showCallUI(targetUser?.name || (isDm ? 'User' : 'General · All members'), targetUser, 'outgoing');
+
+  // Set up WebRTC
+  await setupPeerConnection(callId, true, stream);
+
+  // Create and store SDP offer
+  const offer = await CALL_STATE.pc.createOffer();
+  await CALL_STATE.pc.setLocalDescription(offer);
+  await updateDoc(callDocRef(callId), { offer: { type: offer.type, sdp: offer.sdp } });
+
+  // Listen for answer or rejection
+  CALL_STATE.unsub = onSnapshot(callDocRef(callId), async snap => {
+    const data = snap.data();
+    if (!data) return;
+    if (data.status === 'accepted' && data.answer && CALL_STATE.pc?.signalingState !== 'stable'){
+      try {
+        await CALL_STATE.pc.setRemoteDescription(new RTCSessionDescription(data.answer));
+        onCallConnected();
+      } catch(e){ console.warn('SDP answer error:', e); }
+    }
+    if (data.status === 'declined' || data.status === 'ended'){
+      handleRemoteHangup(data.status);
+    }
+  });
+
+  startRingtone();
+};
+
+// ── Accept incoming call ──────────────────────────────────────────
+window.acceptCall = async function(){
+  const toast = document.getElementById('incomingCallToast');
+  toast.classList.remove('show');
+  clearRingtone();
+
+  const callId = CALL_STATE.callId;
+  if (!callId) return;
+
+  let stream;
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+  } catch(e){
+    showToast('Microphone access denied.'); return;
+  }
+  CALL_STATE.localStream = stream;
+  CALL_STATE.isOutgoing = false;
+  CALL_STATE.active = true;
+
+  // Get call doc
+  const callSnap = await getDoc(callDocRef(callId));
+  if (!callSnap.exists()){ showToast('Call no longer available.'); return; }
+  const callData = callSnap.data();
+  const callerUser = ALL_USERS[callData.callerId];
+
+  // Show UI
+  showCallUI(callerUser?.name || 'Caller', callerUser, 'incoming');
+
+  // Set up WebRTC as callee
+  await setupPeerConnection(callId, false, stream);
+
+  // Set remote offer
+  await CALL_STATE.pc.setRemoteDescription(new RTCSessionDescription(callData.offer));
+
+  // Create answer
+  const answer = await CALL_STATE.pc.createAnswer();
+  await CALL_STATE.pc.setLocalDescription(answer);
+
+  await updateDoc(callDocRef(callId), {
+    answer: { type: answer.type, sdp: answer.sdp },
+    status: 'accepted',
+  });
+
+  onCallConnected();
+};
+
+// ── Decline incoming call ─────────────────────────────────────────
+window.declineCall = async function(){
+  const toast = document.getElementById('incomingCallToast');
+  toast.classList.remove('show');
+  clearRingtone();
+  if (CALL_STATE.callId){
+    try { await updateDoc(callDocRef(CALL_STATE.callId), { status: 'declined' }); } catch(e){}
+  }
+  resetCallState();
+};
+
+// ── End active call ───────────────────────────────────────────────
+window.endCall = async function(){
+  if (CALL_STATE.callId){
+    try { await updateDoc(callDocRef(CALL_STATE.callId), { status: 'ended', endedAt: serverTimestamp() }); } catch(e){}
+  }
+  closeCallUI();
+  resetCallState();
+  showToast('Call ended.');
+};
+
+// ── WebRTC peer connection setup ──────────────────────────────────
+async function setupPeerConnection(callId, isCaller, stream){
+  const pc = new RTCPeerConnection(CALL_CONFIG);
+  CALL_STATE.pc = pc;
+
+  // Add local tracks
+  stream.getTracks().forEach(track => pc.addTrack(track, stream));
+
+  // Remote audio
+  const remoteStream = new MediaStream();
+  CALL_STATE.remoteStream = remoteStream;
+  pc.ontrack = event => {
+    event.streams[0].getTracks().forEach(track => remoteStream.addTrack(track));
+    // Attach to audio element
+    let audio = document.getElementById('callAudioEl');
+    if (!audio){ audio = document.createElement('audio'); audio.id='callAudioEl'; audio.autoplay=true; document.body.appendChild(audio); }
+    audio.srcObject = remoteStream;
+  };
+
+  // ICE candidates
+  const localCandidates = isCaller ? callerCandidatesRef(callId) : calleeCandidatesRef(callId);
+  const remoteCandidates = isCaller ? calleeCandidatesRef(callId) : callerCandidatesRef(callId);
+
+  pc.onicecandidate = event => {
+    if (event.candidate){
+      addDoc(localCandidates, event.candidate.toJSON()).catch(()=>{});
+    }
+  };
+
+  // Listen for remote ICE candidates
+  const iceSub = onSnapshot(remoteCandidates, snap => {
+    snap.docChanges().forEach(change => {
+      if (change.type === 'added'){
+        const candidate = new RTCIceCandidate(change.doc.data());
+        pc.addIceCandidate(candidate).catch(()=>{});
+      }
+    });
+  });
+  // Store unsub so we can clean it (chained with main unsub)
+  const mainUnsub = CALL_STATE.unsub;
+  CALL_STATE.unsub = () => { if(mainUnsub) mainUnsub(); iceSub(); };
+
+  pc.onconnectionstatechange = () => {
+    if (pc.connectionState === 'disconnected' || pc.connectionState === 'failed'){
+      handleRemoteHangup('ended');
+    }
+  };
+}
+
+// ── Call connected (both sides) ───────────────────────────────────
+function onCallConnected(){
+  document.getElementById('callStatus').textContent = 'Connected';
+  document.getElementById('callStatus').className = 'call-status connected';
+  document.getElementById('callTimer').style.display = 'block';
+  document.getElementById('callAvRing').classList.add('connected');
+  clearRingtone();
+  CALL_STATE.timerSec = 0;
+  CALL_STATE.timerInterval = setInterval(() => {
+    CALL_STATE.timerSec++;
+    const m = Math.floor(CALL_STATE.timerSec / 60);
+    const s = CALL_STATE.timerSec % 60;
+    document.getElementById('callTimer').textContent = `${m}:${s.toString().padStart(2,'0')}`;
+  }, 1000);
+}
+
+// ── Remote side hung up or call ended ────────────────────────────
+function handleRemoteHangup(status){
+  if (!CALL_STATE.active) return;
+  const msg = status === 'declined' ? 'Call declined.' : 'Call ended.';
+  closeCallUI();
+  resetCallState();
+  showToast(msg);
+}
+
+// ── Mute toggle ───────────────────────────────────────────────────
+window.toggleCallMute = function(){
+  CALL_STATE.muted = !CALL_STATE.muted;
+  if (CALL_STATE.localStream){
+    CALL_STATE.localStream.getAudioTracks().forEach(t => { t.enabled = !CALL_STATE.muted; });
+  }
+  const btn = document.getElementById('callMuteBtn');
+  const icon = document.getElementById('callMuteIcon');
+  if (CALL_STATE.muted){
+    btn.classList.add('active'); btn.title = 'Unmute';
+    icon.className = 'ti ti-microphone-off';
+  } else {
+    btn.classList.remove('active'); btn.title = 'Mute';
+    icon.className = 'ti ti-microphone';
+  }
+};
+
+// ── Speaker toggle ────────────────────────────────────────────────
+window.toggleSpeaker = function(){
+  CALL_STATE.speakerOn = !CALL_STATE.speakerOn;
+  const audio = document.getElementById('callAudioEl');
+  const btn = document.getElementById('callSpeakerBtn');
+  const icon = document.getElementById('callSpeakerIcon');
+  if (CALL_STATE.speakerOn){
+    btn.classList.add('active');
+    icon.className = 'ti ti-volume';
+    if (audio) audio.volume = 1;
+  } else {
+    btn.classList.remove('active');
+    icon.className = 'ti ti-volume';
+    if (audio) audio.volume = 1; // always full on desktop
+  }
+};
+
+// ── UI Helpers ────────────────────────────────────────────────────
+function showCallUI(name, userObj, direction){
+  const overlay = document.getElementById('callOverlay');
+  const nameEl = document.getElementById('callName');
+  const statusEl = document.getElementById('callStatus');
+  const avEl = document.getElementById('callAv');
+  const ring = document.getElementById('callAvRing');
+  ring.classList.remove('connected');
+
+  nameEl.textContent = name;
+  statusEl.textContent = direction === 'outgoing' ? 'Calling…' : 'Incoming call…';
+  statusEl.className = 'call-status';
+  document.getElementById('callTimer').style.display = 'none';
+  document.getElementById('callTimer').textContent = '0:00';
+
+  // Avatar
+  if (userObj?.photoURL){
+    avEl.innerHTML = `<img src="${userObj.photoURL}" style="width:88px;height:88px;border-radius:50%;object-fit:cover" alt="${name}">`;
+    avEl.style = '';
+  } else {
+    const col = userObj ? avatarColor(userObj.uid) : 'info';
+    const style = AV_STYLES[col] || '';
+    avEl.textContent = initials(name);
+    avEl.setAttribute('style', style);
+  }
+
+  // Reset mute/speaker button
+  document.getElementById('callMuteBtn').classList.remove('active');
+  document.getElementById('callMuteIcon').className = 'ti ti-microphone';
+  document.getElementById('callSpeakerBtn').classList.remove('active');
+
+  overlay.classList.add('open');
+}
+
+function closeCallUI(){
+  document.getElementById('callOverlay').classList.remove('open');
+  document.getElementById('incomingCallToast').classList.remove('show');
+}
+
+function resetCallState(){
+  if (CALL_STATE.timerInterval){ clearInterval(CALL_STATE.timerInterval); CALL_STATE.timerInterval = null; }
+  if (CALL_STATE.localStream){ CALL_STATE.localStream.getTracks().forEach(t => t.stop()); }
+  if (CALL_STATE.pc){ CALL_STATE.pc.close(); }
+  if (CALL_STATE.unsub){ try { CALL_STATE.unsub(); } catch(e){} }
+  clearRingtone();
+  // Remove audio element
+  const audio = document.getElementById('callAudioEl');
+  if (audio) audio.remove();
+  CALL_STATE = { active:false, callId:null, peerId:null, isOutgoing:false, isGroup:false, pc:null, localStream:null, remoteStream:null, muted:false, speakerOn:false, timerInterval:null, timerSec:0, unsub:null, ringtoneInterval:null };
+}
+
+// ── Ringtone (simple oscillator beep) ────────────────────────────
+function startRingtone(){
+  clearRingtone();
+  let ctx; 
+  function beep(){
+    try {
+      ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.type = 'sine'; osc.frequency.value = 480;
+      gain.gain.setValueAtTime(0.18, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.6);
+      osc.start(ctx.currentTime); osc.stop(ctx.currentTime + 0.6);
+    } catch(e){}
+  }
+  beep();
+  CALL_STATE.ringtoneInterval = setInterval(beep, 1800);
+}
+function clearRingtone(){
+  if (CALL_STATE.ringtoneInterval){ clearInterval(CALL_STATE.ringtoneInterval); CALL_STATE.ringtoneInterval = null; }
+}
+
+// ── Listen for incoming calls ─────────────────────────────────────
+function listenIncomingCalls(){
+  const thirtySecsAgo = new Date(Date.now() - 30000);
+  // Query for calls directed at me or group calls in channels I'm in
+  const q = query(
+    collection(db, 'voice_calls'),
+    where('calleeId', '==', ME.uid),
+    where('status', '==', 'ringing')
+  );
+  onSnapshot(q, snap => {
+    snap.docChanges().forEach(change => {
+      if (change.type === 'added'){
+        const data = change.doc.data();
+        // Ignore stale calls (older than 30s)
+        if (data.ts?.toDate && data.ts.toDate() < thirtySecsAgo) return;
+        // Check permissions: employees can only receive from admins
+        const callerUser = ALL_USERS[data.callerId];
+        if (!ME.isAdmin && callerUser && !callerUser.isAdmin) return;
+        if (CALL_STATE.active) {
+          // Auto-decline if already in call
+          updateDoc(change.doc.ref, { status: 'declined' }).catch(()=>{});
+          return;
+        }
+        // Show incoming call toast
+        CALL_STATE.callId = change.doc.id;
+        CALL_STATE.peerId = data.callerId;
+        showIncomingCallToast(data.callerId, callerUser);
+        startRingtone();
+      }
+    });
+  });
+
+  // Also listen for group calls in channels (calleeId == null, admin only initiated)
+  if (!ME.isAdmin) return; // Only admins participate in group calls initiated by another admin
+  // Group call listening handled by channel-based notification
+}
+
+function showIncomingCallToast(callerUid, callerUser){
+  const toast = document.getElementById('incomingCallToast');
+  const avEl = document.getElementById('ictAv');
+  const nameEl = document.getElementById('ictName');
+  nameEl.textContent = callerUser?.name || 'Someone';
+  if (callerUser?.photoURL){
+    avEl.innerHTML = `<img src="${callerUser.photoURL}" style="width:40px;height:40px;border-radius:50%;object-fit:cover" alt="">`;
+    avEl.style = '';
+  } else {
+    const col = callerUser ? avatarColor(callerUser.uid) : 'info';
+    avEl.textContent = initials(callerUser?.name || '?');
+    avEl.setAttribute('style', AV_STYLES[col] || '');
+  }
+  toast.classList.add('show');
+  // Auto-dismiss toast after 30s if not answered
+  setTimeout(() => {
+    if (toast.classList.contains('show')){
+      toast.classList.remove('show');
+      clearRingtone();
+      CALL_STATE.callId = null;
+    }
+  }, 30000);
+}
+
+// ── Hook into initApp to start call listener ──────────────────────
+const _origInitAppCallFeature = initApp;
+initApp = async function(){
+  await _origInitAppCallFeature();
+  listenIncomingCalls();
+  updateCallButton();
+};
+
+// Add to admin log
+ADMIN_LOG_LABELS['call_started'] = { icon:'ti-phone', color:'var(--text-success)', verb:'started a call' };
+ADMIN_LOG_LABELS['call_ended']   = { icon:'ti-phone-off', color:'var(--text-tertiary)', verb:'ended a call' };
 
 </script>
 </body>
