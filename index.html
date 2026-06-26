@@ -15,6 +15,7 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
 <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
 <script>window.OneSignalDeferred = window.OneSignalDeferred || [];</script>
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js" defer></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -148,6 +149,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
 .bubble-wrap{display:flex;flex-direction:column;gap:2px;flex:1;min-width:0}
 .bubble{background:var(--bg-secondary);border-radius:0 var(--radius-lg) var(--radius-lg) var(--radius-lg);padding:8px 12px;font-size:13.5px;color:var(--text-primary);line-height:1.6;max-width:560px;word-break:break-word;position:relative;width:fit-content}
+.win-card{background:var(--bg-warning);border:1.5px solid var(--text-warning);border-radius:var(--radius-lg);padding:10px 14px;font-size:13.5px;color:var(--text-primary);line-height:1.5;max-width:560px;width:fit-content;display:flex;align-items:flex-start;gap:8px;box-shadow:var(--shadow-sm)}
+.win-card .win-icon{font-size:18px;flex-shrink:0;line-height:1.4}
+.win-card .win-label{font-weight:700;color:var(--text-warning);font-size:11px;letter-spacing:.03em;text-transform:uppercase;display:block;margin-bottom:2px}
+.win-card .win-text{color:var(--text-primary)}
 .bubble.own{background:var(--bg-success);border-radius:var(--radius-lg) 0 var(--radius-lg) var(--radius-lg)}
 .bubble p{margin:0}.bubble strong{font-weight:600}.bubble em{font-style:italic}
 .bubble code{background:var(--bg-tertiary);border:0.5px solid var(--border);padding:1px 5px;border-radius:4px;font-size:12px;font-family:'SF Mono','Fira Code',monospace}
@@ -706,11 +711,16 @@ kbd{background:var(--bg-secondary);border:0.5px solid var(--border-md);border-ra
   <div class="right-panel">
     <div class="rp-header">
       Team<span id="onlineCount" class="online-count"></span>
+      <button class="icon-btn" id="rpLogBtn" onclick="openAdminLog()" title="Admin activity log" style="display:none;border:none;padding:4px"><i class="ti ti-history" style="font-size:15px"></i></button>
       <button class="icon-btn" id="rpAddBtn" onclick="openCreateUser()" title="Add member" style="display:none;border:none;padding:4px"><i class="ti ti-user-plus" style="font-size:15px"></i></button>
     </div>
     <div class="rp-section">
       <div class="rp-title"><i class="ti ti-users"></i> Members</div>
       <div id="membersList"><div style="font-size:12px;color:var(--text-tertiary);padding:8px 0">Loading…</div></div>
+    </div>
+    <div class="rp-section">
+      <div class="rp-title"><i class="ti ti-trophy" style="color:var(--text-warning)"></i> Wins this week</div>
+      <div id="leaderboardList"><div style="font-size:12px;color:var(--text-tertiary);padding:8px 0">Loading…</div></div>
     </div>
     <div class="rp-section">
       <div class="rp-title"><i class="ti ti-files"></i> Shared files</div>
@@ -784,6 +794,33 @@ kbd{background:var(--bg-secondary);border:0.5px solid var(--border-md);border-ra
     <div class="modal-actions">
       <button class="btn-sec" onclick="closeRemoveUser()">Cancel</button>
       <button class="btn-danger" id="ruBtn" onclick="removeUser()">Remove member</button>
+    </div>
+  </div>
+</div>
+
+<!-- ROLE TOGGLE MODAL -->
+<div class="modal-overlay" id="roleToggleModal">
+  <div class="modal">
+    <h3>Change role</h3>
+    <p class="modal-sub">Are you sure you want to <strong id="rtAction"></strong> <strong id="rtName"></strong> to <strong id="rtTo"></strong>?</p>
+    <div id="rtErr" class="err-box"></div>
+    <div class="modal-actions">
+      <button class="btn-sec" onclick="closeRoleToggle()">Cancel</button>
+      <button class="btn-pri" id="rtBtn" onclick="toggleRole()">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADMIN ACTION LOG MODAL -->
+<div class="modal-overlay" id="adminLogModal">
+  <div class="modal" style="max-width:480px">
+    <h3>Admin activity log</h3>
+    <p class="modal-sub">Recent admin actions across the workspace.</p>
+    <div id="adminLogList" style="max-height:360px;overflow-y:auto;margin-top:8px">
+      <div style="font-size:12px;color:var(--text-tertiary);padding:8px 0">Loading…</div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-sec" onclick="closeAdminLog()">Close</button>
     </div>
   </div>
 </div>
@@ -977,7 +1014,7 @@ kbd{background:var(--bg-secondary);border:0.5px solid var(--border-md);border-ra
 <!-- FIREBASE -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getFirestore, collection, doc, setDoc, getDoc, getDocs, addDoc, updateDoc, deleteDoc, onSnapshot, query, orderBy, serverTimestamp, where, arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getFirestore, collection, collectionGroup, doc, setDoc, getDoc, getDocs, addDoc, updateDoc, deleteDoc, onSnapshot, query, orderBy, limit, serverTimestamp, where, arrayUnion, arrayRemove, increment } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 
@@ -1105,6 +1142,18 @@ function initials(name){ return (name||'?').split(' ').map(w=>w[0]).join('').toU
 function avatarColor(uid){ const keys=Object.keys(ALL_USERS); return AV_COLORS[keys.indexOf(uid)%AV_COLORS.length]||'info'; }
 function dmKey(a,b){ return [a,b].sort().join('__'); }
 function fmtTime(ts){ return ts?.toDate ? ts.toDate().toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}) : ''; }
+function fmtRelative(ts){
+  if (!ts?.toDate) return 'Never';
+  const diffMs = Date.now() - ts.toDate().getTime();
+  const mins = Math.floor(diffMs/60000);
+  if (mins < 1) return 'Just now';
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins/60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs/24);
+  if (days < 7) return `${days}d ago`;
+  return ts.toDate().toLocaleDateString('en-US',{month:'short',day:'numeric'});
+}
 function fmtDate(ts){
   if (!ts?.toDate) return '';
   const d = ts.toDate(); const now = new Date();
@@ -1196,12 +1245,12 @@ async function initApp(){
   document.getElementById('sfSub').textContent = (u.role||'') + ' · ' + (u.isAdmin ? 'Admin' : 'Agent');
   updateSfAvatar();
   document.getElementById('roleTag').innerHTML = u.isAdmin ? '<span class="badge-admin">Admin</span>' : '<span class="badge-emp">Agent</span>';
-  document.querySelectorAll('#addUserBtn,#rpAddBtn').forEach(b => b.style.display = u.isAdmin ? 'flex' : 'none');
+  document.querySelectorAll('#addUserBtn,#rpAddBtn,#rpLogBtn').forEach(b => b.style.display = u.isAdmin ? 'flex' : 'none');
   // hide rename buttons for non-admins
   document.querySelectorAll('.ch-rename-btn').forEach(b => b.style.display = u.isAdmin ? '' : 'none');
   // load dynamic channel names from Firestore
   await loadChannelNames();
-  buildDmList(); renderMembers(); renderSharedFiles(); switchCh('general');
+  buildDmList(); renderMembers(); renderSharedFiles(); switchCh('general'); listenLeaderboard();
   // live listeners
   onSnapshot(collection(db,'chat_users'), snap => {
     ALL_USERS = {};
@@ -1255,6 +1304,39 @@ function updateOnlineCount(){
   const online = Object.values(ALL_USERS).filter(u => u.status==='online').length;
   const el = document.getElementById('onlineCount');
   if (el) el.textContent = online > 0 ? `· ${online} online` : '';
+}
+
+// ── LEADERBOARD ──
+function listenLeaderboard(){
+  const sevenDaysAgo = new Date(Date.now() - 7*24*60*60*1000);
+  // Collection-group query across every channel's msgs subcollection.
+  // Firestore rules still apply per-document, so a regular agent only ever
+  // sees wins from channels/DMs they actually have read access to.
+  const q = query(collectionGroup(db,'msgs'), where('type','==','win'), where('ts','>=', sevenDaysAgo), orderBy('ts','desc'), limit(200));
+  onSnapshot(q, snap => {
+    const counts = {};
+    snap.docs.forEach(d => {
+      const uid = d.data().uid;
+      counts[uid] = (counts[uid]||0) + 1;
+    });
+    const ranked = Object.entries(counts).sort((a,b) => b[1]-a[1]).slice(0,8);
+    const el = document.getElementById('leaderboardList');
+    if (!el) return;
+    if (ranked.length === 0){
+      el.innerHTML = `<div style="font-size:12px;color:var(--text-tertiary);padding:8px 0">No wins logged yet. Type <code>/win</code> in any channel to log one 🎉</div>`;
+      return;
+    }
+    const medals = ['🥇','🥈','🥉'];
+    el.innerHTML = ranked.map(([uid,count], i) => {
+      const u = ALL_USERS[uid] || { name:'Unknown' };
+      const rankIcon = medals[i] || `<span style="font-size:11px;color:var(--text-tertiary);width:16px;display:inline-block">${i+1}</span>`;
+      return `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;font-size:12.5px">
+        <span style="width:18px;text-align:center">${rankIcon}</span>
+        <span style="flex:1;color:var(--text-primary);font-weight:${i<3?'600':'400'}">${u.name}</span>
+        <span style="color:var(--text-warning);font-weight:700">${count}</span>
+      </div>`;
+    }).join('');
+  });
 }
 
 // ── DM LIST ──
@@ -1345,15 +1427,18 @@ function renderMembers(){
     const avStyle = v.photoURL ? 'background:transparent' : (AV_STYLES[col]||'');
     let detail = ME.isAdmin
       ? `<div class="mc-role">${v.role||'Agent'} · <span style="color:${v.isAdmin?'var(--text-success)':'var(--text-secondary)'}">${v.isAdmin?'Admin':'Agent'}</span></div>
-         <div class="mc-contact"><i class="ti ti-mail" style="font-size:11px;vertical-align:-1px;margin-right:2px"></i>${v.email||'—'}<br><i class="ti ti-phone" style="font-size:11px;vertical-align:-1px;margin-right:2px"></i>${v.phone||'—'}</div>`
+         <div class="mc-contact"><i class="ti ti-mail" style="font-size:11px;vertical-align:-1px;margin-right:2px"></i>${v.email||'—'}<br><i class="ti ti-phone" style="font-size:11px;vertical-align:-1px;margin-right:2px"></i>${v.phone||'—'}</div>
+         <div class="mc-contact" style="margin-top:2px;color:var(--text-tertiary)"><i class="ti ti-activity" style="font-size:11px;vertical-align:-1px;margin-right:2px"></i>Active ${fmtRelative(v.lastActive)} · ${v.messageCount||0} msgs</div>`
       : `<div class="mc-role">${v.isAdmin?'Team Lead':'Agent'}</div><div class="mc-anon"><span class="anon-pill"><i class="ti ti-lock"></i> Email hidden</span><span class="anon-pill"><i class="ti ti-lock"></i> Phone hidden</span></div>`;
     const canDelete = ME.isAdmin && v.uid !== ME.uid;
+    const canToggleRole = ME.isAdmin && v.uid !== ME.uid;
     return `<div class="mc">
       <div class="mc-av-wrap">
         <div class="mc-av" style="${avStyle}">${avContent}</div>
         ${isOnline ? '<div class="online-dot"></div>' : ''}
       </div>
       <div style="flex:1;min-width:0"><div class="mc-name">${v.name}</div>${detail}</div>
+      ${canToggleRole ? `<button class="mc-del" style="color:var(--text-info)" onclick="confirmToggleRole('${v.uid}','${v.name.replace(/'/g,"\\'")}',${!v.isAdmin})" title="${v.isAdmin?'Demote to Agent':'Promote to Admin'}"><i class="ti ti-${v.isAdmin?'arrow-down':'arrow-up'}-bar" style="font-size:14px"></i></button>` : ''}
       ${canDelete ? `<button class="mc-del" onclick="confirmRemoveUser('${v.uid}','${v.name.replace(/'/g,"\\'")}')"><i class="ti ti-trash" style="font-size:14px"></i></button>` : ''}
     </div>`;
   }).join('') || '<div style="font-size:12px;color:var(--text-tertiary);padding:6px 0">No members yet</div>';
@@ -1456,6 +1541,11 @@ function listenMessages(ch, isDm, targetUid, tv){
       snap.docChanges().forEach(change => {
         if (change.type==='added'){
           const m = change.doc.data();
+          // Fire confetti for EVERYONE currently viewing this channel when a
+          // win comes in — including the sender, if they're still looking at it.
+          if (m.type==='win' && ch===curCh && !change.doc.metadata.hasPendingWrites){
+            fireWinConfetti();
+          }
           if (m.uid!==ME.uid && !change.doc.metadata.hasPendingWrites){
             const sender = ALL_USERS[m.uid];
             const sname = sender ? sender.name : 'Someone';
@@ -1592,6 +1682,8 @@ function renderMsgsFromSnap(snap, colPath, ch, area){
         const icon = t==='csv'?'ti-table':t==='pdf'?'ti-file-type-pdf':'ti-file';
         html += `<a href="${url}" target="_blank" rel="noopener" style="text-decoration:none"><div class="file-card"><div class="fic ${t}"><i class="ti ${icon}"></i></div><div><div class="fn">${msg.file.name}</div><div class="fs">${msg.file.size}</div></div><i class="ti ti-download dl-ico"></i></div></a>`;
       }
+    } else if (msg.type==='win'){
+      html += `<div class="win-card"><span class="win-icon">🎉</span><div><span class="win-label">Win</span><span class="win-text">${parseMarkdown(msg.text||'')}</span></div></div>`;
     } else {
       html += `<div class="bubble${isOwn?' own':''}" data-raw="${(msg.text||'').replace(/"/g,'&quot;')}">${parseMarkdown(msg.text||'')}${editedLabel}</div>`;
     }
@@ -1618,6 +1710,13 @@ window.toggleReaction = async function(colPath, docId, emoji){
   else { reactions[ME.uid] = emoji; }
   await updateDoc(msgRef, { reactions });
 };
+
+// ── WIN CONFETTI ──
+function fireWinConfetti(){
+  if (typeof confetti !== 'function') return; // library failed to load (CDN/adblock) — fail silently
+  confetti({ particleCount:90, spread:75, startVelocity:42, origin:{ y:0.7 }, colors:['#1D9E75','#FFC940','#0F6E56','#F0EFEB'] });
+  setTimeout(()=>confetti({ particleCount:50, spread:100, startVelocity:30, origin:{ y:0.6 }, colors:['#1D9E75','#FFC940'] }), 200);
+}
 
 // ── NOTIFICATION SOUND ──
 let audioCtx = null;
@@ -1846,7 +1945,15 @@ window.saveEdit = async function(){
 // ── DELETE MESSAGE ──
 window.deleteMsg = async function(colPath, docId){
   if (!confirm('Delete this message?')) return;
-  try { await deleteDoc(doc(db, colPath, docId)); } catch(e){ showToast('Failed to delete message'); }
+  try {
+    const snap = await getDoc(doc(db, colPath, docId));
+    const wasOthersMsg = snap.exists() && snap.data().uid !== ME.uid;
+    await deleteDoc(doc(db, colPath, docId));
+    if (wasOthersMsg && ME.isAdmin){
+      const senderName = ALL_USERS[snap.data().uid]?.name || 'Unknown';
+      logAdminAction('deleted_message', senderName, (snap.data().text||'').slice(0,80));
+    }
+  } catch(e){ showToast('Failed to delete message'); }
 };
 
 // ── SEND MESSAGE ──
@@ -1860,13 +1967,20 @@ window.sendMsg = async function(){
   if (isDm && !ME.isAdmin && tv && !tv.isAdmin) return;
   const colPath = isDm ? `dm_messages/${dmKey(ME.uid,targetUid)}/msgs` : `channel_messages/${curCh}/msgs`;
   inp.value=''; inp.style.height='auto'; clearTyping();
-  const msgData = { uid:ME.uid, text:txt, ts:serverTimestamp(), readBy:[ME.uid] };
+  // /win command — tag this message as a win so it renders as a win card,
+  // shows up on the leaderboard, and triggers confetti for viewers.
+  const winMatch = txt.match(/^\/win\s+(.+)/i);
+  const msgData = winMatch
+    ? { uid:ME.uid, text:winMatch[1].trim(), type:'win', ts:serverTimestamp(), readBy:[ME.uid] }
+    : { uid:ME.uid, text:txt, ts:serverTimestamp(), readBy:[ME.uid] };
   // attach reply context
   if (REPLY_TO){
     msgData.replyTo = { docId:REPLY_TO.docId, uid:REPLY_TO.uid, senderName:REPLY_TO.senderName, text:REPLY_TO.text, file:REPLY_TO.file||null };
     clearReply();
   }
   await addDoc(collection(db, colPath), msgData);
+  // activity oversight: bump lastActive + running message count for this user
+  setDoc(doc(db,'chat_users', ME.uid), { lastActive:serverTimestamp(), messageCount:increment(1) }, { merge:true }).catch(()=>{});
   // push notifications: DM target + @mentioned users
   if (isDm && targetUid){ sendPushTo(targetUid, ME.name||'New message', txt); }
   else {
@@ -2038,10 +2152,53 @@ window.createUser = async function(){
     const cred=await createEAP(auth2,email,pass);
     await signOut(auth2);
     await setDoc(doc(db,'chat_users',cred.user.uid),{ name,email,phone,role:selectedRole==='admin'?'Admin':'Agent',isAdmin:selectedRole==='admin',status:'offline',createdBy:ME.uid,createdAt:serverTimestamp() });
+    logAdminAction('added_member', name, `as ${selectedRole==='admin'?'Admin':'Agent'}`);
     closeCreateUser(); showToast(`✓ ${name} added as ${selectedRole==='admin'?'Admin':'Agent'}`);
   } catch(e){ errEl.textContent=e.message; errEl.style.display='block'; }
   btn.disabled=false; btn.textContent='Create account';
 };
+// ── ADMIN ACTION LOG ──
+function logAdminAction(action, targetName, detail){
+  addDoc(collection(db,'admin_log'), {
+    action, targetName, detail: detail||'',
+    byUid: ME.uid, byName: ME.name,
+    ts: serverTimestamp()
+  }).catch(()=>{});
+}
+
+const ADMIN_LOG_LABELS = {
+  removed_member: { icon:'ti-user-minus', color:'var(--text-danger)', verb:'removed' },
+  added_member: { icon:'ti-user-plus', color:'var(--text-success)', verb:'added' },
+  promoted_to_admin: { icon:'ti-arrow-up-bar', color:'var(--text-info)', verb:'promoted' },
+  demoted_to_agent: { icon:'ti-arrow-down-bar', color:'var(--text-warning)', verb:'demoted' },
+  deleted_message: { icon:'ti-trash', color:'var(--text-danger)', verb:'deleted a message from' },
+  renamed_channel: { icon:'ti-edit', color:'var(--text-info)', verb:'renamed a channel to' }
+};
+let adminLogUnsub = null;
+window.openAdminLog = function(){
+  if (!ME.isAdmin) return;
+  document.getElementById('adminLogModal').classList.add('open');
+  if (adminLogUnsub) return; // already listening
+  const q = query(collection(db,'admin_log'), orderBy('ts','desc'), limit(50));
+  adminLogUnsub = onSnapshot(q, snap => {
+    const el = document.getElementById('adminLogList');
+    if (snap.empty){ el.innerHTML = `<div style="font-size:12px;color:var(--text-tertiary);padding:8px 0">No admin actions logged yet.</div>`; return; }
+    el.innerHTML = snap.docs.map(d => {
+      const m = d.data();
+      const meta = ADMIN_LOG_LABELS[m.action] || { icon:'ti-info-circle', color:'var(--text-tertiary)', verb:m.action };
+      return `<div style="display:flex;gap:8px;padding:7px 0;border-bottom:0.5px solid var(--border);font-size:12.5px">
+        <i class="ti ${meta.icon}" style="color:${meta.color};font-size:14px;margin-top:1px;flex-shrink:0"></i>
+        <div style="flex:1;min-width:0">
+          <div><strong>${m.byName}</strong> ${meta.verb} <strong>${m.targetName}</strong></div>
+          ${m.detail ? `<div style="color:var(--text-tertiary);font-size:11px;margin-top:1px">${m.detail}</div>` : ''}
+          <div style="color:var(--text-tertiary);font-size:10.5px;margin-top:1px">${fmtRelative(m.ts)}</div>
+        </div>
+      </div>`;
+    }).join('');
+  });
+};
+window.closeAdminLog = function(){ document.getElementById('adminLogModal').classList.remove('open'); };
+
 let pendingRemoveUid = null;
 window.confirmRemoveUser = function(uid,name){ pendingRemoveUid=uid; document.getElementById('ruName').textContent=name; document.getElementById('ruErr').style.display='none'; document.getElementById('removeUserModal').classList.add('open'); };
 window.closeRemoveUser = function(){ document.getElementById('removeUserModal').classList.remove('open'); pendingRemoveUid=null; };
@@ -2049,9 +2206,35 @@ window.removeUser = async function(){
   if (!pendingRemoveUid) return;
   const btn=document.getElementById('ruBtn'), errEl=document.getElementById('ruErr');
   btn.disabled=true; btn.textContent='Removing…';
-  try { await deleteDoc(doc(db,'chat_users',pendingRemoveUid)); showToast('Member removed'); closeRemoveUser(); }
+  const removedName = ALL_USERS[pendingRemoveUid]?.name || 'Unknown';
+  try { await deleteDoc(doc(db,'chat_users',pendingRemoveUid)); logAdminAction('removed_member', removedName); showToast('Member removed'); closeRemoveUser(); }
   catch(e){ errEl.textContent=e.message; errEl.style.display='block'; }
   btn.disabled=false; btn.textContent='Remove member';
+};
+
+// ── PROMOTE / DEMOTE ──
+let pendingRoleUid = null, pendingRoleMakeAdmin = false;
+window.confirmToggleRole = function(uid,name,makeAdmin){
+  pendingRoleUid=uid; pendingRoleMakeAdmin=makeAdmin;
+  document.getElementById('rtName').textContent=name;
+  document.getElementById('rtAction').textContent = makeAdmin ? 'promote' : 'demote';
+  document.getElementById('rtTo').textContent = makeAdmin ? 'Admin' : 'Agent';
+  document.getElementById('rtErr').style.display='none';
+  document.getElementById('roleToggleModal').classList.add('open');
+};
+window.closeRoleToggle = function(){ document.getElementById('roleToggleModal').classList.remove('open'); pendingRoleUid=null; };
+window.toggleRole = async function(){
+  if (!pendingRoleUid) return;
+  const btn=document.getElementById('rtBtn'), errEl=document.getElementById('rtErr');
+  btn.disabled=true; btn.textContent='Saving…';
+  const targetName = ALL_USERS[pendingRoleUid]?.name || 'Unknown';
+  try {
+    await updateDoc(doc(db,'chat_users',pendingRoleUid), { isAdmin: pendingRoleMakeAdmin, role: pendingRoleMakeAdmin ? 'Admin' : 'Agent' });
+    logAdminAction(pendingRoleMakeAdmin ? 'promoted_to_admin' : 'demoted_to_agent', targetName);
+    showToast(pendingRoleMakeAdmin ? 'Promoted to Admin' : 'Demoted to Agent');
+    closeRoleToggle();
+  } catch(e){ errEl.textContent=e.message; errEl.style.display='block'; }
+  btn.disabled=false; btn.textContent='Confirm';
 };
 
 // ── REPLY / QUOTE ──
@@ -2178,6 +2361,7 @@ window.saveChannelRename = async function(){
   btn.disabled=true; btn.textContent='Saving…'; errEl.style.display='none';
   try {
     await setDoc(doc(db,'app_settings','channels'), { [renameChTarget]:newName }, { merge:true });
+    logAdminAction('renamed_channel', `#${newName}`, `was #${CHANNEL_NAMES[renameChTarget]||renameChTarget}`);
     CHANNEL_NAMES[renameChTarget] = newName;
     applyChannelNameLabels();
     // refresh current channel title if it was renamed
