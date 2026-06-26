@@ -3954,45 +3954,8 @@ const CALL_CONFIG = {
   iceServers: [
     { urls: 'stun:stun.l.google.com:19302' },
     { urls: 'stun:stun1.l.google.com:19302' },
-    { urls: 'stun:stun2.l.google.com:19302' },
-    { urls: 'stun:stun3.l.google.com:19302' },
-    // Free TURN relay — ensures connectivity through strict NATs/firewalls
-    { urls: 'turn:openrelay.metered.ca:80',  username: 'openrelayproject', credential: 'openrelayproject' },
-    { urls: 'turn:openrelay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' },
-    { urls: 'turn:openrelay.metered.ca:443?transport=tcp', username: 'openrelayproject', credential: 'openrelayproject' },
-  ],
-  iceCandidatePoolSize: 10,   // pre-gather candidates before call starts → faster connect
-  bundlePolicy: 'max-bundle', // single transport for audio, reduces overhead
-  rtcpMuxPolicy: 'require',
+  ]
 };
-
-// High-quality, low-latency audio constraints
-const AUDIO_CONSTRAINTS = {
-  audio: {
-    echoCancellation: true,
-    noiseSuppression: true,
-    autoGainControl: true,
-    sampleRate: 48000,
-    channelCount: 1,      // mono is sufficient and halves bandwidth
-    latency: 0,           // request lowest hardware latency
-  },
-  video: false,
-};
-
-// Helper: set Opus codec and prefer low-latency params on SDP
-function preferOpus(sdp) {
-  // Find Opus payload type
-  const opusMatch = sdp.match(/a=rtpmap:(\d+) opus\/48000\/2/);
-  if (!opusMatch) return sdp;
-  const pt = opusMatch[1];
-  // Force stereo=0 (mono), cbr=0 (variable), maxaveragebitrate=32000, useinbandfec=1
-  const fmtpLine = `a=fmtp:${pt} minptime=10;useinbandfec=1;maxaveragebitrate=32000;stereo=0;sprop-stereo=0`;
-  // Replace or add fmtp line
-  if (sdp.includes(`a=fmtp:${pt} `)) {
-    return sdp.replace(/a=fmtp:\d+ [^\r\n]+/, fmtpLine);
-  }
-  return sdp.replace(new RegExp(`(a=rtpmap:${pt} opus[^\r\n]*)`), `$1\r\n${fmtpLine}`);
-}
 
 // ── Firestore call doc helpers ──────────────────────────────────────
 function callDocRef(callId){ return doc(db, 'voice_calls', callId); }
@@ -4039,14 +4002,12 @@ window.initiateCall = async function(){
     showToast('Only admins can start a channel call.'); return;
   }
 
-  // Request mic permission with high-quality, low-latency constraints
+  // Request mic permission first — use simple constraints for max mobile compatibility
   let stream;
   try {
-    stream = await navigator.mediaDevices.getUserMedia(AUDIO_CONSTRAINTS);
+    stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
   } catch(e){
-    // Fallback to basic constraints if device doesn't support full set
-    try { stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false }); }
-    catch(e2){ showToast('Microphone access denied. Please allow mic access and try again.'); return; }
+    showToast('Microphone access denied. Please allow mic access and try again.'); return;
   }
 
   CALL_STATE.localStream = stream;
@@ -4077,9 +4038,8 @@ window.initiateCall = async function(){
   // Set up WebRTC
   await setupPeerConnection(callId, true, stream);
 
-  // Create and store SDP offer (with Opus low-latency settings)
-  const offerRaw = await CALL_STATE.pc.createOffer();
-  const offer = { type: offerRaw.type, sdp: preferOpus(offerRaw.sdp) };
+  // Create and store SDP offer
+  const offer = await CALL_STATE.pc.createOffer();
   await CALL_STATE.pc.setLocalDescription(offer);
   await updateDoc(callDocRef(callId), { offer: { type: offer.type, sdp: offer.sdp } });
 
@@ -4112,10 +4072,9 @@ window.acceptCall = async function(){
 
   let stream;
   try {
-    stream = await navigator.mediaDevices.getUserMedia(AUDIO_CONSTRAINTS);
+    stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
   } catch(e){
-    try { stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false }); }
-    catch(e2){ showToast('Microphone access denied.'); return; }
+    showToast('Microphone access denied.'); return;
   }
   CALL_STATE.localStream = stream;
   CALL_STATE.isOutgoing = false;
@@ -4136,9 +4095,8 @@ window.acceptCall = async function(){
   // Set remote offer
   await CALL_STATE.pc.setRemoteDescription(new RTCSessionDescription(callData.offer));
 
-  // Create answer (with Opus low-latency settings)
-  const answerRaw = await CALL_STATE.pc.createAnswer();
-  const answer = { type: answerRaw.type, sdp: preferOpus(answerRaw.sdp) };
+  // Create answer
+  const answer = await CALL_STATE.pc.createAnswer();
   await CALL_STATE.pc.setLocalDescription(answer);
 
   await updateDoc(callDocRef(callId), {
@@ -4178,11 +4136,12 @@ async function setupPeerConnection(callId, isCaller, stream){
   // Add local tracks
   stream.getTracks().forEach(track => pc.addTrack(track, stream));
 
-  // Remote audio — attach stream directly to audio element for minimum latency
+  // Remote audio
   const remoteStream = new MediaStream();
   CALL_STATE.remoteStream = remoteStream;
   pc.ontrack = event => {
-    // Use the stream directly from the event — avoids extra MediaStream copy overhead
+    event.streams[0].getTracks().forEach(track => remoteStream.addTrack(track));
+    // Create or reuse audio element — needs playsinline for iOS
     let audio = document.getElementById('callAudioEl');
     if (!audio){
       audio = document.createElement('audio');
@@ -4192,15 +4151,12 @@ async function setupPeerConnection(callId, isCaller, stream){
       audio.setAttribute('webkit-playsinline', '');
       document.body.appendChild(audio);
     }
-    audio.srcObject = event.streams[0];
+    audio.srcObject = remoteStream;
+    // Try to play (required by some mobile browsers after user gesture)
     audio.play().catch(()=>{});
-    // Mirror to CALL_STATE for mute/speaker controls
-    event.streams[0].getTracks().forEach(track => {
-      if (!remoteStream.getTracks().includes(track)) remoteStream.addTrack(track);
-    });
   };
 
-  // ICE candidates — trickle as they arrive for faster connection
+  // ICE candidates
   const localCandidates = isCaller ? callerCandidatesRef(callId) : calleeCandidatesRef(callId);
   const remoteCandidates = isCaller ? calleeCandidatesRef(callId) : callerCandidatesRef(callId);
 
@@ -4219,38 +4175,13 @@ async function setupPeerConnection(callId, isCaller, stream){
       }
     });
   });
+  // Store unsub so we can clean it (chained with main unsub)
   const mainUnsub = CALL_STATE.unsub;
   CALL_STATE.unsub = () => { if(mainUnsub) mainUnsub(); iceSub(); };
 
-  // Dual disconnect detection — connectionState for Chrome/Edge, iceConnectionState for Firefox/Safari
   pc.onconnectionstatechange = () => {
-    console.log('[Call] connectionState:', pc.connectionState);
-    if (pc.connectionState === 'failed'){
+    if (pc.connectionState === 'disconnected' || pc.connectionState === 'failed'){
       handleRemoteHangup('ended');
-    }
-  };
-
-  pc.oniceconnectionstatechange = () => {
-    console.log('[Call] iceConnectionState:', pc.iceConnectionState);
-    if (pc.iceConnectionState === 'failed'){
-      // Attempt ICE restart before giving up (caller side only)
-      if (isCaller && pc.signalingState === 'stable') {
-        console.log('[Call] ICE failed — attempting restart');
-        pc.restartIce();
-      } else {
-        handleRemoteHangup('ended');
-      }
-    }
-    if (pc.iceConnectionState === 'disconnected'){
-      // Grace period before declaring dead — transient drops recover within a few seconds
-      CALL_STATE._iceDisconnectTimer = setTimeout(() => {
-        if (CALL_STATE.pc?.iceConnectionState === 'disconnected'){
-          handleRemoteHangup('ended');
-        }
-      }, 8000);
-    }
-    if (pc.iceConnectionState === 'connected' || pc.iceConnectionState === 'completed'){
-      if (CALL_STATE._iceDisconnectTimer){ clearTimeout(CALL_STATE._iceDisconnectTimer); CALL_STATE._iceDisconnectTimer = null; }
     }
   };
 }
@@ -4353,7 +4284,6 @@ function closeCallUI(){
 
 function resetCallState(){
   if (CALL_STATE.timerInterval){ clearInterval(CALL_STATE.timerInterval); CALL_STATE.timerInterval = null; }
-  if (CALL_STATE._iceDisconnectTimer){ clearTimeout(CALL_STATE._iceDisconnectTimer); CALL_STATE._iceDisconnectTimer = null; }
   if (CALL_STATE.localStream){ CALL_STATE.localStream.getTracks().forEach(t => t.stop()); }
   if (CALL_STATE.pc){ CALL_STATE.pc.close(); }
   if (CALL_STATE.unsub){ try { CALL_STATE.unsub(); } catch(e){} }
@@ -4361,7 +4291,7 @@ function resetCallState(){
   // Remove audio element
   const audio = document.getElementById('callAudioEl');
   if (audio) audio.remove();
-  CALL_STATE = { active:false, callId:null, peerId:null, isOutgoing:false, isGroup:false, pc:null, localStream:null, remoteStream:null, muted:false, speakerOn:false, timerInterval:null, timerSec:0, unsub:null, ringtoneInterval:null, _iceDisconnectTimer:null };
+  CALL_STATE = { active:false, callId:null, peerId:null, isOutgoing:false, isGroup:false, pc:null, localStream:null, remoteStream:null, muted:false, speakerOn:false, timerInterval:null, timerSec:0, unsub:null, ringtoneInterval:null };
 }
 
 // ── Ringtone (simple oscillator beep) ────────────────────────────
@@ -4459,6 +4389,791 @@ initApp = async function(){
 // Add to admin log
 ADMIN_LOG_LABELS['call_started'] = { icon:'ti-phone', color:'var(--text-success)', verb:'started a call' };
 ADMIN_LOG_LABELS['call_ended']   = { icon:'ti-phone-off', color:'var(--text-tertiary)', verb:'ended a call' };
+
+// ══════════════════════════════════════════════════════════════════
+// FEATURE PACK: Polls · @here/@everyone · Video calls · Call history
+//               Missed call in chat · Push for missed call ·
+//               Read receipts upgrade · Typing indicator upgrade ·
+//               Lightbox upgrade · File previews inline
+// ══════════════════════════════════════════════════════════════════
+
+// ─────────────────────────────────────────────────────────────────
+// 1. POLLS — create, vote, live results
+// ─────────────────────────────────────────────────────────────────
+(function(){
+
+// Inject CSS
+const css = `
+.poll-modal{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1500;display:none;align-items:center;justify-content:center}
+.poll-modal.open{display:flex}
+.poll-box{background:var(--bg-primary);border:0.5px solid var(--border-md);border-radius:20px;padding:24px;width:min(400px,92vw);box-shadow:var(--shadow-lg);display:flex;flex-direction:column;gap:12px}
+.poll-box h3{margin:0;font-size:15px;font-weight:700;color:var(--text-primary)}
+.poll-inp{background:var(--bg-secondary);border:0.5px solid var(--border);border-radius:var(--radius-md);padding:9px 12px;font-size:13px;color:var(--text-primary);font-family:inherit;width:100%;box-sizing:border-box;outline:none;transition:border-color .12s}
+.poll-inp:focus{border-color:var(--green)}
+.poll-opts-list{display:flex;flex-direction:column;gap:6px}
+.poll-opt-row{display:flex;gap:6px;align-items:center}
+.poll-opt-row .poll-inp{flex:1}
+.poll-opt-del{background:none;border:none;cursor:pointer;color:var(--text-tertiary);padding:4px;border-radius:6px;display:flex;align-items:center;transition:color .12s}
+.poll-opt-del:hover{color:var(--text-danger)}
+.poll-add-opt{background:none;border:0.5px dashed var(--border-md);border-radius:var(--radius-md);padding:7px;font-size:12.5px;color:var(--text-tertiary);cursor:pointer;transition:border-color .12s,color .12s;font-family:inherit}
+.poll-add-opt:hover{border-color:var(--green);color:var(--green)}
+.poll-foot{display:flex;gap:8px;justify-content:flex-end;margin-top:4px}
+.poll-cancel{background:none;border:0.5px solid var(--border-md);border-radius:var(--radius-md);padding:8px 16px;font-size:13px;color:var(--text-secondary);cursor:pointer;font-family:inherit}
+.poll-submit{background:var(--green);border:none;border-radius:var(--radius-md);padding:8px 18px;font-size:13px;color:#fff;cursor:pointer;font-family:inherit;font-weight:600;transition:background .12s}
+.poll-submit:hover{background:var(--green-dark)}
+/* poll bubble */
+.poll-bubble{background:var(--bg-secondary);border:0.5px solid var(--border);border-radius:var(--radius-lg);padding:14px 16px;max-width:320px;margin-top:2px}
+.poll-bubble.own{background:var(--bg-success);border-color:transparent}
+.poll-q{font-size:13.5px;font-weight:700;color:var(--text-primary);margin-bottom:10px}
+.poll-option{display:flex;flex-direction:column;gap:3px;margin-bottom:8px;cursor:pointer}
+.poll-opt-label{display:flex;justify-content:space-between;font-size:12.5px;color:var(--text-primary)}
+.poll-opt-pct{font-size:11.5px;color:var(--text-tertiary)}
+.poll-bar-track{height:6px;background:var(--border);border-radius:3px;overflow:hidden}
+.poll-bar-fill{height:100%;background:var(--green);border-radius:3px;transition:width .3s}
+.poll-bar-fill.voted{background:var(--green-dark)}
+.poll-vote-count{font-size:11px;color:var(--text-tertiary);margin-top:6px}
+.poll-voted-label{font-size:11px;color:var(--text-success);margin-top:2px;display:flex;align-items:center;gap:3px}
+`;
+const style = document.createElement('style');
+style.textContent = css;
+document.head.appendChild(style);
+
+// Inject modal HTML
+const modal = document.createElement('div');
+modal.className = 'poll-modal';
+modal.id = 'pollModal';
+modal.innerHTML = `
+<div class="poll-box">
+  <h3><i class="ti ti-chart-bar" style="margin-right:6px;color:var(--green)"></i>Create a Poll</h3>
+  <input class="poll-inp" id="pollQuestion" placeholder="Ask a question…" maxlength="200">
+  <div class="poll-opts-list" id="pollOptsList">
+    <div class="poll-opt-row"><input class="poll-inp" placeholder="Option 1" maxlength="80"><button class="poll-opt-del" onclick="removePollOpt(this)"><i class="ti ti-x"></i></button></div>
+    <div class="poll-opt-row"><input class="poll-inp" placeholder="Option 2" maxlength="80"><button class="poll-opt-del" onclick="removePollOpt(this)"><i class="ti ti-x"></i></button></div>
+  </div>
+  <button class="poll-add-opt" onclick="addPollOpt()"><i class="ti ti-plus" style="margin-right:4px"></i>Add option</button>
+  <div class="poll-foot">
+    <button class="poll-cancel" onclick="closePollModal()">Cancel</button>
+    <button class="poll-submit" onclick="submitPoll()">Create Poll</button>
+  </div>
+</div>`;
+document.body.appendChild(modal);
+
+// Add poll button to toolbar (after schedule button)
+document.addEventListener('DOMContentLoaded', ()=>{}, false);
+const toolbar = document.querySelector('.input-toolbar');
+if (toolbar) {
+  const sep = document.createElement('div');
+  sep.style.cssText = 'width:0.5px;height:16px;background:var(--border);margin:0 3px;flex-shrink:0';
+  const btn = document.createElement('button');
+  btn.className = 'tool-btn';
+  btn.title = 'Create Poll';
+  btn.innerHTML = '<i class="ti ti-chart-bar"></i>';
+  btn.onclick = () => openPollModal();
+  toolbar.appendChild(sep);
+  toolbar.appendChild(btn);
+}
+
+window.openPollModal = function(){ document.getElementById('pollModal').classList.add('open'); document.getElementById('pollQuestion').focus(); };
+window.closePollModal = function(){ document.getElementById('pollModal').classList.remove('open'); };
+window.addPollOpt = function(){
+  const list = document.getElementById('pollOptsList');
+  const idx = list.children.length + 1;
+  if (idx > 8) { showToast('Maximum 8 options'); return; }
+  const row = document.createElement('div'); row.className = 'poll-opt-row';
+  row.innerHTML = `<input class="poll-inp" placeholder="Option ${idx}" maxlength="80"><button class="poll-opt-del" onclick="removePollOpt(this)"><i class="ti ti-x"></i></button>`;
+  list.appendChild(row);
+};
+window.removePollOpt = function(btn){
+  const list = document.getElementById('pollOptsList');
+  if (list.children.length <= 2) { showToast('Need at least 2 options'); return; }
+  btn.closest('.poll-opt-row').remove();
+};
+window.submitPoll = async function(){
+  const q = document.getElementById('pollQuestion').value.trim();
+  if (!q) { showToast('Enter a question'); return; }
+  const opts = [...document.getElementById('pollOptsList').querySelectorAll('.poll-inp')].map(i=>i.value.trim()).filter(Boolean);
+  if (opts.length < 2) { showToast('Add at least 2 options'); return; }
+  const isDm = curCh.startsWith('dm-');
+  const targetUid = isDm ? curCh.replace('dm-','') : null;
+  const colPath = isDm ? `dm_messages/${dmKey(ME.uid,targetUid)}/msgs` : `channel_messages/${curCh}/msgs`;
+  const pollData = { question: q, options: opts.map(o=>({ text:o, votes:[] })), createdBy: ME.uid };
+  await addDoc(collection(db, colPath), { uid:ME.uid, poll:pollData, ts:serverTimestamp(), readBy:[ME.uid] });
+  closePollModal();
+  // reset
+  document.getElementById('pollQuestion').value='';
+  const list = document.getElementById('pollOptsList');
+  list.innerHTML=`<div class="poll-opt-row"><input class="poll-inp" placeholder="Option 1" maxlength="80"><button class="poll-opt-del" onclick="removePollOpt(this)"><i class="ti ti-x"></i></button></div>
+  <div class="poll-opt-row"><input class="poll-inp" placeholder="Option 2" maxlength="80"><button class="poll-opt-del" onclick="removePollOpt(this)"><i class="ti ti-x"></i></button></div>`;
+};
+
+window.votePoll = async function(colPath, docId, optIdx){
+  const ref = doc(db, colPath, docId);
+  const snap = await getDoc(ref);
+  if (!snap.exists()) return;
+  const poll = snap.data().poll;
+  // Remove previous vote
+  poll.options.forEach(o=>{ o.votes = (o.votes||[]).filter(v=>v!==ME.uid); });
+  // Add new vote
+  poll.options[optIdx].votes = [...(poll.options[optIdx].votes||[]), ME.uid];
+  await updateDoc(ref, { poll });
+};
+
+function renderPollBubble(msg, docId, colPath, isOwn){
+  const p = msg.poll;
+  if (!p) return null;
+  const totalVotes = p.options.reduce((s,o)=>s+(o.votes||[]).length,0);
+  const myVoteIdx = p.options.findIndex(o=>(o.votes||[]).includes(ME.uid));
+  const safeColPath = colPath.replace(/'/g,"\\'");
+  const html = `<div class="poll-bubble${isOwn?' own':''}">
+    <div class="poll-q"><i class="ti ti-chart-bar" style="margin-right:5px;color:var(--green)"></i>${p.question}</div>
+    ${p.options.map((o,i)=>{
+      const pct = totalVotes ? Math.round(((o.votes||[]).length/totalVotes)*100) : 0;
+      const isVoted = myVoteIdx===i;
+      return `<div class="poll-option" onclick="votePoll('${safeColPath}','${docId}',${i})">
+        <div class="poll-opt-label"><span>${o.text}${isVoted?' <i class=\\"ti ti-check\\" style=\\"color:var(--green);font-size:11px\\"></i>':''}</span><span class="poll-opt-pct">${pct}%</span></div>
+        <div class="poll-bar-track"><div class="poll-bar-fill${isVoted?' voted':''}" style="width:${pct}%"></div></div>
+      </div>`;
+    }).join('')}
+    <div class="poll-vote-count">${totalVotes} vote${totalVotes!==1?'s':''} · ${myVoteIdx>=0?`<span class="poll-voted-label"><i class="ti ti-check"></i>You voted</span>`:'Tap to vote'}</div>
+  </div>`;
+  return html;
+}
+
+// Patch renderMsgsFromSnap to handle polls
+const _origRenderPoll = window.renderMsgsFromSnap;
+window.renderMsgsFromSnap = function(snap, colPath, ch, area){
+  _origRenderPoll(snap, colPath, ch, area);
+  area.querySelectorAll('.msg-row').forEach(row => {
+    const docId = row.id.replace('msg-','');
+    const msgData = snap.docs.find(d=>d.id===docId)?.data();
+    if (!msgData?.poll) return;
+    // Replace text bubble with poll bubble if not already done
+    let textEl = row.querySelector('.msg-text');
+    if (!textEl) return;
+    if (textEl.querySelector('.poll-bubble')) return;
+    const isOwn = msgData.uid === ME.uid;
+    textEl.innerHTML = renderPollBubble(msgData, docId, colPath, isOwn);
+  });
+};
+
+})();
+
+// ─────────────────────────────────────────────────────────────────
+// 2. @HERE / @EVERYONE MENTIONS
+// ─────────────────────────────────────────────────────────────────
+(function(){
+
+// Patch handleMentionInput to inject @here and @everyone at top of list
+const _origHandleMentionInput = handleMentionInput;
+window.handleMentionInput = function(inp){
+  const val = inp.value;
+  const cursor = inp.selectionStart;
+  const before = val.slice(0, cursor);
+  const match = before.match(/@([\w ]*)$/);
+  if (!match) { _origHandleMentionInput(inp); return; }
+  const q = match[1].toLowerCase();
+  const popup = document.getElementById('mentionPopup');
+
+  // Check if @here or @everyone match the query
+  const specials = [];
+  if (!curCh.startsWith('dm-')) {
+    if ('here'.startsWith(q)) specials.push({ name:'here', sub:'Notify active members', icon:'ti-at' });
+    if ('everyone'.startsWith(q)) specials.push({ name:'everyone', sub:'Notify all members', icon:'ti-users' });
+  }
+
+  _origHandleMentionInput(inp);
+
+  if (specials.length && popup.style.display !== 'none') {
+    const existing = popup.innerHTML;
+    const specialHtml = specials.map(s=>`
+      <div class="mention-item" data-name="${s.name}" onclick="insertMention('${s.name}')">
+        <div class="mention-av" style="background:var(--bg-tertiary);color:var(--text-secondary);font-size:14px"><i class="ti ${s.icon}"></i></div>
+        <div><div class="mention-name">@${s.name}</div><div class="mention-role">${s.sub}</div></div>
+      </div>`).join('');
+    popup.innerHTML = specialHtml + existing;
+    popup.style.display = 'block';
+  } else if (specials.length && q === '') {
+    // Show specials even when user just typed @
+    const specialHtml = specials.map(s=>`
+      <div class="mention-item" data-name="${s.name}" onclick="insertMention('${s.name}')">
+        <div class="mention-av" style="background:var(--bg-tertiary);color:var(--text-secondary);font-size:14px"><i class="ti ${s.icon}"></i></div>
+        <div><div class="mention-name">@${s.name}</div><div class="mention-role">${s.sub}</div></div>
+      </div>`).join('');
+    popup.innerHTML = specialHtml + popup.innerHTML;
+    popup.style.display = 'block';
+  }
+};
+
+// Patch sendMsg to handle @here/@everyone push
+const _origSendMsgMentions = window.sendMsg;
+window.sendMsg = async function(){
+  // intercept before sending to check for @here/@everyone
+  const inp = document.getElementById('msgInput');
+  const txt = inp.value.trim();
+  if (txt && !curCh.startsWith('dm-')) {
+    if (/@everyone\b/i.test(txt)) {
+      // handled inside original sendMsg via mentionedNames — we just ensure push goes to everyone
+      // mark message with everyoneMention flag
+    }
+    if (/@here\b/i.test(txt)) {
+      // push to active users only (lastActive within 15 min)
+      const fifteenMinAgo = new Date(Date.now() - 15*60*1000);
+      Object.values(ALL_USERS).forEach(u => {
+        if (u.uid !== ME.uid) {
+          const lastActive = u.lastActive?.toDate?.();
+          if (lastActive && lastActive > fifteenMinAgo) {
+            sendPushTo(u.uid, `${ME.name} mentioned @here in #${_CH[curCh]?.name||curCh}`, txt);
+          }
+        }
+      });
+    }
+    if (/@everyone\b/i.test(txt)) {
+      Object.values(ALL_USERS).forEach(u => {
+        if (u.uid !== ME.uid) sendPushTo(u.uid, `${ME.name} mentioned @everyone in #${_CH[curCh]?.name||curCh}`, txt);
+      });
+    }
+  }
+  return _origSendMsgMentions();
+};
+
+// Highlight @here and @everyone in rendered messages
+const _origMarkdown = window.mdToHtml || null;
+// We patch the existing markdown parser inline via message render
+// Inject CSS for special mentions
+const css = `
+.mention-here{ background:rgba(var(--amber-rgb,250,176,5),.18); color:#c98a00; border-radius:3px; padding:0 3px; font-weight:600; }
+.mention-everyone{ background:rgba(var(--red-rgb,226,75,74),.15); color:var(--text-danger); border-radius:3px; padding:0 3px; font-weight:600; }
+`;
+const s = document.createElement('style'); s.textContent = css; document.head.appendChild(s);
+
+})();
+
+
+// ─────────────────────────────────────────────────────────────────
+// 3. VIDEO CALL TOGGLE (camera on/off during voice call)
+// ─────────────────────────────────────────────────────────────────
+(function(){
+
+const css = `
+.call-video-container{width:100%;display:none;border-radius:12px;overflow:hidden;background:#000;margin-bottom:14px;position:relative}
+.call-video-container.show{display:block}
+#remoteVideo{width:100%;height:180px;object-fit:cover;display:block}
+#localVideo{position:absolute;bottom:8px;right:8px;width:72px;height:96px;object-fit:cover;border-radius:8px;border:2px solid rgba(255,255,255,.3);background:#111}
+.call-btn.camera{background:var(--bg-secondary);color:var(--text-secondary);border:0.5px solid var(--border-md)}
+.call-btn.camera:hover{background:var(--bg-tertiary)}
+.call-btn.camera.active{background:var(--bg-success);color:var(--text-success);border-color:transparent}
+`;
+const style = document.createElement('style'); style.textContent = css; document.head.appendChild(style);
+
+// Add video container + camera button to call modal
+const callModal = document.querySelector('.call-modal');
+if (callModal) {
+  const videoContainer = document.createElement('div');
+  videoContainer.className = 'call-video-container';
+  videoContainer.id = 'callVideoContainer';
+  videoContainer.innerHTML = `<video id="remoteVideo" autoplay playsinline></video><video id="localVideo" autoplay playsinline muted></video>`;
+  const avRing = callModal.querySelector('.call-av-ring');
+  callModal.insertBefore(videoContainer, avRing);
+
+  const callBtns = callModal.querySelector('.call-btns');
+  const cameraBtn = document.createElement('button');
+  cameraBtn.className = 'call-btn camera';
+  cameraBtn.id = 'callCameraBtn';
+  cameraBtn.title = 'Turn on Camera';
+  cameraBtn.innerHTML = '<i class="ti ti-video-off" id="callCameraIcon"></i>';
+  cameraBtn.onclick = () => toggleCallCamera();
+  callBtns.insertBefore(cameraBtn, callBtns.firstChild);
+}
+
+CALL_STATE.videoOn = false;
+CALL_STATE.videoSender = null;
+
+window.toggleCallCamera = async function(){
+  if (!CALL_STATE.active || !CALL_STATE.pc) return;
+  if (!CALL_STATE.videoOn){
+    try {
+      const videoStream = await navigator.mediaDevices.getUserMedia({ video: true });
+      const videoTrack = videoStream.getVideoTracks()[0];
+      // Show local preview
+      const localVid = document.getElementById('localVideo');
+      if (localVid) { localVid.srcObject = videoStream; }
+      // Add track to peer connection
+      CALL_STATE.videoSender = CALL_STATE.pc.addTrack(videoTrack, CALL_STATE.localStream);
+      CALL_STATE.videoOn = true;
+      CALL_STATE.localVideoTrack = videoTrack;
+      // Show container
+      document.getElementById('callVideoContainer').classList.add('show');
+      document.getElementById('callCameraBtn').classList.add('active');
+      document.getElementById('callCameraBtn').title = 'Turn off Camera';
+      document.getElementById('callCameraIcon').className = 'ti ti-video';
+      // Update remote video element on track event
+      CALL_STATE.pc.ontrack = event => {
+        const audio = document.getElementById('callAudioEl');
+        const remoteVid = document.getElementById('remoteVideo');
+        event.streams[0].getTracks().forEach(t => {
+          if (t.kind === 'audio' && audio) { audio.srcObject = event.streams[0]; audio.play().catch(()=>{}); }
+          if (t.kind === 'video' && remoteVid) { remoteVid.srcObject = event.streams[0]; }
+        });
+      };
+    } catch(e){ showToast('Camera access denied.'); }
+  } else {
+    // Turn off camera
+    if (CALL_STATE.localVideoTrack){ CALL_STATE.localVideoTrack.stop(); }
+    if (CALL_STATE.videoSender && CALL_STATE.pc){ try { CALL_STATE.pc.removeTrack(CALL_STATE.videoSender); } catch(e){} }
+    CALL_STATE.videoOn = false; CALL_STATE.videoSender = null; CALL_STATE.localVideoTrack = null;
+    document.getElementById('callVideoContainer').classList.remove('show');
+    document.getElementById('callCameraBtn').classList.remove('active');
+    document.getElementById('callCameraBtn').title = 'Turn on Camera';
+    document.getElementById('callCameraIcon').className = 'ti ti-video-off';
+    const localVid = document.getElementById('localVideo');
+    if (localVid) localVid.srcObject = null;
+  }
+};
+
+// Hide camera btn and video container on call end
+const _origResetCallState = resetCallState;
+window.resetCallState = function(){
+  CALL_STATE.videoOn = false;
+  if (CALL_STATE.localVideoTrack){ try { CALL_STATE.localVideoTrack.stop(); } catch(e){} }
+  const vc = document.getElementById('callVideoContainer');
+  if (vc) vc.classList.remove('show');
+  const cb = document.getElementById('callCameraBtn');
+  if (cb){ cb.classList.remove('active'); document.getElementById('callCameraIcon').className = 'ti ti-video-off'; }
+  const lv = document.getElementById('localVideo');
+  if (lv) lv.srcObject = null;
+  _origResetCallState();
+};
+
+})();
+
+
+// ─────────────────────────────────────────────────────────────────
+// 4. CALL HISTORY LOG
+// ─────────────────────────────────────────────────────────────────
+(function(){
+
+const css = `
+.call-history-btn{background:none;border:0.5px solid var(--border);border-radius:var(--radius-md);padding:6px 8px;cursor:pointer;color:var(--text-secondary);display:flex;align-items:center;gap:5px;font-size:12px;transition:background .12s}
+.call-history-btn:hover{background:var(--bg-success);color:var(--text-success)}
+.ch-modal{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1500;display:none;align-items:center;justify-content:center}
+.ch-modal.open{display:flex}
+.ch-box{background:var(--bg-primary);border:0.5px solid var(--border-md);border-radius:20px;padding:0;width:min(420px,93vw);max-height:80vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:var(--shadow-lg)}
+.ch-head{padding:18px 20px;border-bottom:0.5px solid var(--border);font-size:15px;font-weight:700;display:flex;justify-content:space-between;align-items:center}
+.ch-list{overflow-y:auto;flex:1;padding:8px 0}
+.ch-item{display:flex;align-items:center;gap:12px;padding:10px 20px;transition:background .1s}
+.ch-item:hover{background:var(--bg-secondary)}
+.ch-icon{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:15px}
+.ch-icon.out{background:var(--bg-success);color:var(--text-success)}
+.ch-icon.in{background:var(--bg-success);color:var(--text-success)}
+.ch-icon.missed{background:var(--bg-danger);color:var(--text-danger)}
+.ch-icon.video{background:rgba(99,102,241,.15);color:#6366f1}
+.ch-name{font-size:13.5px;font-weight:600;color:var(--text-primary)}
+.ch-meta{font-size:11.5px;color:var(--text-tertiary)}
+.ch-dur{margin-left:auto;font-size:12px;color:var(--text-tertiary);white-space:nowrap}
+.ch-empty{padding:32px;text-align:center;color:var(--text-tertiary);font-size:13px}
+`;
+const style = document.createElement('style'); style.textContent = css; document.head.appendChild(style);
+
+// Modal
+const modal = document.createElement('div');
+modal.className = 'ch-modal'; modal.id = 'callHistoryModal';
+modal.innerHTML = `<div class="ch-box">
+  <div class="ch-head"><span><i class="ti ti-phone-call" style="margin-right:7px;color:var(--green)"></i>Call History</span><button onclick="document.getElementById('callHistoryModal').classList.remove('open')" style="background:none;border:none;cursor:pointer;color:var(--text-tertiary);font-size:18px"><i class="ti ti-x"></i></button></div>
+  <div class="ch-list" id="callHistoryList"><div class="ch-empty">No calls yet</div></div>
+</div>`;
+document.body.appendChild(modal);
+
+// Add button to topbar area (near voice call button)
+const topbar = document.querySelector('.chat-topbar-right, .chat-top, #voiceCallBtn')?.parentElement;
+if (topbar) {
+  const btn = document.createElement('button');
+  btn.className = 'call-history-btn';
+  btn.title = 'Call history';
+  btn.innerHTML = '<i class="ti ti-phone-call" style="font-size:14px"></i>';
+  btn.onclick = () => openCallHistory();
+  // Insert after voiceCallBtn
+  const vcb = document.getElementById('voiceCallBtn');
+  if (vcb && vcb.parentElement) vcb.parentElement.insertBefore(btn, vcb.nextSibling);
+}
+
+window.openCallHistory = async function(){
+  document.getElementById('callHistoryModal').classList.add('open');
+  const list = document.getElementById('callHistoryList');
+  list.innerHTML = '<div class="ch-empty">Loading…</div>';
+  try {
+    const q = query(collection(db,'voice_calls'), orderBy('ts','desc'), limit(50));
+    const snap = await getDocs(q);
+    if (snap.empty){ list.innerHTML='<div class="ch-empty">No calls yet</div>'; return; }
+    list.innerHTML = snap.docs.map(d=>{
+      const c = d.data();
+      const isMine = c.callerId===ME.uid || c.calleeId===ME.uid;
+      if (!isMine) return '';
+      const isOut = c.callerId===ME.uid;
+      const peerId = isOut ? c.calleeId : c.callerId;
+      const peerName = ALL_USERS[peerId]?.name || (c.isGroup ? 'Group call' : 'Unknown');
+      const missed = c.status==='declined' || (c.status==='ended' && !c.endedAt && !isOut);
+      const dur = c.endedAt && c.ts?.toDate ? (() => {
+        const secs = Math.round((c.endedAt.toDate() - c.ts.toDate())/1000);
+        if (secs < 60) return `${secs}s`;
+        return `${Math.floor(secs/60)}m ${secs%60}s`;
+      })() : '';
+      const when = c.ts?.toDate ? c.ts.toDate().toLocaleString([], {month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}) : '';
+      const iconType = missed ? 'missed' : (isOut ? 'out' : 'in');
+      const iconI = missed ? 'ti-phone-missed' : (isOut ? 'ti-phone-outgoing' : 'ti-phone-incoming');
+      return `<div class="ch-item">
+        <div class="ch-icon ${iconType}"><i class="ti ${iconI}"></i></div>
+        <div><div class="ch-name">${peerName}</div><div class="ch-meta">${missed?'Missed · ':isOut?'Outgoing · ':'Incoming · '}${when}</div></div>
+        ${dur ? `<div class="ch-dur"><i class="ti ti-clock" style="font-size:11px;margin-right:3px"></i>${dur}</div>` : ''}
+      </div>`;
+    }).filter(Boolean).join('') || '<div class="ch-empty">No calls yet</div>';
+  } catch(e){ list.innerHTML='<div class="ch-empty">Could not load history</div>'; }
+};
+
+// Save duration when call ends
+const _origEndCall = window.endCall;
+window.endCall = async function(){
+  if (CALL_STATE.callId && CALL_STATE.timerSec > 0){
+    updateDoc(callDocRef(CALL_STATE.callId), { durationSec: CALL_STATE.timerSec }).catch(()=>{});
+  }
+  return _origEndCall();
+};
+
+})();
+
+
+// ─────────────────────────────────────────────────────────────────
+// 5. MISSED CALL MESSAGE IN CHAT
+// ─────────────────────────────────────────────────────────────────
+(function(){
+
+const css = `
+.missed-call-bubble{display:flex;align-items:center;gap:8px;padding:8px 14px;background:var(--bg-danger);border:0.5px solid var(--border-danger,rgba(226,75,74,.2));border-radius:var(--radius-lg);font-size:12.5px;color:var(--text-danger);max-width:240px;margin-top:2px}
+.missed-call-bubble i{font-size:16px;flex-shrink:0}
+.missed-call-bubble .mcb-text{display:flex;flex-direction:column;gap:1px}
+.missed-call-bubble .mcb-label{font-weight:600}
+.missed-call-bubble .mcb-time{font-size:11px;color:var(--text-tertiary)}
+`;
+const s = document.createElement('style'); s.textContent = css; document.head.appendChild(s);
+
+// When a call is declined or times out without being answered, post a missed call message in the DM channel
+const _origDeclineCall = window.declineCall;
+window.declineCall = async function(){
+  // Before declining, post a missed call message in the DM
+  if (CALL_STATE.callId && CALL_STATE.peerId){
+    const callerUser = ALL_USERS[CALL_STATE.peerId];
+    const colPath = `dm_messages/${dmKey(ME.uid, CALL_STATE.peerId)}/msgs`;
+    addDoc(collection(db, colPath), {
+      uid: CALL_STATE.peerId, // appears as a message from the caller
+      missedCall: { callerId: CALL_STATE.peerId, callerName: callerUser?.name||'Someone', ts: new Date() },
+      ts: serverTimestamp(), readBy:[ME.uid]
+    }).catch(()=>{});
+    // push notification to caller that call was missed
+    sendPushTo(CALL_STATE.peerId, 'Missed call', `${ME.name} missed your call`);
+  }
+  return _origDeclineCall();
+};
+
+// Also post when call auto-expires (caller side — they know it wasn't picked up)
+const _origHandleRemoteHangup = handleRemoteHangup;
+window.handleRemoteHangup = function(status){
+  if (status === 'declined' && CALL_STATE.isOutgoing && CALL_STATE.peerId){
+    const colPath = `dm_messages/${dmKey(ME.uid, CALL_STATE.peerId)}/msgs`;
+    addDoc(collection(db, colPath), {
+      uid: ME.uid,
+      missedCall: { callerId: ME.uid, callerName: ME.name, ts: new Date(), unanswered: true },
+      ts: serverTimestamp(), readBy:[ME.uid]
+    }).catch(()=>{});
+  }
+  _origHandleRemoteHangup(status);
+};
+
+// Patch renderMsgsFromSnap to render missed call bubbles
+const _origRenderMissed = window.renderMsgsFromSnap;
+window.renderMsgsFromSnap = function(snap, colPath, ch, area){
+  _origRenderMissed(snap, colPath, ch, area);
+  area.querySelectorAll('.msg-row').forEach(row => {
+    const docId = row.id.replace('msg-','');
+    const msgData = snap.docs.find(d=>d.id===docId)?.data();
+    if (!msgData?.missedCall) return;
+    let textEl = row.querySelector('.msg-text');
+    if (!textEl || textEl.querySelector('.missed-call-bubble')) return;
+    const mc = msgData.missedCall;
+    const when = mc.ts?.toDate ? mc.ts.toDate().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}) : '';
+    const label = mc.unanswered ? 'You called (no answer)' : 'Missed call';
+    textEl.innerHTML = `<div class="missed-call-bubble"><i class="ti ti-phone-missed"></i><div class="mcb-text"><span class="mcb-label">${label}</span>${when?`<span class="mcb-time">${when}</span>`:''}</div></div>`;
+  });
+};
+
+})();
+
+
+// ─────────────────────────────────────────────────────────────────
+// 6. PUSH NOTIFICATION FOR MISSED CALLS
+// ─────────────────────────────────────────────────────────────────
+(function(){
+
+// When incoming call toast auto-dismisses (i.e. not answered), send push to caller
+// The toast auto-dismiss is in showIncomingCallToast — we patch it
+const _origShowIncomingCallToast = showIncomingCallToast;
+window.showIncomingCallToast = function(callerUid, callerUser){
+  _origShowIncomingCallToast(callerUid, callerUser);
+  // Schedule missed-call push if not answered in 30s
+  const savedCallId = CALL_STATE.callId;
+  setTimeout(() => {
+    const toast = document.getElementById('incomingCallToast');
+    if (toast && toast.classList.contains('show')){
+      // Still showing = not answered → send push to caller that it was missed
+      sendPushTo(callerUid,
+        `Missed call from you`,
+        `${ME.name} missed your call. Tap to open chat.`
+      );
+    }
+  }, 30000);
+};
+
+})();
+
+
+// ─────────────────────────────────────────────────────────────────
+// 7. READ RECEIPTS — enhanced "Seen by" with avatars
+// ─────────────────────────────────────────────────────────────────
+(function(){
+
+const css = `
+.read-receipt-row{display:flex;align-items:center;gap:3px;margin-top:4px;justify-content:flex-end}
+.rr-av{width:14px;height:14px;border-radius:50%;font-size:7px;display:flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0;border:1.5px solid var(--bg-primary)}
+.rr-label{font-size:10.5px;color:var(--text-tertiary);margin-left:2px}
+.rr-dbl-check{display:flex;align-items:center}
+.rr-dbl-check i{font-size:11px;color:var(--text-success)}
+.rr-dbl-check i:last-child{margin-left:-5px}
+`;
+const s = document.createElement('style'); s.textContent = css; document.head.appendChild(s);
+
+// Override the read receipt HTML injected in the big render patch
+// We patch buildChannelReadReceipt
+window.buildChannelReadReceipt = function(msg, isLastOwnMsg, snap){
+  if (!isLastOwnMsg || !msg.readBy || msg.readBy.length <= 1) return '';
+  const readers = (msg.readBy||[]).filter(uid=>uid!==ME.uid);
+  if (!readers.length) return '';
+  // Build avatars (up to 4)
+  const shown = readers.slice(0,4);
+  const extra = readers.length - shown.length;
+  const avatars = shown.map(uid => {
+    const u = ALL_USERS[uid];
+    if (u?.photoURL) return `<img class="rr-av" src="${u.photoURL}" alt="${u?.name||'?'}" style="object-fit:cover">`;
+    const col = u ? avatarColor(uid) : 'info';
+    const bgColor = { green:'#2d6a4f', blue:'#1d4ed8', purple:'#7c3aed', pink:'#be185d', orange:'#c2410c', info:'#0369a1' }[col]||'#2d6a4f';
+    return `<div class="rr-av" style="background:${bgColor};color:#fff">${initials(u?.name||'?')}</div>`;
+  }).join('');
+  const label = readers.length === 1 ? `Seen by ${ALL_USERS[readers[0]]?.name?.split(' ')[0]||'?'}` : `Seen by ${readers.length}`;
+  return `<div class="read-receipt-row">${avatars}${extra>0?`<div class="rr-av" style="background:var(--bg-tertiary);color:var(--text-tertiary)">+${extra}</div>`:''}
+    <span class="rr-label">${label}</span></div>`;
+};
+
+})();
+
+
+// ─────────────────────────────────────────────────────────────────
+// 8. TYPING INDICATOR — show avatars of who's typing
+// ─────────────────────────────────────────────────────────────────
+(function(){
+
+// The existing typing indicator shows names as text. We upgrade it to show
+// mini avatars + "X and Y are typing…" with animated dots.
+// The existing onSnapshot in switchCh already renders into #typingIndicator —
+// we just patch the rendering part.
+
+// Re-patch the onSnapshot callback by overriding switchCh's typing setup
+const _origSwitchCh = window.switchCh;
+window.switchCh = function(ch){
+  _origSwitchCh(ch);
+  // Re-attach typing listener with upgraded renderer
+  if (typingUnsub){ typingUnsub(); typingUnsub = null; }
+  typingUnsub = onSnapshot(query(collection(db,'typing'), where('ch','==',ch)), snap => {
+    const others = snap.docs.map(d=>d.data()).filter(d=>d.uid!==ME.uid);
+    const el = document.getElementById('typingIndicator');
+    if (!others.length){ el.innerHTML=''; return; }
+    const avatarHtml = others.slice(0,3).map(u=>{
+      const user = ALL_USERS[u.uid];
+      if (user?.photoURL) return `<img style="width:16px;height:16px;border-radius:50%;object-fit:cover;flex-shrink:0" src="${user.photoURL}" alt="">`;
+      const col = user ? avatarColor(u.uid) : 'info';
+      const bgColor = { green:'#2d6a4f', blue:'#1d4ed8', purple:'#7c3aed', pink:'#be185d', orange:'#c2410c', info:'#0369a1' }[col]||'#2d6a4f';
+      return `<div style="width:16px;height:16px;border-radius:50%;background:${bgColor};color:#fff;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:700;flex-shrink:0">${initials(u.name||'?')}</div>`;
+    }).join('');
+    const names = others.length===1 ? others[0].name?.split(' ')[0]||'Someone'
+      : others.length===2 ? `${others[0].name?.split(' ')[0]} and ${others[1].name?.split(' ')[0]}`
+      : `${others[0].name?.split(' ')[0]} and ${others.length-1} others`;
+    el.innerHTML = `<div style="display:flex;align-items:center;gap:4px">${avatarHtml}</div><div class="typing-dots"><span></span><span></span><span></span></div><span>${names} ${others.length===1?'is':'are'} typing…</span>`;
+  });
+};
+
+})();
+
+
+// ─────────────────────────────────────────────────────────────────
+// 9. LIGHTBOX UPGRADE — keyboard navigation, zoom, swipe
+// ─────────────────────────────────────────────────────────────────
+(function(){
+
+const css = `
+#lightboxOverlay .lightbox-bar{ gap:16px }
+.lb-nav-btn{background:rgba(255,255,255,.12);border:none;border-radius:50%;width:38px;height:38px;cursor:pointer;color:#fff;display:flex;align-items:center;justify-content:center;font-size:18px;transition:background .12s;flex-shrink:0}
+.lb-nav-btn:hover{background:rgba(255,255,255,.25)}
+.lb-nav-btn:disabled{opacity:.25;cursor:default}
+.lb-counter{color:rgba(255,255,255,.6);font-size:12px;min-width:48px;text-align:center}
+#lightboxImg{cursor:zoom-in;transition:transform .2s}
+#lightboxImg.zoomed{cursor:zoom-out;transform:scale(2)}
+`;
+const s = document.createElement('style'); s.textContent = css; document.head.appendChild(s);
+
+let _lbImages = [];   // [{url, name}] — all images in current channel
+let _lbIndex = 0;
+
+// Add nav buttons to lightbox bar
+const bar = document.querySelector('.lightbox-bar');
+if (bar) {
+  bar.insertAdjacentHTML('afterbegin',
+    `<button class="lb-nav-btn" id="lbPrevBtn" onclick="lbNavigate(-1)" title="Previous"><i class="ti ti-chevron-left"></i></button>`);
+  bar.insertAdjacentHTML('beforeend',
+    `<span class="lb-counter" id="lbCounter"></span>
+     <button class="lb-nav-btn" id="lbNextBtn" onclick="lbNavigate(1)" title="Next"><i class="ti ti-chevron-right"></i></button>`);
+}
+
+// Zoom on click
+const img = document.getElementById('lightboxImg');
+if (img) img.addEventListener('click', e=>{ e.stopPropagation(); img.classList.toggle('zoomed'); });
+
+// Keyboard nav
+document.addEventListener('keydown', e=>{
+  const overlay = document.getElementById('lightboxOverlay');
+  if (!overlay?.classList.contains('open')) return;
+  if (e.key==='ArrowLeft') lbNavigate(-1);
+  if (e.key==='ArrowRight') lbNavigate(1);
+  if (e.key==='Escape') closeLightbox({ target: overlay });
+});
+
+// Touch/swipe support
+let _lbTouchX = null;
+const overlay = document.getElementById('lightboxOverlay');
+if (overlay){
+  overlay.addEventListener('touchstart', e=>{ _lbTouchX = e.touches[0].clientX; }, { passive:true });
+  overlay.addEventListener('touchend', e=>{
+    if (_lbTouchX === null) return;
+    const dx = e.changedTouches[0].clientX - _lbTouchX;
+    if (Math.abs(dx) > 50) lbNavigate(dx < 0 ? 1 : -1);
+    _lbTouchX = null;
+  }, { passive:true });
+}
+
+window.lbNavigate = function(dir){
+  if (!_lbImages.length) return;
+  _lbIndex = Math.max(0, Math.min(_lbImages.length-1, _lbIndex+dir));
+  const item = _lbImages[_lbIndex];
+  const imgEl = document.getElementById('lightboxImg');
+  imgEl.classList.remove('zoomed');
+  imgEl.src = item.url; imgEl.alt = item.name||'';
+  document.getElementById('lightboxName').textContent = item.name||'';
+  document.getElementById('lightboxDl').href = item.url;
+  document.getElementById('lbCounter').textContent = `${_lbIndex+1} / ${_lbImages.length}`;
+  document.getElementById('lbPrevBtn').disabled = _lbIndex===0;
+  document.getElementById('lbNextBtn').disabled = _lbIndex===_lbImages.length-1;
+};
+
+// Patch openLightbox to collect all images in current view
+const _origOpenLightbox = window.openLightbox;
+window.openLightbox = function(url, name){
+  // Collect all image URLs visible in the current message area
+  const area = document.getElementById('msgArea') || document.querySelector('.msg-area');
+  if (area){
+    const imgs = [...area.querySelectorAll('img[data-full], .msg-img')].map(el=>({
+      url: el.dataset.full || el.src,
+      name: el.dataset.name || el.alt || ''
+    })).filter(i=>i.url);
+    _lbImages = imgs.length ? imgs : [{ url, name }];
+    _lbIndex = _lbImages.findIndex(i=>i.url===url);
+    if (_lbIndex < 0) { _lbImages.unshift({url,name}); _lbIndex=0; }
+  } else {
+    _lbImages = [{url,name}]; _lbIndex=0;
+  }
+  document.getElementById('lbCounter').textContent = _lbImages.length > 1 ? `1 / ${_lbImages.length}` : '';
+  const prevBtn = document.getElementById('lbPrevBtn');
+  const nextBtn = document.getElementById('lbNextBtn');
+  if (prevBtn) prevBtn.disabled = true;
+  if (nextBtn) nextBtn.disabled = _lbImages.length <= 1;
+  document.getElementById('lightboxImg').classList.remove('zoomed');
+  _origOpenLightbox(url, name);
+};
+
+})();
+
+
+// ─────────────────────────────────────────────────────────────────
+// 10. INLINE FILE PREVIEWS — PDFs embed, images lazy-load with blur-up
+// ─────────────────────────────────────────────────────────────────
+(function(){
+
+const css = `
+.file-preview-img{width:100%;max-width:300px;border-radius:var(--radius-md);cursor:zoom-in;display:block;margin-top:4px;transition:opacity .2s}
+.file-preview-img.loading{opacity:0}
+.file-preview-img.loaded{opacity:1}
+.pdf-preview-wrap{margin-top:6px;border-radius:var(--radius-md);overflow:hidden;border:0.5px solid var(--border);max-width:320px}
+.pdf-preview-wrap iframe{display:block;width:100%;height:200px;border:none}
+.pdf-toggle-btn{background:none;border:none;font-size:11.5px;color:var(--green);cursor:pointer;padding:0;font-family:inherit;margin-top:4px}
+.pdf-toggle-btn:hover{text-decoration:underline}
+`;
+const s = document.createElement('style'); s.textContent = css; document.head.appendChild(s);
+
+// After render, patch file bubbles to add previews
+const _origRenderFiles = window.renderMsgsFromSnap;
+window.renderMsgsFromSnap = function(snap, colPath, ch, area){
+  _origRenderFiles(snap, colPath, ch, area);
+  area.querySelectorAll('.msg-row').forEach(row => {
+    const docId = row.id.replace('msg-','');
+    const msgData = snap.docs.find(d=>d.id===docId)?.data();
+    if (!msgData?.file) return;
+    const file = msgData.file;
+    const textEl = row.querySelector('.msg-text');
+    if (!textEl) return;
+
+    // Image preview — lazy load
+    if (file.ftype === 'img' && file.url && !textEl.querySelector('.file-preview-img')){
+      const img = document.createElement('img');
+      img.className = 'file-preview-img loading';
+      img.alt = file.name || 'Image';
+      img.dataset.full = file.url;
+      img.dataset.name = file.name || '';
+      img.loading = 'lazy';
+      img.onclick = () => openLightbox(file.url, file.name||'');
+      img.onload = () => img.classList.replace('loading','loaded');
+      img.src = file.url;
+      textEl.appendChild(img);
+    }
+
+    // PDF preview — collapsible iframe embed
+    if (file.ftype === 'pdf' && file.url && !textEl.querySelector('.pdf-preview-wrap')){
+      const toggleBtn = document.createElement('button');
+      toggleBtn.className = 'pdf-toggle-btn';
+      toggleBtn.textContent = 'Preview PDF ▾';
+      let shown = false;
+      const wrap = document.createElement('div');
+      wrap.className = 'pdf-preview-wrap';
+      wrap.style.display = 'none';
+      const iframe = document.createElement('iframe');
+      iframe.title = file.name || 'PDF';
+      // Only set src when user opens it (avoid loading all PDFs on render)
+      toggleBtn.onclick = () => {
+        shown = !shown;
+        wrap.style.display = shown ? '' : 'none';
+        toggleBtn.textContent = shown ? 'Hide preview ▴' : 'Preview PDF ▾';
+        if (shown && !iframe.src) { iframe.src = file.url + '#toolbar=0'; wrap.appendChild(iframe); }
+      };
+      textEl.appendChild(toggleBtn);
+      textEl.appendChild(wrap);
+    }
+  });
+};
+
+})();
 
 </script>
 </body>
