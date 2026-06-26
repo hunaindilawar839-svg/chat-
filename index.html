@@ -811,7 +811,17 @@ function parseMarkdown(text){
 }
 
 // ── AUTH STATE ──
+// Safety net: if Firebase never calls onAuthStateChanged within 8s, show login
+const _loaderTimeout = setTimeout(() => {
+  const loader = document.getElementById('globalLoader');
+  if (loader && loader.style.display !== 'none') {
+    console.warn('Firebase auth timeout — showing login');
+    showLogin('Connection timed out. Check your internet and try again.');
+  }
+}, 8000);
+
 onAuthStateChanged(auth, async user => {
+  clearTimeout(_loaderTimeout);
   document.getElementById('globalLoader').style.display = 'none';
   const btn = document.getElementById('loginBtn');
   if (user) {
@@ -837,13 +847,17 @@ onAuthStateChanged(auth, async user => {
   } else { btn.disabled=false; btn.textContent='Sign in'; showLogin(); }
 });
 
+function hideLoader(){ const l=document.getElementById('globalLoader'); if(l) l.style.display='none'; }
+
 function showLogin(msg){
+  hideLoader();
   document.getElementById('loginScreen').classList.add('show');
   document.getElementById('appScreen').classList.remove('show');
   const errEl = document.getElementById('loginErr');
   if (msg){ errEl.textContent=msg; errEl.style.display='block'; } else { errEl.style.display='none'; }
 }
 async function showApp(){
+  hideLoader();
   document.getElementById('loginScreen').classList.remove('show');
   document.getElementById('appScreen').classList.add('show');
   await initApp(); initNotifications(); initOneSignal(ME.uid);
@@ -1574,4 +1588,288 @@ window.confirmShare = async function(){
     if (!uploadRes.ok) throw new Error('Upload failed: '+uploadRes.statusText);
     const uploadData = await uploadRes.json();
     const url = uploadData.secure_url;
-    const ft
+    const ftype = pendingFtype||'doc';
+    const isDm = curCh.startsWith('dm-');
+    const targetUid = isDm ? curCh.replace('dm-','') : null;
+    const colPath = isDm ? `dm_messages/${dmKey(ME.uid,targetUid)}/msgs` : `channel_messages/${curCh}/msgs`;
+    const fileObj = { name:pendingFile.name, size:(pendingFile.size/1024).toFixed(1)+' KB', ftype, url };
+    await addDoc(collection(db, colPath), { uid:ME.uid, file:fileObj, ts:serverTimestamp() });
+    await addDoc(collection(db,'shared_files'), { name:pendingFile.name, uid:ME.uid, ftype, url, ts:serverTimestamp() });
+    if (isDm && targetUid) sendPushTo(targetUid, ME.name||'File shared', `Sent a file: ${pendingFile.name}`);
+    renderSharedFiles(); closeFileModal(); showToast('File shared');
+  } catch(err){
+    console.error('Upload error:', err);
+    btn.disabled=false; btn.textContent='Retry';
+    let errEl=document.getElementById('uploadErrMsg');
+    if (!errEl){ errEl=document.createElement('p'); errEl.id='uploadErrMsg'; errEl.style.cssText='color:var(--text-danger);font-size:12px;margin-top:8px;text-align:center'; btn.parentElement.before(errEl); }
+    errEl.textContent = '⚠️ '+(err.message||'Upload failed. Try again.');
+  }
+};
+
+// ── MESSAGE SEARCH ──
+let searchDebounce = null;
+let allMsgsCache = [];
+window.onSearch = async function(val){
+  const res = document.getElementById('searchResults');
+  if (!val.trim()){ res.classList.remove('show'); return; }
+  if (searchDebounce) clearTimeout(searchDebounce);
+  searchDebounce = setTimeout(async () => {
+    res.innerHTML = '<div class="sr-empty">Searching…</div>'; res.classList.add('show');
+    try {
+      // search current channel
+      const isDm = curCh.startsWith('dm-');
+      const targetUid = isDm ? curCh.replace('dm-','') : null;
+      const colPath = isDm ? `dm_messages/${dmKey(ME.uid,targetUid)}/msgs` : `channel_messages/${curCh}/msgs`;
+      const snap = await getDocs(query(collection(db, colPath), orderBy('ts','desc')));
+      const q2 = val.toLowerCase();
+      const results = snap.docs.filter(d => (d.data().text||'').toLowerCase().includes(q2)).slice(0,6);
+      if (!results.length){ res.innerHTML='<div class="sr-empty">No results in this channel</div>'; return; }
+      res.innerHTML = results.map(d => {
+        const m = d.data();
+        const sender = ALL_USERS[m.uid];
+        const ts = fmtTime(m.ts);
+        const hi = (m.text||'').replace(new RegExp(val.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'gi'), s=>`<mark style="background:var(--bg-warning);border-radius:2px">${s}</mark>`);
+        return `<div class="sr-item" onclick="jumpToMsg('${d.id}')">
+          <div class="sr-sender">${sender?.name||'Unknown'} <span style="font-weight:400;color:var(--text-tertiary)">${ts}</span></div>
+          <div class="sr-text">${hi}</div>
+        </div>`;
+      }).join('');
+    } catch(e){ res.innerHTML='<div class="sr-empty">Search failed</div>'; }
+  }, 300);
+};
+window.jumpToMsg = function(docId){
+  document.getElementById('searchResults').classList.remove('show');
+  document.getElementById('searchInput').value = '';
+  const el = document.getElementById('msg-'+docId);
+  if (el){ el.scrollIntoView({behavior:'smooth',block:'center'}); el.style.transition='background .3s'; el.style.background='var(--bg-warning)'; setTimeout(()=>el.style.background='',1500); }
+};
+document.addEventListener('click', e => {
+  if (!e.target.closest('.search-bar')) document.getElementById('searchResults')?.classList.remove('show');
+});
+
+// ── AUTH ──
+window.doFirstTimeSetup = async function(){
+  const email=document.getElementById('loginEmail').value.trim(), pass=document.getElementById('loginPass').value;
+  const errEl=document.getElementById('loginErr'), btn=document.getElementById('loginBtn');
+  if (!email||!pass){ errEl.textContent='Enter email and password first.'; errEl.style.display='block'; return; }
+  btn.disabled=true; btn.textContent='Setting up…'; errEl.style.display='none';
+  try {
+    const cred = await signInWithEmailAndPassword(auth, email, pass);
+    const profile = { name:cred.user.displayName||email.split('@')[0], email, phone:'', role:'Admin', isAdmin:true, status:'offline', createdAt:serverTimestamp() };
+    await setDoc(doc(db,'chat_users',cred.user.uid), profile);
+    ME = { uid:cred.user.uid, ...profile }; await loadAllUsers(); showApp();
+  } catch(e){ errEl.textContent='Setup failed: '+e.message; errEl.style.display='block'; btn.disabled=false; btn.textContent='Sign in'; }
+};
+window.doLogin = async function(){
+  const email=document.getElementById('loginEmail').value.trim(), pass=document.getElementById('loginPass').value;
+  const errEl=document.getElementById('loginErr'), btn=document.getElementById('loginBtn');
+  errEl.style.display='none'; btn.disabled=true; btn.textContent='Signing in…';
+  try { await signInWithEmailAndPassword(auth, email, pass); }
+  catch(e){ errEl.textContent = e.code==='auth/invalid-credential'||e.code==='auth/wrong-password' ? 'Invalid email or password.' : e.code==='auth/user-not-found' ? 'No account with this email.' : e.code==='auth/too-many-requests' ? 'Too many attempts. Wait a few minutes.' : e.code==='auth/network-request-failed' ? 'Network error. Check your connection.' : e.message; errEl.style.display='block'; btn.disabled=false; btn.textContent='Sign in'; }
+};
+window.doGoogleLogin = async function(){
+  const btn=document.getElementById('googleBtn'), errEl=document.getElementById('loginErr');
+  errEl.style.display='none'; btn.disabled=true;
+  try { await signInWithPopup(auth, new GoogleAuthProvider()); }
+  catch(e){ if(e.code!=='auth/popup-closed-by-user'&&e.code!=='auth/cancelled-popup-request'){ errEl.textContent=e.code==='auth/popup-blocked'?'Popup blocked. Allow popups for this site.':e.message; errEl.style.display='block'; } }
+  btn.disabled=false;
+};
+window.doLogout = async function(){ clearTyping(); if (msgUnsub) msgUnsub(); if (typingUnsub) typingUnsub(); await signOut(auth); };
+
+// ── USER MANAGEMENT ──
+let selectedRole = 'admin';
+window.openCreateUser = function(){ if (!ME.isAdmin) return; document.getElementById('cuErr').style.display='none'; ['cuName','cuEmail','cuPhone','cuPass'].forEach(id=>document.getElementById(id).value=''); selectRole('admin'); document.getElementById('createUserModal').classList.add('open'); };
+window.closeCreateUser = function(){ document.getElementById('createUserModal').classList.remove('open'); };
+window.selectRole = function(r){ selectedRole=r; document.getElementById('roleOptAdmin').className='role-opt'+(r==='admin'?' selected-admin':''); document.getElementById('roleOptEmp').className='role-opt'+(r==='employee'?' selected-emp':''); };
+window.createUser = async function(){
+  const name=document.getElementById('cuName').value.trim(), email=document.getElementById('cuEmail').value.trim(), phone=document.getElementById('cuPhone').value.trim(), pass=document.getElementById('cuPass').value;
+  const errEl=document.getElementById('cuErr'), btn=document.getElementById('cuBtn');
+  errEl.style.display='none';
+  if (!name||!email||!pass){ errEl.textContent='Name, email, and password are required.'; errEl.style.display='block'; return; }
+  if (pass.length<6){ errEl.textContent='Password must be at least 6 characters.'; errEl.style.display='block'; return; }
+  btn.disabled=true; btn.textContent='Creating…';
+  try {
+    const { initializeApp:initApp2, getApp, deleteApp } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js");
+    const { getAuth:getAuth2, createUserWithEmailAndPassword:createEAP } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js");
+    let secondaryApp;
+    try { secondaryApp=getApp('secondary'); } catch(e){ secondaryApp=initApp2(firebaseConfig,'secondary'); }
+    const auth2=getAuth2(secondaryApp);
+    const cred=await createEAP(auth2,email,pass);
+    await signOut(auth2);
+    await setDoc(doc(db,'chat_users',cred.user.uid),{ name,email,phone,role:selectedRole==='admin'?'Admin':'Agent',isAdmin:selectedRole==='admin',status:'offline',createdBy:ME.uid,createdAt:serverTimestamp() });
+    closeCreateUser(); showToast(`✓ ${name} added as ${selectedRole==='admin'?'Admin':'Agent'}`);
+  } catch(e){ errEl.textContent=e.message; errEl.style.display='block'; }
+  btn.disabled=false; btn.textContent='Create account';
+};
+let pendingRemoveUid = null;
+window.confirmRemoveUser = function(uid,name){ pendingRemoveUid=uid; document.getElementById('ruName').textContent=name; document.getElementById('ruErr').style.display='none'; document.getElementById('removeUserModal').classList.add('open'); };
+window.closeRemoveUser = function(){ document.getElementById('removeUserModal').classList.remove('open'); pendingRemoveUid=null; };
+window.removeUser = async function(){
+  if (!pendingRemoveUid) return;
+  const btn=document.getElementById('ruBtn'), errEl=document.getElementById('ruErr');
+  btn.disabled=true; btn.textContent='Removing…';
+  try { await deleteDoc(doc(db,'chat_users',pendingRemoveUid)); showToast('Member removed'); closeRemoveUser(); }
+  catch(e){ errEl.textContent=e.message; errEl.style.display='block'; }
+  btn.disabled=false; btn.textContent='Remove member';
+};
+
+// ── REPLY / QUOTE ──
+window.startReply = function(docId, text, senderName, colPath){
+  REPLY_TO = { docId, text, senderName, uid:null };
+  const bar = document.getElementById('replyBar');
+  bar.style.display = 'block';
+  bar.innerHTML = `<div class="reply-bar"><span class="reply-sender">${senderName}</span><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1">${text.slice(0,80)}</span><button class="reply-close" onclick="clearReply()" title="Cancel reply"><i class="ti ti-x"></i></button></div>`;
+  document.getElementById('msgInput').focus();
+};
+window.clearReply = function(){
+  REPLY_TO = null;
+  const bar = document.getElementById('replyBar');
+  bar.style.display='none'; bar.innerHTML='';
+};
+window.scrollToMsg = function(docId){
+  if (!docId) return;
+  const el = document.getElementById('msg-'+docId);
+  if (el){ el.scrollIntoView({behavior:'smooth',block:'center'}); el.style.transition='background .3s'; el.style.background='var(--bg-warning)'; setTimeout(()=>el.style.background='',1600); }
+};
+
+// ── @MENTION AUTOCOMPLETE ──
+let mentionQuery = null;
+function handleMentionInput(inp){
+  const val = inp.value;
+  const cursor = inp.selectionStart;
+  // find @ before cursor
+  const before = val.slice(0, cursor);
+  const match = before.match(/@([\w ]*)$/);
+  const popup = document.getElementById('mentionPopup');
+  if (!match){ popup.style.display='none'; mentionQuery=null; MENTION_IDX=-1; return; }
+  const q = match[1].toLowerCase();
+  mentionQuery = { start: before.lastIndexOf('@'), end: cursor, query: q };
+  const results = Object.values(ALL_USERS).filter(u => u.uid !== ME.uid && u.name.toLowerCase().includes(q)).slice(0,6);
+  if (!results.length){ popup.style.display='none'; return; }
+  MENTION_IDX = -1;
+  popup.style.display = 'block';
+  popup.innerHTML = results.map((u,i)=>{
+    const col = avatarColor(u.uid);
+    const avContent = u.photoURL ? `<img class="av-img" src="${u.photoURL}" alt="${u.name}" style="width:24px;height:24px;border-radius:50%;object-fit:cover">` : initials(u.name);
+    const avStyle = u.photoURL ? 'background:transparent' : (AV_STYLES[col]||'');
+    return `<div class="mention-item" data-uid="${u.uid}" data-name="${u.name}" onclick="insertMention('${u.name.replace(/'/g,"\\'")}')">
+      <div class="mention-av" style="${avStyle}">${avContent}</div>
+      <div><div class="mention-name">${u.name}</div><div class="mention-role">${u.isAdmin?'Admin':'Agent'}</div></div>
+    </div>`;
+  }).join('');
+}
+window.insertMention = function(name){
+  const inp = document.getElementById('msgInput');
+  if (!mentionQuery) return;
+  const { start, end } = mentionQuery;
+  inp.value = inp.value.slice(0,start) + '@' + name + ' ' + inp.value.slice(end);
+  inp.focus();
+  const newPos = start + name.length + 2;
+  inp.setSelectionRange(newPos, newPos);
+  document.getElementById('mentionPopup').style.display='none';
+  mentionQuery = null; MENTION_IDX = -1;
+};
+function handleMentionKeyNav(e){
+  const popup = document.getElementById('mentionPopup');
+  if (popup.style.display==='none') return false;
+  const items = popup.querySelectorAll('.mention-item');
+  if (!items.length) return false;
+  if (e.key==='ArrowDown'){ e.preventDefault(); MENTION_IDX=Math.min(MENTION_IDX+1,items.length-1); items.forEach((it,i)=>it.classList.toggle('active',i===MENTION_IDX)); return true; }
+  if (e.key==='ArrowUp'){ e.preventDefault(); MENTION_IDX=Math.max(MENTION_IDX-1,0); items.forEach((it,i)=>it.classList.toggle('active',i===MENTION_IDX)); return true; }
+  if ((e.key==='Enter'||e.key==='Tab') && MENTION_IDX>=0){ e.preventDefault(); const name=items[MENTION_IDX].dataset.name; insertMention(name); return true; }
+  if (e.key==='Escape'){ popup.style.display='none'; mentionQuery=null; MENTION_IDX=-1; return true; }
+  return false;
+}
+document.addEventListener('click', e=>{ if (!e.target.closest('#mentionPopup') && !e.target.closest('#msgInput')) document.getElementById('mentionPopup').style.display='none'; });
+
+// ── BROWSER TAB BADGE (Feature 12) ──
+function updateTabBadge(){
+  TOTAL_UNREAD = Object.values(UNREAD).reduce((a,b)=>a+b,0);
+  if (TOTAL_UNREAD > 0){
+    document.title = `(${TOTAL_UNREAD > 99 ? '99+' : TOTAL_UNREAD}) Navain Chat`;
+  } else {
+    document.title = 'Navain Chat';
+  }
+}
+function clearTabBadge(){
+  // Only clear badge for channels with 0 unread
+  if (Object.values(UNREAD).every(v=>v===0)){
+    TOTAL_UNREAD=0;
+    document.title='Navain Chat';
+  } else {
+    updateTabBadge();
+  }
+}
+
+// ── CHANNEL RENAME (Admin only) ──
+async function loadChannelNames(){
+  try {
+    const snap = await getDoc(doc(db,'app_settings','channels'));
+    if (snap.exists()){
+      const data = snap.data();
+      CHANNEL_IDS.forEach(id => { if (data[id]) CHANNEL_NAMES[id] = data[id]; });
+    }
+    applyChannelNameLabels();
+  } catch(e){}
+}
+function applyChannelNameLabels(){
+  CHANNEL_IDS.forEach(id => {
+    const lbl = document.getElementById('chlbl-'+id);
+    if (lbl) lbl.textContent = CHANNEL_NAMES[id]||id;
+  });
+}
+window.openRenameChannel = function(chId){
+  if (!ME.isAdmin) return;
+  renameChTarget = chId;
+  document.getElementById('renameChCurrent').textContent = '#'+(CHANNEL_NAMES[chId]||chId);
+  document.getElementById('renameChInput').value = CHANNEL_NAMES[chId]||chId;
+  document.getElementById('renameChErr').style.display='none';
+  document.getElementById('renameChannelModal').classList.add('open');
+  setTimeout(()=>document.getElementById('renameChInput').focus(),100);
+};
+window.closeRenameChannel = function(){ document.getElementById('renameChannelModal').classList.remove('open'); renameChTarget=null; };
+window.saveChannelRename = async function(){
+  if (!renameChTarget || !ME.isAdmin) return;
+  const newName = document.getElementById('renameChInput').value.trim().toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9-]/g,'');
+  const errEl = document.getElementById('renameChErr');
+  const btn = document.getElementById('renameChBtn');
+  if (!newName||newName.length<2){ errEl.textContent='Name must be at least 2 characters.'; errEl.style.display='block'; return; }
+  btn.disabled=true; btn.textContent='Saving…'; errEl.style.display='none';
+  try {
+    await setDoc(doc(db,'app_settings','channels'), { [renameChTarget]:newName }, { merge:true });
+    CHANNEL_NAMES[renameChTarget] = newName;
+    applyChannelNameLabels();
+    // refresh current channel title if it was renamed
+    if (curCh === renameChTarget){
+      document.getElementById('chTitle').innerHTML = `<i class="ti ti-hash" style="font-size:14px;color:var(--text-tertiary)"></i> ${newName}`;
+      document.getElementById('msgInput').placeholder = `Message #${newName}…`;
+    }
+    closeRenameChannel();
+    showToast(`Channel renamed to #${newName}`);
+  } catch(e){ errEl.textContent='Failed to rename: '+e.message; errEl.style.display='block'; }
+  btn.disabled=false; btn.textContent='Rename';
+};
+
+// ── HELPERS ──
+function showToast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),3200); }
+window.kd = function(e){ if(handleMentionKeyNav(e)) return; if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); sendMsg(); } };
+window.ar = function(el){ el.style.height='auto'; el.style.height=Math.min(el.scrollHeight,140)+'px'; handleMentionInput(el); };
+window.ins = function(a,b){ const el=document.getElementById('msgInput'),s=el.selectionStart,en=el.selectionEnd; el.value=el.value.slice(0,s)+a+el.value.slice(s,en)+b+el.value.slice(en); el.focus(); };
+
+// ── MOBILE PANELS ──
+window.toggleSidebar = function(){ document.querySelector('.sidebar').classList.toggle('mobile-open'); document.getElementById('mobileBackdrop').classList.toggle('show'); };
+window.toggleRightPanel = function(){ document.querySelector('.right-panel').classList.toggle('mobile-open'); document.getElementById('mobileBackdrop').classList.toggle('show'); };
+window.closeMobilePanels = function(){ document.querySelector('.sidebar').classList.remove('mobile-open'); document.querySelector('.right-panel').classList.remove('mobile-open'); document.getElementById('mobileBackdrop').classList.remove('show'); };
+
+// ── PWA ──
+let deferredInstallPrompt = null;
+const isStandalone = window.matchMedia('(display-mode:standalone)').matches || window.navigator.standalone===true;
+const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.MSStream;
+window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferredInstallPrompt=e; const btn=document.getElementById('installBtn'); if(btn&&!isStandalone) btn.classList.add('show'); });
+window.addEventListener('appinstalled', () => { deferredInstallPrompt=null; document.getElementById('installBtn')?.classList.remove('show'); });
+window.installApp = async function(){ if(deferredInstallPrompt){ deferredInstallPrompt.prompt(); await deferredInstallPrompt.userChoice; deferredInstallPrompt=null; document.getElementById('installBtn').classList.remove('show'); } else if(isIOS){ showToast('Tap Share → "Add to Home Screen"'); } else { showToast('Use your browser menu to install this app'); } };
+if (isIOS && !isStandalone) document.getElementById('installBtn')?.classList.add('show');
+if ('serviceWorker' in navigator) window.addEventListener('load', ()=>{ navigator.serviceWorker.register('./sw.js').catch(()=>{}); });
+</script>
+</body>
+</html>
