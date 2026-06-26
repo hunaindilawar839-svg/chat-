@@ -635,7 +635,7 @@ kbd{background:var(--bg-secondary);border:0.5px solid var(--border-md);border-ra
 /* ── VOICE CALL ── */
 .call-overlay{position:fixed;inset:0;background:rgba(0,0,0,.72);backdrop-filter:blur(12px);z-index:2000;display:none;align-items:center;justify-content:center}
 .call-overlay.open{display:flex}
-.call-modal{background:var(--bg-primary);border:0.5px solid var(--border-md);border-radius:24px;padding:36px 32px 28px;width:min(340px,92vw);display:flex;flex-direction:column;align-items:center;gap:0;box-shadow:var(--shadow-lg);animation:callIn .22s cubic-bezier(.34,1.56,.64,1)}
+.call-modal{background:var(--bg-primary);border:0.5px solid var(--border-md);border-radius:24px;padding:36px 32px 28px;padding-bottom:max(28px,env(safe-area-inset-bottom));width:min(340px,92vw);display:flex;flex-direction:column;align-items:center;gap:0;box-shadow:var(--shadow-lg);animation:callIn .22s cubic-bezier(.34,1.56,.64,1)}
 @keyframes callIn{from{opacity:0;transform:scale(.88) translateY(16px)}to{opacity:1;transform:scale(1) translateY(0)}}
 .call-av-ring{position:relative;width:88px;height:88px;margin-bottom:18px}
 .call-av-ring::before{content:'';position:absolute;inset:-8px;border-radius:50%;border:2.5px solid var(--green);opacity:.35;animation:callRing 1.8s ease-in-out infinite}
@@ -647,8 +647,8 @@ kbd{background:var(--bg-secondary);border:0.5px solid var(--border-md);border-ra
 .call-status{font-size:12.5px;color:var(--text-tertiary);margin-bottom:24px;letter-spacing:.01em;min-height:18px;text-align:center}
 .call-status.connected{color:var(--text-success)}
 .call-timer{font-size:13px;font-weight:600;color:var(--text-success);font-variant-numeric:tabular-nums;margin-bottom:24px}
-.call-btns{display:flex;gap:16px;align-items:center;justify-content:center}
-.call-btn{width:52px;height:52px;border-radius:50%;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px;transition:transform .12s,background .12s;flex-shrink:0}
+.call-btns{display:flex;gap:20px;align-items:center;justify-content:center}
+.call-btn{width:60px;height:60px;border-radius:50%;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:22px;transition:transform .12s,background .12s;flex-shrink:0;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
 .call-btn:active{transform:scale(.92)}
 .call-btn.end{background:#E24B4A;color:#fff}
 .call-btn.end:hover{background:#c73b3a}
@@ -658,21 +658,28 @@ kbd{background:var(--bg-secondary);border:0.5px solid var(--border-md);border-ra
 .call-btn.speaker{background:var(--bg-secondary);color:var(--text-secondary);border:0.5px solid var(--border-md)}
 .call-btn.speaker:hover{background:var(--bg-tertiary)}
 .call-btn.speaker.active{background:var(--bg-success);color:var(--text-success);border-color:transparent}
-/* Incoming call toast */
+/* Incoming call toast — bottom on mobile, top-right on desktop */
 .incoming-call-toast{position:fixed;top:16px;right:16px;background:var(--bg-primary);border:0.5px solid var(--border-md);border-radius:var(--radius-xl);padding:14px 16px;width:min(300px,90vw);box-shadow:var(--shadow-lg);z-index:1900;display:none;animation:toastIn .2s ease-out}
 .incoming-call-toast.show{display:flex;align-items:center;gap:12px}
 @keyframes toastIn{from{opacity:0;transform:translateY(-12px)}to{opacity:1;transform:translateY(0)}}
+@media(max-width:860px){
+  .incoming-call-toast{top:auto;bottom:max(20px,env(safe-area-inset-bottom));left:12px;right:12px;width:auto;animation:toastInMobile .2s ease-out}
+  @keyframes toastInMobile{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+  .call-modal{padding:28px 24px max(24px,env(safe-area-inset-bottom))}
+  .call-btn{width:68px;height:68px;font-size:24px}
+  .call-btns{gap:24px}
+}
 .ict-av{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0}
 .ict-info{flex:1;min-width:0}
 .ict-name{font-size:13px;font-weight:600;color:var(--text-primary)}
 .ict-sub{font-size:11px;color:var(--text-tertiary);margin-top:1px}
-.ict-btns{display:flex;gap:7px}
-.ict-btn{width:34px;height:34px;border-radius:50%;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;transition:transform .1s}
+.ict-btns{display:flex;gap:8px}
+.ict-btn{width:40px;height:40px;border-radius:50%;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;transition:transform .1s;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
 .ict-btn:active{transform:scale(.9)}
 .ict-btn.accept{background:#22c55e;color:#fff}
 .ict-btn.decline{background:#E24B4A;color:#fff}
 /* Call button in topbar */
-.call-topbar-btn{background:none;border:0.5px solid var(--border);border-radius:var(--radius-md);padding:6px 8px;cursor:pointer;color:var(--text-secondary);display:flex;align-items:center;transition:background .12s,border-color .12s,color .12s}
+.call-topbar-btn{background:none;border:0.5px solid var(--border);border-radius:var(--radius-md);padding:6px 8px;cursor:pointer;color:var(--text-secondary);display:flex;align-items:center;transition:background .12s,border-color .12s,color .12s;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
 .call-topbar-btn:hover{background:var(--bg-success);border-color:var(--green);color:var(--text-success)}
 </style>
 </head>
@@ -3962,14 +3969,12 @@ function updateCallButton(){
   const isDm = curCh.startsWith('dm-');
   const targetUid = isDm ? curCh.replace('dm-', '') : null;
   const targetUser = targetUid ? ALL_USERS[targetUid] : null;
-  // Show call button?
-  // Admin: always show when in a DM or in general/channels
-  // Employee: only show when in DM with an admin
+  // Admin: show in DMs and channels
+  // Employee: only in DM with an admin
   let show = false;
   if (ME.isAdmin) {
-    show = isDm || (!isDm); // admins can call from DMs and channels
+    show = true;
   } else {
-    // Employee: only in DM with admin
     show = isDm && targetUser && targetUser.isAdmin;
   }
   btn.style.display = show ? 'flex' : 'none';
@@ -3997,7 +4002,7 @@ window.initiateCall = async function(){
     showToast('Only admins can start a channel call.'); return;
   }
 
-  // Request mic permission first
+  // Request mic permission first — use simple constraints for max mobile compatibility
   let stream;
   try {
     stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
@@ -4136,10 +4141,19 @@ async function setupPeerConnection(callId, isCaller, stream){
   CALL_STATE.remoteStream = remoteStream;
   pc.ontrack = event => {
     event.streams[0].getTracks().forEach(track => remoteStream.addTrack(track));
-    // Attach to audio element
+    // Create or reuse audio element — needs playsinline for iOS
     let audio = document.getElementById('callAudioEl');
-    if (!audio){ audio = document.createElement('audio'); audio.id='callAudioEl'; audio.autoplay=true; document.body.appendChild(audio); }
+    if (!audio){
+      audio = document.createElement('audio');
+      audio.id = 'callAudioEl';
+      audio.autoplay = true;
+      audio.setAttribute('playsinline', '');
+      audio.setAttribute('webkit-playsinline', '');
+      document.body.appendChild(audio);
+    }
     audio.srcObject = remoteStream;
+    // Try to play (required by some mobile browsers after user gesture)
+    audio.play().catch(()=>{});
   };
 
   // ICE candidates
@@ -4220,15 +4234,13 @@ window.toggleSpeaker = function(){
   const audio = document.getElementById('callAudioEl');
   const btn = document.getElementById('callSpeakerBtn');
   const icon = document.getElementById('callSpeakerIcon');
-  if (CALL_STATE.speakerOn){
-    btn.classList.add('active');
-    icon.className = 'ti ti-volume';
-    if (audio) audio.volume = 1;
-  } else {
-    btn.classList.remove('active');
-    icon.className = 'ti ti-volume';
-    if (audio) audio.volume = 1; // always full on desktop
+  btn.classList.toggle('active', CALL_STATE.speakerOn);
+  icon.className = CALL_STATE.speakerOn ? 'ti ti-volume' : 'ti ti-volume-3';
+  // setSinkId lets us switch speaker on supported browsers (Chrome desktop/Android)
+  if (audio && audio.setSinkId) {
+    audio.setSinkId(CALL_STATE.speakerOn ? 'default' : '').catch(()=>{});
   }
+  if (audio) audio.volume = 1;
 };
 
 // ── UI Helpers ────────────────────────────────────────────────────
