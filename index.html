@@ -367,6 +367,28 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   .modal{width:90vw;max-width:360px}
   .msg-actions{display:none}
 }
+
+/* ── MESSAGE CONTEXT MENU (mobile tap-hold + desktop fallback) ── */
+.ctx-backdrop{position:fixed;inset:0;z-index:800;background:rgba(0,0,0,.35);backdrop-filter:blur(2px);animation:ctxFadeIn .15s ease}
+@keyframes ctxFadeIn{from{opacity:0}to{opacity:1}}
+.ctx-menu{position:fixed;left:50%;transform:translateX(-50%);bottom:24px;background:var(--bg-primary);border:0.5px solid var(--border-md);border-radius:var(--radius-xl);box-shadow:var(--shadow-lg);z-index:801;width:min(320px,92vw);overflow:hidden;animation:ctxSlideUp .18s ease}
+@keyframes ctxSlideUp{from{opacity:0;transform:translateX(-50%) translateY(16px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+.ctx-msg-preview{padding:12px 16px;border-bottom:0.5px solid var(--border);background:var(--bg-secondary)}
+.ctx-msg-sender{font-size:11.5px;font-weight:600;color:var(--text-secondary);margin-bottom:2px}
+.ctx-msg-text{font-size:12.5px;color:var(--text-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
+.ctx-reactions{display:flex;gap:4px;padding:10px 14px;border-bottom:0.5px solid var(--border);overflow-x:auto}
+.ctx-react-btn{background:none;border:none;cursor:pointer;font-size:22px;padding:4px 6px;border-radius:var(--radius-md);transition:background .1s;flex-shrink:0}
+.ctx-react-btn:hover,.ctx-react-btn:active{background:var(--bg-secondary)}
+.ctx-more-btn{background:var(--bg-secondary);border:0.5px solid var(--border);border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;color:var(--text-secondary);flex-shrink:0;transition:background .1s}
+.ctx-more-btn:hover{background:var(--bg-tertiary)}
+.ctx-actions{padding:6px}
+.ctx-action{display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:var(--radius-md);cursor:pointer;transition:background .1s;font-size:14px;color:var(--text-primary);border:none;background:none;width:100%;font-family:inherit;text-align:left}
+.ctx-action:hover,.ctx-action:active{background:var(--bg-secondary)}
+.ctx-action i{font-size:18px;width:22px;text-align:center;flex-shrink:0}
+.ctx-action.danger{color:var(--text-danger)}
+.ctx-action.danger:hover{background:var(--bg-danger)}
+.ctx-cancel{display:block;width:calc(100% - 32px);margin:0 16px 16px;padding:12px;background:var(--bg-secondary);border:none;border-radius:var(--radius-lg);font-size:14px;font-weight:600;color:var(--text-secondary);cursor:pointer;font-family:inherit;transition:background .12s}
+.ctx-cancel:hover{background:var(--bg-tertiary)}
 @keyframes slideUp{from{opacity:0;transform:translateX(-50%) translateY(12px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
 .notif-bell{position:relative;cursor:pointer}
 .notif-bell .ndot{position:absolute;top:2px;right:2px;width:7px;height:7px;background:#E24B4A;border-radius:50%;border:1.5px solid var(--bg-primary);display:none}
@@ -645,6 +667,18 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <button class="btn-sec" onclick="closePinnedPanel()">Close</button>
     </div>
   </div>
+</div>
+
+<!-- MESSAGE CONTEXT MENU -->
+<div id="ctxBackdrop" class="ctx-backdrop" style="display:none" onclick="closeCtxMenu()"></div>
+<div id="ctxMenu" class="ctx-menu" style="display:none">
+  <div class="ctx-msg-preview">
+    <div class="ctx-msg-sender" id="ctxSender"></div>
+    <div class="ctx-msg-text" id="ctxText"></div>
+  </div>
+  <div class="ctx-reactions" id="ctxReactions"></div>
+  <div class="ctx-actions" id="ctxActions"></div>
+  <button class="ctx-cancel" onclick="closeCtxMenu()">Cancel</button>
 </div>
 
 <!-- CHANNEL RENAME MODAL -->
@@ -1279,6 +1313,8 @@ function renderMsgsFromSnap(snap, colPath, ch, area){
     });
     if (lastUid) html += '</div>';
     area.innerHTML = html;
+    // attach long-press / right-click context menu to every msg-row
+    area.querySelectorAll('.msg-row').forEach(row => attachCtxListeners(row, colPath, ch));
 }
 
 // ── REACTIONS ──
@@ -1849,6 +1885,86 @@ window.saveChannelRename = async function(){
   } catch(e){ errEl.textContent='Failed to rename: '+e.message; errEl.style.display='block'; }
   btn.disabled=false; btn.textContent='Rename';
 };
+
+// ── MESSAGE CONTEXT MENU ──
+let ctxLongPressTimer = null;
+let ctxCurrentData = null;
+
+function attachCtxListeners(row, colPath, ch){
+  const docId = row.id.replace('msg-','');
+
+  // Long press (touch)
+  row.addEventListener('touchstart', e => {
+    ctxLongPressTimer = setTimeout(() => {
+      e.preventDefault();
+      openCtxMenu(docId, colPath, ch);
+    }, 480);
+  }, { passive: true });
+  row.addEventListener('touchend',   () => { clearTimeout(ctxLongPressTimer); ctxLongPressTimer = null; });
+  row.addEventListener('touchmove',  () => { clearTimeout(ctxLongPressTimer); ctxLongPressTimer = null; });
+  row.addEventListener('touchcancel',() => { clearTimeout(ctxLongPressTimer); ctxLongPressTimer = null; });
+
+  // Right-click (desktop)
+  row.addEventListener('contextmenu', e => {
+    e.preventDefault();
+    openCtxMenu(docId, colPath, ch);
+  });
+}
+
+function openCtxMenu(docId, colPath, ch){
+  const row = document.getElementById('msg-'+docId);
+  if (!row) return;
+
+  // gather msg data from the DOM
+  const bubble = row.querySelector('.bubble');
+  const rawText = bubble ? (bubble.getAttribute('data-raw') || bubble.innerText) : '';
+  const isFile = !!row.querySelector('.file-card, img[loading="lazy"]');
+  const senderEl = row.closest('.msg-group')?.querySelector('.msg-sender');
+  const senderName = senderEl ? senderEl.textContent.replace('Admin','').trim() : 'Message';
+
+  // find sender uid from ALL_USERS by name (fallback)
+  const isDm = ch.startsWith('dm-');
+  const isOwn = senderName === ME.name;
+
+  ctxCurrentData = { docId, colPath, ch, rawText, isFile, isOwn, isDm, senderName };
+
+  // populate preview
+  document.getElementById('ctxSender').textContent = senderName;
+  document.getElementById('ctxText').textContent = isFile ? '📎 File attachment' : rawText.slice(0,80) || '…';
+
+  // quick reactions row
+  const reactRow = document.getElementById('ctxReactions');
+  reactRow.innerHTML = QUICK_REACTIONS.map(e =>
+    `<button class="ctx-react-btn" onclick="toggleReaction('${colPath}','${docId}','${e}');closeCtxMenu()">${e}</button>`
+  ).join('') + `<button class="ctx-more-btn" onclick="closeCtxMenu();openEmojiPicker({stopPropagation:()=>{},'_fake':true},'${colPath}','${docId}')" title="More emojis">＋</button>`;
+
+  // action buttons
+  const actions = document.getElementById('ctxActions');
+  let actHtml = `<button class="ctx-action" onclick="startReply('${docId}','${rawText.replace(/'/g,"\\'").replace(/\n/g,' ').slice(0,80)}','${senderName.replace(/'/g,"\\'")}','${colPath}');closeCtxMenu()"><i class="ti ti-arrow-back-up" style="color:var(--green)"></i>Reply</button>`;
+  if (!isDm){
+    const isPinned = row.querySelector('.msg-pinned-indicator') !== null;
+    actHtml += `<button class="ctx-action" onclick="togglePin('${colPath}','${docId}','${ch}');closeCtxMenu()"><i class="ti ti-pin" style="color:var(--text-warning)"></i>${isPinned?'Unpin message':'Pin message'}</button>`;
+  }
+  if (isOwn && !isFile){
+    actHtml += `<button class="ctx-action" onclick="closeCtxMenu();openEdit('${colPath}','${docId}',null)"><i class="ti ti-pencil" style="color:var(--text-info)"></i>Edit message</button>`;
+  }
+  if (isOwn || ME.isAdmin){
+    actHtml += `<button class="ctx-action danger" onclick="closeCtxMenu();deleteMsg('${colPath}','${docId}')"><i class="ti ti-trash"></i>Delete message</button>`;
+  }
+  actions.innerHTML = actHtml;
+
+  document.getElementById('ctxBackdrop').style.display = 'block';
+  document.getElementById('ctxMenu').style.display = 'block';
+}
+
+window.closeCtxMenu = function(){
+  document.getElementById('ctxBackdrop').style.display = 'none';
+  document.getElementById('ctxMenu').style.display = 'none';
+  ctxCurrentData = null;
+};
+
+// close on Escape key
+document.addEventListener('keydown', e => { if(e.key==='Escape') closeCtxMenu(); });
 
 // ── HELPERS ──
 function showToast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),3200); }
