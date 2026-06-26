@@ -981,6 +981,14 @@ import { getFirestore, collection, doc, setDoc, getDoc, getDocs, addDoc, updateD
 import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 
+// Guard: if this module somehow gets executed a second time in the same
+// document (e.g. a stray re-injection), bail out before redeclaring anything.
+if (window.__navainAppLoaded) {
+  console.warn('Navain Chat module already loaded — skipping duplicate execution.');
+  throw new Error('__NAVAIN_DUPLICATE_LOAD__');
+}
+window.__navainAppLoaded = true;
+
 const firebaseConfig = {
   apiKey: "AIzaSyDx8lHXrrLC0PxepECIu_vjF5-oybPQVkY",
   authDomain: "navainchat.firebaseapp.com",

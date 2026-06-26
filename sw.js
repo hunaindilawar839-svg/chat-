@@ -1,7 +1,7 @@
 importScripts('https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js');
 
-const CACHE_NAME = 'navain-chat-v2';
+const CACHE_NAME = 'navain-chat-v3';
 const SHELL = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png'];
 
 firebase.initializeApp({
@@ -40,16 +40,27 @@ self.addEventListener('notificationclick', e => {
   );
 });
 
-// Cache shell
+// Cache shell.
+// NOTE: we deliberately do NOT call self.skipWaiting() or self.clients.claim()
+// here. Doing so takes control of tabs that are already open mid-session,
+// which can cause an already-loaded page's module script to be re-executed
+// (e.g. via Firebase Auth redirect flows or bfcache restores) and throw
+// "Identifier 'X' has already been declared". Instead, the new SW waits
+// until the user actually reloads/relaunches the app, which is the normal,
+// safe PWA update lifecycle.
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll(SHELL)).catch(() => {}));
-  self.skipWaiting();
 });
 self.addEventListener('activate', e => {
   e.waitUntil(caches.keys().then(keys =>
     Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k)))
   ));
-  self.clients.claim();
+});
+
+// Let a waiting SW be told to activate explicitly (e.g. from an in-app
+// "Update available" button), rather than doing it automatically.
+self.addEventListener('message', e => {
+  if (e.data === 'SKIP_WAITING') self.skipWaiting();
 });
 self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET') return;
