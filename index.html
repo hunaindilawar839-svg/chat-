@@ -451,6 +451,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <input class="form-input" id="loginEmail" type="email" placeholder="you@navainai.com" autocomplete="email" onkeydown="if(event.key==='Enter')doLogin()">
     <label class="form-label" for="loginPass">Password</label>
     <input class="form-input" id="loginPass" type="password" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
+    <div style="text-align:right;margin:-8px 0 12px">
+      <span style="font-size:12px;color:var(--green);cursor:pointer;font-weight:500" onclick="doForgotPassword()">Forgot password?</span>
+    </div>
     <button class="btn-green" id="loginBtn" onclick="doLogin()">Sign in</button>
     <p id="firstTimeHint" style="font-size:11px;color:var(--text-tertiary);text-align:center;margin-top:14px;display:none">No profile found? <span style="text-decoration:underline;cursor:pointer;color:var(--green)" onclick="doFirstTimeSetup()">Set up as first admin</span></p>
   </div>
@@ -1695,6 +1698,21 @@ window.doFirstTimeSetup = async function(){
     await setDoc(doc(db,'chat_users',cred.user.uid), profile);
     ME = { uid:cred.user.uid, ...profile }; await loadAllUsers(); showApp();
   } catch(e){ errEl.textContent='Setup failed: '+e.message; errEl.style.display='block'; btn.disabled=false; btn.textContent='Sign in'; }
+};
+window.doForgotPassword = async function(){
+  const email = document.getElementById('loginEmail').value.trim();
+  const errEl = document.getElementById('loginErr');
+  if (!email){ errEl.textContent='Enter your email address above first.'; errEl.style.display='block'; return; }
+  errEl.style.display='none';
+  try {
+    const { sendPasswordResetEmail } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js');
+    await sendPasswordResetEmail(auth, email);
+    errEl.style.cssText='display:block;background:var(--bg-success);color:var(--text-success);border-color:rgba(15,110,86,.2)';
+    errEl.textContent='✓ Password reset email sent — check your inbox.';
+  } catch(e){
+    errEl.style.cssText='display:block';
+    errEl.textContent = e.code==='auth/user-not-found' ? 'No account found with that email.' : e.code==='auth/invalid-email' ? 'Please enter a valid email address.' : e.message;
+  }
 };
 window.doLogin = async function(){
   const email=document.getElementById('loginEmail').value.trim(), pass=document.getElementById('loginPass').value;
