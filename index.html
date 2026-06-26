@@ -3954,8 +3954,45 @@ const CALL_CONFIG = {
   iceServers: [
     { urls: 'stun:stun.l.google.com:19302' },
     { urls: 'stun:stun1.l.google.com:19302' },
-  ]
+    { urls: 'stun:stun2.l.google.com:19302' },
+    { urls: 'stun:stun3.l.google.com:19302' },
+    // Free TURN relay — ensures connectivity through strict NATs/firewalls
+    { urls: 'turn:openrelay.metered.ca:80',  username: 'openrelayproject', credential: 'openrelayproject' },
+    { urls: 'turn:openrelay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' },
+    { urls: 'turn:openrelay.metered.ca:443?transport=tcp', username: 'openrelayproject', credential: 'openrelayproject' },
+  ],
+  iceCandidatePoolSize: 10,   // pre-gather candidates before call starts → faster connect
+  bundlePolicy: 'max-bundle', // single transport for audio, reduces overhead
+  rtcpMuxPolicy: 'require',
 };
+
+// High-quality, low-latency audio constraints
+const AUDIO_CONSTRAINTS = {
+  audio: {
+    echoCancellation: true,
+    noiseSuppression: true,
+    autoGainControl: true,
+    sampleRate: 48000,
+    channelCount: 1,      // mono is sufficient and halves bandwidth
+    latency: 0,           // request lowest hardware latency
+  },
+  video: false,
+};
+
+// Helper: set Opus codec and prefer low-latency params on SDP
+function preferOpus(sdp) {
+  // Find Opus payload type
+  const opusMatch = sdp.match(/a=rtpmap:(\d+) opus\/48000\/2/);
+  if (!opusMatch) return sdp;
+  const pt = opusMatch[1];
+  // Force stereo=0 (mono), cbr=0 (variable), maxaveragebitrate=32000, useinbandfec=1
+  const fmtpLine = `a=fmtp:${pt} minptime=10;useinbandfec=1;maxaveragebitrate=32000;stereo=0;sprop-stereo=0`;
+  // Replace or add fmtp line
+  if (sdp.includes(`a=fmtp:${pt} `)) {
+    return sdp.replace(/a=fmtp:\d+ [^\r\n]+/, fmtpLine);
+  }
+  return sdp.replace(new RegExp(`(a=rtpmap:${pt} opus[^\r\n]*)`), `$1\r\n${fmtpLine}`);
+}
 
 // ── Firestore call doc helpers ──────────────────────────────────────
 function callDocRef(callId){ return doc(db, 'voice_calls', callId); }
@@ -4002,12 +4039,14 @@ window.initiateCall = async function(){
     showToast('Only admins can start a channel call.'); return;
   }
 
-  // Request mic permission first — use simple constraints for max mobile compatibility
+  // Request mic permission with high-quality, low-latency constraints
   let stream;
   try {
-    stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+    stream = await navigator.mediaDevices.getUserMedia(AUDIO_CONSTRAINTS);
   } catch(e){
-    showToast('Microphone access denied. Please allow mic access and try again.'); return;
+    // Fallback to basic constraints if device doesn't support full set
+    try { stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false }); }
+    catch(e2){ showToast('Microphone access denied. Please allow mic access and try again.'); return; }
   }
 
   CALL_STATE.localStream = stream;
@@ -4038,8 +4077,9 @@ window.initiateCall = async function(){
   // Set up WebRTC
   await setupPeerConnection(callId, true, stream);
 
-  // Create and store SDP offer
-  const offer = await CALL_STATE.pc.createOffer();
+  // Create and store SDP offer (with Opus low-latency settings)
+  const offerRaw = await CALL_STATE.pc.createOffer();
+  const offer = { type: offerRaw.type, sdp: preferOpus(offerRaw.sdp) };
   await CALL_STATE.pc.setLocalDescription(offer);
   await updateDoc(callDocRef(callId), { offer: { type: offer.type, sdp: offer.sdp } });
 
@@ -4072,9 +4112,10 @@ window.acceptCall = async function(){
 
   let stream;
   try {
-    stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+    stream = await navigator.mediaDevices.getUserMedia(AUDIO_CONSTRAINTS);
   } catch(e){
-    showToast('Microphone access denied.'); return;
+    try { stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false }); }
+    catch(e2){ showToast('Microphone access denied.'); return; }
   }
   CALL_STATE.localStream = stream;
   CALL_STATE.isOutgoing = false;
@@ -4095,8 +4136,9 @@ window.acceptCall = async function(){
   // Set remote offer
   await CALL_STATE.pc.setRemoteDescription(new RTCSessionDescription(callData.offer));
 
-  // Create answer
-  const answer = await CALL_STATE.pc.createAnswer();
+  // Create answer (with Opus low-latency settings)
+  const answerRaw = await CALL_STATE.pc.createAnswer();
+  const answer = { type: answerRaw.type, sdp: preferOpus(answerRaw.sdp) };
   await CALL_STATE.pc.setLocalDescription(answer);
 
   await updateDoc(callDocRef(callId), {
@@ -4136,12 +4178,11 @@ async function setupPeerConnection(callId, isCaller, stream){
   // Add local tracks
   stream.getTracks().forEach(track => pc.addTrack(track, stream));
 
-  // Remote audio
+  // Remote audio — attach stream directly to audio element for minimum latency
   const remoteStream = new MediaStream();
   CALL_STATE.remoteStream = remoteStream;
   pc.ontrack = event => {
-    event.streams[0].getTracks().forEach(track => remoteStream.addTrack(track));
-    // Create or reuse audio element — needs playsinline for iOS
+    // Use the stream directly from the event — avoids extra MediaStream copy overhead
     let audio = document.getElementById('callAudioEl');
     if (!audio){
       audio = document.createElement('audio');
@@ -4151,12 +4192,15 @@ async function setupPeerConnection(callId, isCaller, stream){
       audio.setAttribute('webkit-playsinline', '');
       document.body.appendChild(audio);
     }
-    audio.srcObject = remoteStream;
-    // Try to play (required by some mobile browsers after user gesture)
+    audio.srcObject = event.streams[0];
     audio.play().catch(()=>{});
+    // Mirror to CALL_STATE for mute/speaker controls
+    event.streams[0].getTracks().forEach(track => {
+      if (!remoteStream.getTracks().includes(track)) remoteStream.addTrack(track);
+    });
   };
 
-  // ICE candidates
+  // ICE candidates — trickle as they arrive for faster connection
   const localCandidates = isCaller ? callerCandidatesRef(callId) : calleeCandidatesRef(callId);
   const remoteCandidates = isCaller ? calleeCandidatesRef(callId) : callerCandidatesRef(callId);
 
@@ -4175,13 +4219,38 @@ async function setupPeerConnection(callId, isCaller, stream){
       }
     });
   });
-  // Store unsub so we can clean it (chained with main unsub)
   const mainUnsub = CALL_STATE.unsub;
   CALL_STATE.unsub = () => { if(mainUnsub) mainUnsub(); iceSub(); };
 
+  // Dual disconnect detection — connectionState for Chrome/Edge, iceConnectionState for Firefox/Safari
   pc.onconnectionstatechange = () => {
-    if (pc.connectionState === 'disconnected' || pc.connectionState === 'failed'){
+    console.log('[Call] connectionState:', pc.connectionState);
+    if (pc.connectionState === 'failed'){
       handleRemoteHangup('ended');
+    }
+  };
+
+  pc.oniceconnectionstatechange = () => {
+    console.log('[Call] iceConnectionState:', pc.iceConnectionState);
+    if (pc.iceConnectionState === 'failed'){
+      // Attempt ICE restart before giving up (caller side only)
+      if (isCaller && pc.signalingState === 'stable') {
+        console.log('[Call] ICE failed — attempting restart');
+        pc.restartIce();
+      } else {
+        handleRemoteHangup('ended');
+      }
+    }
+    if (pc.iceConnectionState === 'disconnected'){
+      // Grace period before declaring dead — transient drops recover within a few seconds
+      CALL_STATE._iceDisconnectTimer = setTimeout(() => {
+        if (CALL_STATE.pc?.iceConnectionState === 'disconnected'){
+          handleRemoteHangup('ended');
+        }
+      }, 8000);
+    }
+    if (pc.iceConnectionState === 'connected' || pc.iceConnectionState === 'completed'){
+      if (CALL_STATE._iceDisconnectTimer){ clearTimeout(CALL_STATE._iceDisconnectTimer); CALL_STATE._iceDisconnectTimer = null; }
     }
   };
 }
@@ -4284,6 +4353,7 @@ function closeCallUI(){
 
 function resetCallState(){
   if (CALL_STATE.timerInterval){ clearInterval(CALL_STATE.timerInterval); CALL_STATE.timerInterval = null; }
+  if (CALL_STATE._iceDisconnectTimer){ clearTimeout(CALL_STATE._iceDisconnectTimer); CALL_STATE._iceDisconnectTimer = null; }
   if (CALL_STATE.localStream){ CALL_STATE.localStream.getTracks().forEach(t => t.stop()); }
   if (CALL_STATE.pc){ CALL_STATE.pc.close(); }
   if (CALL_STATE.unsub){ try { CALL_STATE.unsub(); } catch(e){} }
@@ -4291,7 +4361,7 @@ function resetCallState(){
   // Remove audio element
   const audio = document.getElementById('callAudioEl');
   if (audio) audio.remove();
-  CALL_STATE = { active:false, callId:null, peerId:null, isOutgoing:false, isGroup:false, pc:null, localStream:null, remoteStream:null, muted:false, speakerOn:false, timerInterval:null, timerSec:0, unsub:null, ringtoneInterval:null };
+  CALL_STATE = { active:false, callId:null, peerId:null, isOutgoing:false, isGroup:false, pc:null, localStream:null, remoteStream:null, muted:false, speakerOn:false, timerInterval:null, timerSec:0, unsub:null, ringtoneInterval:null, _iceDisconnectTimer:null };
 }
 
 // ── Ringtone (simple oscillator beep) ────────────────────────────
