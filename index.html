@@ -2867,7 +2867,7 @@ window.renderMsgsFromSnap = function(snap, colPath, ch, area){
 
 // Patch context menu to add Forward option
 const _origOpenCtxMenu = openCtxMenu;
-function openCtxMenu(docId, colPath, ch){
+openCtxMenu = function(docId, colPath, ch){
   _origOpenCtxMenu(docId, colPath, ch);
   // Add forward to ctx actions
   const actions = document.getElementById('ctxActions');
@@ -2880,7 +2880,7 @@ function openCtxMenu(docId, colPath, ch){
     fwdBtn.onclick=()=>{ closeCtxMenu(); openForwardModal(colPath,docId,fwdTxt,isFile?senderName:''); };
     actions.insertBefore(fwdBtn, actions.children[1]);
   }
-}
+};
 
 
 // ── HELPERS ──
