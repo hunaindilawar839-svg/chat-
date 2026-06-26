@@ -167,10 +167,49 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .ma-btn:hover{background:var(--bg-secondary);color:var(--text-primary)}
 .ma-btn.danger:hover{background:var(--bg-danger);color:var(--text-danger)}
 
-/* emoji picker */
-.emoji-picker{position:absolute;right:0;top:32px;background:var(--bg-primary);border:0.5px solid var(--border);border-radius:var(--radius-lg);padding:8px;box-shadow:var(--shadow-md);display:flex;gap:2px;z-index:20}
-.ep-btn{background:none;border:none;cursor:pointer;font-size:18px;padding:5px;border-radius:var(--radius-sm);transition:background .1s;line-height:1}
+/* emoji picker - expanded with search */
+.emoji-picker{position:absolute;right:0;top:32px;background:var(--bg-primary);border:0.5px solid var(--border);border-radius:var(--radius-lg);padding:10px;box-shadow:var(--shadow-md);z-index:20;width:280px}
+.emoji-search-input{width:100%;border:0.5px solid var(--border-md);border-radius:var(--radius-md);padding:6px 10px;font-size:12px;color:var(--text-primary);background:var(--bg-secondary);font-family:inherit;outline:none;margin-bottom:8px;transition:border-color .15s}
+.emoji-search-input:focus{border-color:var(--green);box-shadow:0 0 0 2px var(--green-glow)}
+.emoji-quick-row{display:flex;gap:2px;margin-bottom:8px;padding-bottom:8px;border-bottom:0.5px solid var(--border)}
+.emoji-grid{display:grid;grid-template-columns:repeat(8,1fr);gap:1px;max-height:160px;overflow-y:auto}
+.ep-btn{background:none;border:none;cursor:pointer;font-size:18px;padding:5px;border-radius:var(--radius-sm);transition:background .1s;line-height:1;text-align:center}
 .ep-btn:hover{background:var(--bg-secondary)}
+.ep-empty{font-size:11.5px;color:var(--text-tertiary);text-align:center;padding:16px 0}
+
+/* message reply / quote */
+.reply-bar{display:flex;align-items:center;gap:8px;padding:6px 12px;background:var(--bg-secondary);border-left:2.5px solid var(--green);border-radius:var(--radius-sm);margin:6px 0 4px;font-size:12px;color:var(--text-secondary);position:relative}
+.reply-bar .reply-sender{font-weight:600;color:var(--green);margin-right:4px}
+.reply-bar .reply-close{margin-left:auto;background:none;border:none;cursor:pointer;color:var(--text-tertiary);font-size:14px;padding:2px;line-height:1}
+.reply-bar .reply-close:hover{color:var(--text-primary)}
+.reply-preview-bubble{background:var(--bg-tertiary);border-left:2.5px solid var(--border-md);border-radius:0 var(--radius-sm) var(--radius-sm) 0;padding:5px 9px;margin-bottom:4px;font-size:12px;color:var(--text-secondary);line-height:1.4;cursor:pointer;transition:background .12s}
+.reply-preview-bubble:hover{background:var(--bg-secondary)}
+.reply-preview-bubble .rp-sender{font-weight:600;color:var(--text-primary);font-size:11.5px;margin-bottom:1px}
+.reply-preview-bubble .rp-text{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:420px}
+
+/* @mention autocomplete */
+.mention-popup{position:absolute;bottom:calc(100% + 4px);left:16px;background:var(--bg-primary);border:0.5px solid var(--border-md);border-radius:var(--radius-lg);box-shadow:var(--shadow-md);z-index:30;min-width:200px;max-height:180px;overflow-y:auto;padding:4px}
+.mention-item{display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:var(--radius-md);cursor:pointer;transition:background .1s}
+.mention-item:hover,.mention-item.active{background:var(--bg-secondary)}
+.mention-av{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;flex-shrink:0}
+.mention-name{font-size:13px;font-weight:500;color:var(--text-primary)}
+.mention-role{font-size:10.5px;color:var(--text-tertiary)}
+.mention-highlight{color:var(--green);font-weight:600}
+
+/* file type filter */
+.sf-filter-row{display:flex;gap:4px;margin-bottom:8px;flex-wrap:wrap}
+.sf-filter-btn{background:none;border:0.5px solid var(--border);border-radius:10px;padding:3px 9px;font-size:11px;cursor:pointer;color:var(--text-secondary);transition:background .1s,border-color .1s,color .1s;font-family:inherit}
+.sf-filter-btn:hover{background:var(--bg-secondary)}
+.sf-filter-btn.active{background:var(--bg-success);border-color:var(--green);color:var(--text-success);font-weight:600}
+
+/* channel rename */
+.ch-rename-btn{background:none;border:none;cursor:pointer;color:var(--text-tertiary);font-size:13px;padding:3px;border-radius:var(--radius-sm);opacity:0;transition:opacity .15s,color .12s;flex-shrink:0}
+.ch-item:hover .ch-rename-btn{opacity:1}
+.ch-rename-btn:hover{color:var(--green)}
+
+/* notification dot on tab (visual indicator in header) */
+.tab-unread-dot{width:8px;height:8px;background:#E24B4A;border-radius:50%;display:inline-block;margin-left:4px;vertical-align:middle;animation:pulse .9s ease-in-out infinite alternate}
+@keyframes pulse{from{opacity:1;transform:scale(1)}to{opacity:.6;transform:scale(.8)}}
 
 .file-card{background:var(--bg-primary);border:0.5px solid var(--border);border-radius:var(--radius-md);padding:10px 12px;display:flex;align-items:center;gap:10px;cursor:pointer;transition:background .12s;max-width:280px;margin-top:4px}
 .file-card:hover{background:var(--bg-secondary)}
@@ -364,6 +403,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 <body>
 
 <div id="globalLoader">
+  <img src="./icon-192.png" alt="Navain" style="width:56px;height:56px;border-radius:14px;margin-bottom:4px;box-shadow:0 4px 16px rgba(59,99,228,.3)">
   <div class="loader-logo">Navain <span>Chat</span></div>
   <div class="spin"></div>
   <p>Connecting to workspace…</p>
@@ -372,8 +412,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 <!-- LOGIN -->
 <div id="loginScreen">
   <div class="login-card">
-    <div class="login-logo">Navain <span>Chat</span></div>
-    <div class="login-sub">Internal team workspace · Sign in to continue</div>
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:18px">
+      <img src="./icon-192.png" alt="Navain" style="width:48px;height:48px;border-radius:12px;flex-shrink:0;box-shadow:0 2px 8px rgba(59,99,228,.25)">
+      <div>
+        <div class="login-logo" style="margin-bottom:0">Navain <span>Chat</span></div>
+        <div class="login-sub" style="margin-bottom:0">Internal team workspace · Sign in to continue</div>
+      </div>
+    </div>
     <button class="btn-google" id="googleBtn" onclick="doGoogleLogin()">
       <svg width="16" height="16" viewBox="0 0 18 18"><path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84c-.21 1.13-.85 2.08-1.81 2.72v2.26h2.92c1.71-1.57 2.69-3.89 2.69-6.62z"/><path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.92-2.26c-.81.54-1.84.86-3.04.86-2.34 0-4.32-1.58-5.03-3.7H.96v2.33C2.44 15.98 5.48 18 9 18z"/><path fill="#FBBC05" d="M3.97 10.72c-.18-.54-.28-1.12-.28-1.72s.1-1.18.28-1.72V4.95H.96A8.99 8.99 0 0 0 0 9c0 1.45.35 2.83.96 4.05l3.01-2.33z"/><path fill="#EA4335" d="M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.58C13.46.89 11.43 0 9 0 5.48 0 2.44 2.02.96 4.95l3.01 2.33C4.68 5.16 6.66 3.58 9 3.58z"/></svg>
       Continue with Google
@@ -407,10 +452,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     </div>
     <div class="sb-scroll">
       <div class="sec-label">Channels</div>
-      <div class="ch-item active" onclick="switchCh('general')" id="ch-general"><i class="ti ti-hash" style="font-size:13px;flex-shrink:0"></i><span class="ch-label">general</span><span class="ml"></span></div>
-      <div class="ch-item" onclick="switchCh('sales')" id="ch-sales"><i class="ti ti-hash" style="font-size:13px;flex-shrink:0"></i><span class="ch-label">sales</span><span class="ml"></span></div>
-      <div class="ch-item" onclick="switchCh('leads')" id="ch-leads"><i class="ti ti-hash" style="font-size:13px;flex-shrink:0"></i><span class="ch-label">leads</span><span class="ml"></span></div>
-      <div class="ch-item" onclick="switchCh('files')" id="ch-files"><i class="ti ti-hash" style="font-size:13px;flex-shrink:0"></i><span class="ch-label">files</span><span class="ml"></span></div>
+      <div class="ch-item active" onclick="switchCh('general')" id="ch-general"><i class="ti ti-hash" style="font-size:13px;flex-shrink:0"></i><span class="ch-label" id="chlbl-general">general</span><span class="ml"><button class="ch-rename-btn" id="renameBtn-general" onclick="event.stopPropagation();openRenameChannel('general')" title="Rename channel"><i class="ti ti-pencil" style="font-size:12px"></i></button></span></div>
+      <div class="ch-item" onclick="switchCh('sales')" id="ch-sales"><i class="ti ti-hash" style="font-size:13px;flex-shrink:0"></i><span class="ch-label" id="chlbl-sales">sales</span><span class="ml"><button class="ch-rename-btn" id="renameBtn-sales" onclick="event.stopPropagation();openRenameChannel('sales')" title="Rename channel"><i class="ti ti-pencil" style="font-size:12px"></i></button></span></div>
+      <div class="ch-item" onclick="switchCh('leads')" id="ch-leads"><i class="ti ti-hash" style="font-size:13px;flex-shrink:0"></i><span class="ch-label" id="chlbl-leads">leads</span><span class="ml"><button class="ch-rename-btn" id="renameBtn-leads" onclick="event.stopPropagation();openRenameChannel('leads')" title="Rename channel"><i class="ti ti-pencil" style="font-size:12px"></i></button></span></div>
+      <div class="ch-item" onclick="switchCh('files')" id="ch-files"><i class="ti ti-hash" style="font-size:13px;flex-shrink:0"></i><span class="ch-label" id="chlbl-files">files</span><span class="ml"><button class="ch-rename-btn" id="renameBtn-files" onclick="event.stopPropagation();openRenameChannel('files')" title="Rename channel"><i class="ti ti-pencil" style="font-size:12px"></i></button></span></div>
       <div class="sec-label">Direct Messages</div>
       <div id="dmList"></div>
     </div>
@@ -451,6 +496,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <div class="msgs" id="msgsArea"></div>
     <div id="typingIndicator"></div>
     <div class="input-area" id="inputArea">
+      <div id="replyBar" style="display:none"></div>
+      <div class="mention-popup" id="mentionPopup" style="display:none"></div>
       <div class="input-box">
         <div class="input-toolbar">
           <button class="tool-btn" onclick="ins('**','**')" title="Bold"><i class="ti ti-bold"></i></button>
@@ -481,6 +528,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     </div>
     <div class="rp-section">
       <div class="rp-title"><i class="ti ti-files"></i> Shared files</div>
+      <div class="sf-filter-row" id="sfFilterRow">
+        <button class="sf-filter-btn active" data-filter="all" onclick="setSfFilter('all')">All</button>
+        <button class="sf-filter-btn" data-filter="img" onclick="setSfFilter('img')">Images</button>
+        <button class="sf-filter-btn" data-filter="csv" onclick="setSfFilter('csv')">CSV</button>
+        <button class="sf-filter-btn" data-filter="pdf" onclick="setSfFilter('pdf')">Docs</button>
+      </div>
       <div id="sfList"></div>
       <div class="drop-zone" onclick="document.getElementById('fileInMedia').click()">
         <i class="ti ti-cloud-upload"></i>Drop or click to share a file
@@ -594,6 +647,21 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   </div>
 </div>
 
+<!-- CHANNEL RENAME MODAL -->
+<div class="modal-overlay" id="renameChannelModal">
+  <div class="modal">
+    <h3>Rename channel</h3>
+    <p class="modal-sub">Enter a new name for <strong id="renameChCurrent"></strong>. All members will see the new name.</p>
+    <div id="renameChErr" class="err-box"></div>
+    <label class="form-label">New channel name</label>
+    <input class="form-input" id="renameChInput" placeholder="e.g. announcements" maxlength="32" onkeydown="if(event.key==='Enter')saveChannelRename()">
+    <div class="modal-actions">
+      <button class="btn-sec" onclick="closeRenameChannel()">Cancel</button>
+      <button class="btn-pri" id="renameChBtn" onclick="saveChannelRename()">Rename</button>
+    </div>
+  </div>
+</div>
+
 <!-- FIREBASE -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
@@ -622,6 +690,11 @@ let UNREAD = {}, pendingFile = null, pendingFtype = null, EDITING_MSG = null;
 let DM_PREVIEWS = {}; // { chId: { text, ts } }
 let pendingProfilePic = null; // blob for profile pic upload
 let pinnedUnsub = null;
+let REPLY_TO = null; // { docId, uid, senderName, text, file }
+let MENTION_IDX = -1; // keyboard nav index in mention popup
+let SF_FILTER = 'all'; // shared files filter
+let TOTAL_UNREAD = 0; // for browser tab badge
+let renameChTarget = null;
 
 // ── ONESIGNAL ──
 const ONESIGNAL_APP_ID = '2806fa2a-f4b1-42b8-9c28-f79fc3d63837';
@@ -675,10 +748,11 @@ async function initNotifications(){
   } catch(e){ console.warn('Notifications unavailable:', e.message); }
 }
 
-function notifyLocal(senderName, preview){
-  if (document.visibilityState === 'visible') showToast(`${senderName}: ${preview}`);
+function notifyLocal(senderName, preview, isMention){
+  const label = isMention ? `🔔 ${senderName} mentioned you` : senderName;
+  if (document.visibilityState === 'visible') showToast(`${label}: ${preview}`);
   if (Notification.permission === 'granted'){
-    try { new Notification(senderName, { body:preview, icon:'./icon-192.png', badge:'./icon-192.png', tag:'navain-msg-'+Date.now(), silent:false }); } catch(e){}
+    try { new Notification(label, { body:preview, icon:'./icon-192.png', badge:'./icon-192.png', tag:'navain-msg-'+Date.now(), silent:false }); } catch(e){}
   }
 }
 
@@ -690,13 +764,22 @@ const AV_STYLES = {
   purple: 'background:#eeedfe;color:#3c3489',
   coral:  'background:#faece7;color:#993c1d',
 };
-const CHANNELS = {
-  general:{ name:'general', desc:'Team-wide announcements and chat' },
-  sales:  { name:'sales',   desc:'Sales pipeline and strategy' },
-  leads:  { name:'leads',   desc:'Lead tracking and qualification' },
-  files:  { name:'files',   desc:'Shared documents and data files' },
-};
+// CHANNELS: base definitions + support runtime name overrides
+const CHANNEL_IDS = ['general','sales','leads','files'];
+const CHANNEL_DESCS = { general:'Team-wide announcements and chat', sales:'Sales pipeline and strategy', leads:'Lead tracking and qualification', files:'Shared documents and data files' };
+// CHANNELS object is computed dynamically using CHANNEL_NAMES overrides
+let CHANNEL_NAMES = { general:'general', sales:'sales', leads:'leads', files:'files' }; // overridden by Firestore
+function getCHANNELS(){ return Object.fromEntries(CHANNEL_IDS.map(id => [id, { name: CHANNEL_NAMES[id]||id, desc: CHANNEL_DESCS[id]||'' }])); }
+function CHANNELS(){ return getCHANNELS(); }
+// Adapter: treat CHANNELS as object property access too
+const _CH = new Proxy({}, { get(_,id){ return getCHANNELS()[id]; } });
+
 const QUICK_REACTIONS = ['👍','❤️','😂','🔥','✅'];
+
+// Full emoji dataset for emoji search (categorised)
+const ALL_EMOJIS = [
+  {e:'😀',k:'grinning face smile'},{e:'😁',k:'grinning big eyes'},{e:'😂',k:'joy tears laugh'},{e:'🤣',k:'rofl laugh'},{e:'😊',k:'smiling blush happy'},{e:'😍',k:'heart eyes love'},{e:'🥰',k:'smiling hearts love'},{e:'😎',k:'cool sunglasses'},{e:'🤩',k:'star struck excited'},{e:'😘',k:'kiss face'},{e:'😜',k:'winking tongue silly'},{e:'🤔',k:'thinking hmm'},{e:'😐',k:'neutral face blank'},{e:'😒',k:'unamused face'},{e:'😔',k:'pensive sad'},{e:'😢',k:'crying sad tear'},{e:'😭',k:'loudly crying sob'},{e:'😤',k:'angry triumph snort'},{e:'😡',k:'angry red furious'},{e:'🤬',k:'cursing angry symbols'},{e:'😱',k:'scream shocked fear'},{e:'😨',k:'fearful scared'},{e:'😰',k:'anxious sweat nervous'},{e:'🥺',k:'pleading puppy eyes'},{e:'😴',k:'sleeping zzz tired'},{e:'🤗',k:'hugging happy embrace'},{e:'🫡',k:'salute respect'},{e:'🙏',k:'folded hands pray thanks'},{e:'👍',k:'thumbs up good like'},{e:'👎',k:'thumbs down dislike'},{e:'❤️',k:'red heart love'},{e:'🧡',k:'orange heart'},{e:'💛',k:'yellow heart'},{e:'💚',k:'green heart'},{e:'💙',k:'blue heart'},{e:'💜',k:'purple heart'},{e:'🖤',k:'black heart'},{e:'💯',k:'hundred percent great'},{e:'🔥',k:'fire hot lit'},{e:'✅',k:'check mark done ok'},{e:'❌',k:'cross wrong no'},{e:'⚠️',k:'warning alert'},{e:'🚀',k:'rocket launch fast'},{e:'💡',k:'lightbulb idea'},{e:'💰',k:'money bag rich'},{e:'📌',k:'pushpin pin location'},{e:'📎',k:'paperclip attach'},{e:'📊',k:'bar chart data'},{e:'📅',k:'calendar date'},{e:'📝',k:'memo note write'},{e:'✉️',k:'envelope email'},{e:'📞',k:'telephone call'},{e:'🎯',k:'target goal bullseye'},{e:'🏆',k:'trophy winner award'},{e:'⭐',k:'star favourite'},{e:'🎉',k:'party celebrate tada'},{e:'🎊',k:'confetti celebrate'},{e:'👋',k:'wave hello goodbye'},{e:'🤝',k:'handshake deal'},{e:'💪',k:'flexed bicep strong'},{e:'🧠',k:'brain think smart'},{e:'👀',k:'eyes look see'},{e:'✍️',k:'writing hand'},{e:'🛠️',k:'hammer wrench tools'},{e:'⏰',k:'alarm clock time'},{e:'📱',k:'phone mobile'},{e:'💻',k:'laptop computer'},{e:'🌍',k:'globe earth world'},{e:'🌟',k:'glowing star'},{e:'☀️',k:'sun sunny bright'},{e:'🌙',k:'moon night'},{e:'❄️',k:'snowflake cold'},{e:'⚡',k:'lightning bolt fast energy'},{e:'🫶',k:'heart hands love care'},{e:'🙌',k:'raised hands celebrate'},{e:'🫠',k:'melting hot stress'},{e:'😅',k:'sweat smile nervous'},{e:'😏',k:'smirking sly'},{e:'🫤',k:'dotted mouth uncertain'},{e:'🥳',k:'partying face celebrate'},{e:'🤝',k:'handshake agreement'},{e:'🙋',k:'person raising hand'},{e:'🫙',k:'jar'},{e:'🪄',k:'magic wand'},{e:'📣',k:'megaphone announce'},{e:'🔔',k:'bell notification'},{e:'🔕',k:'mute no bell'},{e:'🎤',k:'microphone speak'},{e:'📡',k:'satellite signal'},{e:'🏅',k:'medal award'},{e:'🎁',k:'gift present'},{e:'💎',k:'diamond gem precious'},{e:'🔑',k:'key unlock'},{e:'🔒',k:'lock secure'},{e:'🔓',k:'unlock open'},{e:'💬',k:'speech bubble comment'},{e:'📢',k:'loudspeaker broadcast'},{e:'⚙️',k:'gear settings cog'},{e:'🗑️',k:'trash delete remove'},{e:'📂',k:'open folder files'},{e:'🗂️',k:'card index dividers'},{e:'🔗',k:'link chain url'},
+];
 
 function initials(name){ return (name||'?').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2); }
 function avatarColor(uid){ const keys=Object.keys(ALL_USERS); return AV_COLORS[keys.indexOf(uid)%AV_COLORS.length]||'info'; }
@@ -711,7 +794,7 @@ function fmtDate(ts){
   return d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:d.getFullYear()!==now.getFullYear()?'numeric':undefined});
 }
 
-// simple markdown parser (bold, italic, code, linebreaks)
+// simple markdown parser (bold, italic, code, linebreaks, @mentions)
 function parseMarkdown(text){
   if (!text) return '';
   return text
@@ -719,6 +802,11 @@ function parseMarkdown(text){
     .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
     .replace(/_(.+?)_/g,'<em>$1</em>')
     .replace(/`(.+?)`/g,'<code>$1</code>')
+    .replace(/@(\w[\w\s]{0,30}\w|\w)/g,(match,name)=>{
+      // check if it matches a known user
+      const matched = Object.values(ALL_USERS).find(u=>(u.name||'').toLowerCase()===name.toLowerCase());
+      return matched ? `<span class="mention-highlight" title="@${matched.name}">@${matched.name}</span>` : match;
+    })
     .replace(/\n/g,'<br>');
 }
 
@@ -755,10 +843,10 @@ function showLogin(msg){
   const errEl = document.getElementById('loginErr');
   if (msg){ errEl.textContent=msg; errEl.style.display='block'; } else { errEl.style.display='none'; }
 }
-function showApp(){
+async function showApp(){
   document.getElementById('loginScreen').classList.remove('show');
   document.getElementById('appScreen').classList.add('show');
-  initApp(); initNotifications(); initOneSignal(ME.uid);
+  await initApp(); initNotifications(); initOneSignal(ME.uid);
 }
 
 async function loadAllUsers(){
@@ -768,13 +856,17 @@ async function loadAllUsers(){
 }
 
 // ── INIT APP ──
-function initApp(){
+async function initApp(){
   const u = ME;
   document.getElementById('sfName').textContent = u.name;
   document.getElementById('sfSub').textContent = (u.role||'') + ' · ' + (u.isAdmin ? 'Admin' : 'Agent');
   updateSfAvatar();
   document.getElementById('roleTag').innerHTML = u.isAdmin ? '<span class="badge-admin">Admin</span>' : '<span class="badge-emp">Agent</span>';
   document.querySelectorAll('#addUserBtn,#rpAddBtn').forEach(b => b.style.display = u.isAdmin ? 'flex' : 'none');
+  // hide rename buttons for non-admins
+  document.querySelectorAll('.ch-rename-btn').forEach(b => b.style.display = u.isAdmin ? '' : 'none');
+  // load dynamic channel names from Firestore
+  await loadChannelNames();
   buildDmList(); renderMembers(); renderSharedFiles(); switchCh('general');
   // live listeners
   onSnapshot(collection(db,'chat_users'), snap => {
@@ -788,10 +880,19 @@ function initApp(){
   onSnapshot(doc(db,'chat_users', ME.uid), snap => {
     if (!snap.exists()){ if (msgUnsub) msgUnsub(); signOut(auth); showToast('Your access was removed by an admin.'); }
   });
+  // listen to channel name changes in real time
+  onSnapshot(doc(db,'app_settings','channels'), snap => {
+    if (snap.exists()){
+      const data = snap.data();
+      CHANNEL_IDS.forEach(id => { if (data[id]) CHANNEL_NAMES[id] = data[id]; });
+      applyChannelNameLabels();
+    }
+  });
   // set online
   setDoc(doc(db,'chat_users', ME.uid), { status:'online' }, { merge:true });
   document.addEventListener('visibilitychange', () => {
     setDoc(doc(db,'chat_users', ME.uid), { status: document.hidden ? 'away' : 'online' }, { merge:true });
+    if (!document.hidden) clearTabBadge();
   });
   window.addEventListener('beforeunload', () => {
     setDoc(doc(db,'chat_users', ME.uid), { status:'offline' }, { merge:true });
@@ -918,18 +1019,30 @@ function renderMembers(){
   updateOnlineCount();
 }
 
-// ── SHARED FILES ──
+// ── SHARED FILES (with filter) ──
+let allSharedFiles = [];
+function setSfFilter(filter){
+  SF_FILTER = filter;
+  document.querySelectorAll('.sf-filter-btn').forEach(b => b.classList.toggle('active', b.dataset.filter === filter));
+  displaySharedFiles();
+}
+function displaySharedFiles(){
+  const el = document.getElementById('sfList');
+  const files = SF_FILTER === 'all' ? allSharedFiles : allSharedFiles.filter(f => f.ftype === SF_FILTER);
+  if (!files.length){ el.innerHTML=`<div style="font-size:12px;color:var(--text-tertiary);padding:4px 0">No ${SF_FILTER==='all'?'':''+SF_FILTER+' '}files yet</div>`; return; }
+  el.innerHTML = files.slice(0,8).map(f => {
+    const sender = ALL_USERS[f.uid];
+    const icon = f.ftype==='csv'?'ti-table':f.ftype==='pdf'?'ti-file-type-pdf':f.ftype==='img'?'ti-photo':'ti-file';
+    const inner = `<div class="sf-ic ${f.ftype||'doc'}"><i class="ti ${icon}"></i></div><div><div class="sf-nm">${f.name}</div><div class="sf-by">${sender?sender.name:'Unknown'}</div></div>`;
+    return f.url ? `<a href="${f.url}" target="_blank" rel="noopener" style="text-decoration:none"><div class="sf-item">${inner}</div></a>` : `<div class="sf-item">${inner}</div>`;
+  }).join('');
+}
 function renderSharedFiles(){
   const el = document.getElementById('sfList');
   getDocs(query(collection(db,'shared_files'), orderBy('ts','desc'))).then(snap => {
-    if (snap.empty){ el.innerHTML='<div style="font-size:12px;color:var(--text-tertiary);padding:4px 0">No files shared yet</div>'; return; }
-    el.innerHTML = snap.docs.slice(0,8).map(d => {
-      const f = d.data();
-      const sender = ALL_USERS[f.uid];
-      const icon = f.ftype==='csv'?'ti-table':f.ftype==='pdf'?'ti-file-type-pdf':f.ftype==='img'?'ti-photo':'ti-file';
-      const inner = `<div class="sf-ic ${f.ftype||'doc'}"><i class="ti ${icon}"></i></div><div><div class="sf-nm">${f.name}</div><div class="sf-by">${sender?sender.name:'Unknown'}</div></div>`;
-      return f.url ? `<a href="${f.url}" target="_blank" rel="noopener" style="text-decoration:none"><div class="sf-item">${inner}</div></a>` : `<div class="sf-item">${inner}</div>`;
-    }).join('');
+    if (snap.empty){ allSharedFiles=[]; el.innerHTML='<div style="font-size:12px;color:var(--text-tertiary);padding:4px 0">No files shared yet</div>'; return; }
+    allSharedFiles = snap.docs.map(d => d.data());
+    displaySharedFiles();
   });
 }
 
@@ -968,9 +1081,9 @@ window.switchCh = function(ch){
   if (el) el.classList.add('active');
   curCh = ch;
   // clear unread
-  if (UNREAD[ch]){ delete UNREAD[ch]; buildDmList(); }
-  const displayName = isDm ? (tv?.name||'User') : CHANNELS[ch]?.name||ch;
-  const desc = isDm ? (tv?.isAdmin?'Direct message · Admin':'Direct message') : (CHANNELS[ch]?.desc||'');
+  if (UNREAD[ch]){ delete UNREAD[ch]; buildDmList(); updateTabBadge(); }
+  const displayName = isDm ? (tv?.name||'User') : _CH[ch]?.name||ch;
+  const desc = isDm ? (tv?.isAdmin?'Direct message · Admin':'Direct message') : (_CH[ch]?.desc||'');
   const icon = isDm ? 'user' : 'hash';
   document.getElementById('chTitle').innerHTML = `<i class="ti ti-${icon}" style="font-size:14px;color:var(--text-tertiary)"></i> ${displayName}`;
   document.getElementById('chDesc').textContent = desc;
@@ -1006,13 +1119,15 @@ function listenMessages(ch, isDm, targetUid, tv){
             const sender = ALL_USERS[m.uid];
             const sname = sender ? sender.name : 'Someone';
             const preview = m.file ? `📎 ${m.file.name}` : (m.text||'').slice(0,80);
-            notifyLocal(sname, preview);
+            const isMention = !isDm && (m.text||'').toLowerCase().includes('@'+ME.name.toLowerCase().split(' ')[0].toLowerCase());
+            notifyLocal(sname, preview, isMention);
             playNotifSound(); // ← notification sound
             sendPushTo(m.uid===ME.uid ? targetUid : m.uid, sname, preview);
             // unread badge if not current channel
             if (ch !== curCh){
               UNREAD[ch] = (UNREAD[ch]||0)+1;
               buildDmList();
+              updateTabBadge();
             }
             // mark as read if current channel is open
             if (ch === curCh) markRead(change.doc.ref, m);
@@ -1042,7 +1157,7 @@ function listenMessages(ch, isDm, targetUid, tv){
 function renderMsgsFromSnap(snap, colPath, ch, area){
     if (snap.empty){
       const isDmView = ch.startsWith('dm-');
-      const partnerName = isDmView ? (ALL_USERS[ch.replace('dm-','')]?.name||'this person') : '#'+ch;
+      const partnerName = isDmView ? (ALL_USERS[ch.replace('dm-','')]?.name||'this person') : '#'+(_CH[ch]?.name||ch);
       area.innerHTML = `<div class="empty-state"><i class="ti ti-messages"></i><div class="es-title">No messages yet</div><div class="es-sub">Start the conversation in ${partnerName}</div></div>`;
       return;
     }
@@ -1110,6 +1225,7 @@ function renderMsgsFromSnap(snap, colPath, ch, area){
       const canPin = !isDm; // only in channels
       const actionsHtml = `<div class="msg-actions">
         <button class="ma-btn" onclick="openEmojiPicker(event,'${colPath}','${docId}')" title="React"><i class="ti ti-mood-smile"></i></button>
+        <button class="ma-btn" onclick="startReply('${docId}','${(msg.text||msg.file?.name||'').replace(/'/g,"\\'").replace(/\n/g,' ').slice(0,80)}','${(mu.name||'').replace(/'/g,"\\'")}','${colPath}')" title="Reply"><i class="ti ti-arrow-back-up"></i></button>
         ${canPin ? `<button class="ma-btn${isPinned?' pin-active':''}" onclick="togglePin('${colPath}','${docId}','${ch}')" title="${isPinned?'Unpin':'Pin message'}"><i class="ti ti-pin"></i></button>` : ''}
         ${canEdit ? `<button class="ma-btn" onclick="openEdit('${colPath}','${docId}',this)" title="Edit"><i class="ti ti-pencil"></i></button>` : ''}
         ${isOwn||ME.isAdmin ? `<button class="ma-btn danger" onclick="deleteMsg('${colPath}','${docId}')" title="Delete"><i class="ti ti-trash"></i></button>` : ''}
@@ -1117,6 +1233,16 @@ function renderMsgsFromSnap(snap, colPath, ch, area){
       html += `<div class="msg-row" id="msg-${docId}">
         <div class="msg-av" style="${avStyle}">${avContent}</div>
         <div class="bubble-wrap">`;
+      // reply quote bubble
+      if (msg.replyTo){
+        const rSender = ALL_USERS[msg.replyTo.uid];
+        const rName = rSender?.name || msg.replyTo.senderName || 'Someone';
+        const rText = msg.replyTo.text || (msg.replyTo.file ? `📎 ${msg.replyTo.file}` : '…');
+        html += `<div class="reply-preview-bubble" onclick="scrollToMsg('${msg.replyTo.docId||''}')">
+          <div class="rp-sender">${rName}</div>
+          <div class="rp-text">${rText.slice(0,120)}</div>
+        </div>`;
+      }
       if (msg.file){
         const t = msg.file.ftype;
         const url = msg.file.url||'#';
@@ -1216,7 +1342,7 @@ window.togglePinnedPanel = function(){
   getDocs(collection(db, colPath)).then(snap => {
     const pinned = snap.docs.filter(d => (d.data().pinnedIn||[]).includes(ch));
     const listEl = document.getElementById('pinnedList');
-    document.getElementById('pinnedPanelDesc').textContent = `${pinned.length} pinned message${pinned.length!==1?'s':''} in #${CHANNELS[ch]?.name||ch}`;
+    document.getElementById('pinnedPanelDesc').textContent = `${pinned.length} pinned message${pinned.length!==1?'s':''} in #${_CH[ch]?.name||ch}`;
     if (!pinned.length){ listEl.innerHTML='<div style="font-size:13px;color:var(--text-tertiary);padding:12px 0;text-align:center">No pinned messages yet.<br>Hover a message and click 📌 to pin it.</div>'; panel.classList.add('open'); return; }
     listEl.innerHTML = pinned.map(d => {
       const m = d.data();
@@ -1305,23 +1431,50 @@ window.saveProfile = async function(){
   btn.disabled=false; btn.textContent='Save changes';
 };
 
-// ── EMOJI PICKER ──
+// ── EMOJI PICKER (with search) ──
 let activeEmojiPicker = null;
 window.openEmojiPicker = function(e, colPath, docId){
   e.stopPropagation();
   if (activeEmojiPicker) { activeEmojiPicker.remove(); activeEmojiPicker=null; return; }
   const picker = document.createElement('div');
   picker.className = 'emoji-picker';
-  QUICK_REACTIONS.forEach(emoji => {
-    const btn = document.createElement('button');
-    btn.className = 'ep-btn'; btn.textContent = emoji;
-    btn.onclick = (ev) => { ev.stopPropagation(); toggleReaction(colPath, docId, emoji); picker.remove(); activeEmojiPicker=null; };
-    picker.appendChild(btn);
-  });
+  picker.innerHTML = `
+    <input class="emoji-search-input" placeholder="Search emoji…" autocomplete="off" id="emojiSearchInp">
+    <div class="emoji-quick-row" id="emojiQuickRow"></div>
+    <div class="emoji-grid" id="emojiGrid"></div>`;
   const msgRow = document.getElementById('msg-'+docId);
   if (msgRow){ msgRow.style.position='relative'; msgRow.appendChild(picker); }
   activeEmojiPicker = picker;
-  setTimeout(() => document.addEventListener('click', ()=>{ picker.remove(); activeEmojiPicker=null; }, { once:true }), 0);
+
+  function renderGrid(list){
+    const grid = picker.querySelector('#emojiGrid');
+    if (!list.length){ grid.innerHTML=`<div class="ep-empty">No results</div>`; return; }
+    grid.innerHTML = list.map(({e})=>`<button class="ep-btn" data-emoji="${e}">${e}</button>`).join('');
+    grid.querySelectorAll('.ep-btn').forEach(btn => btn.addEventListener('click', ev=>{
+      ev.stopPropagation(); toggleReaction(colPath, docId, btn.dataset.emoji); picker.remove(); activeEmojiPicker=null;
+    }));
+  }
+
+  // quick row
+  const quickRow = picker.querySelector('#emojiQuickRow');
+  QUICK_REACTIONS.forEach(emoji => {
+    const btn = document.createElement('button');
+    btn.className='ep-btn'; btn.textContent=emoji;
+    btn.onclick=(ev)=>{ ev.stopPropagation(); toggleReaction(colPath, docId, emoji); picker.remove(); activeEmojiPicker=null; };
+    quickRow.appendChild(btn);
+  });
+
+  // default grid (first 40)
+  renderGrid(ALL_EMOJIS.slice(0,40));
+
+  // search
+  const inp = picker.querySelector('#emojiSearchInp');
+  inp.addEventListener('input', ()=>{
+    const q = inp.value.trim().toLowerCase();
+    renderGrid(q ? ALL_EMOJIS.filter(({k})=>k.includes(q)) : ALL_EMOJIS.slice(0,40));
+  });
+  inp.addEventListener('click', e=>e.stopPropagation());
+  setTimeout(()=>{ inp.focus(); document.addEventListener('click', ()=>{ picker.remove(); activeEmojiPicker=null; }, { once:true }); }, 0);
 };
 
 // ── EDIT MESSAGE ──
@@ -1367,9 +1520,30 @@ window.sendMsg = async function(){
   if (isDm && !ME.isAdmin && tv && !tv.isAdmin) return;
   const colPath = isDm ? `dm_messages/${dmKey(ME.uid,targetUid)}/msgs` : `channel_messages/${curCh}/msgs`;
   inp.value=''; inp.style.height='auto'; clearTyping();
-  await addDoc(collection(db, colPath), { uid:ME.uid, text:txt, ts:serverTimestamp(), readBy:[ME.uid] });
+  const msgData = { uid:ME.uid, text:txt, ts:serverTimestamp(), readBy:[ME.uid] };
+  // attach reply context
+  if (REPLY_TO){
+    msgData.replyTo = { docId:REPLY_TO.docId, uid:REPLY_TO.uid, senderName:REPLY_TO.senderName, text:REPLY_TO.text, file:REPLY_TO.file||null };
+    clearReply();
+  }
+  await addDoc(collection(db, colPath), msgData);
+  // push notifications: DM target + @mentioned users
   if (isDm && targetUid){ sendPushTo(targetUid, ME.name||'New message', txt); }
-  else { Object.values(ALL_USERS).forEach(u => { if(u.uid!==ME.uid) sendPushTo(u.uid, `#${curCh} — ${ME.name}`, txt); }); }
+  else {
+    // detect @mentions and send targeted pushes
+    const mentionedNames = [...txt.matchAll(/@([\w][\w ]{0,30})/g)].map(m=>m[1].trim().toLowerCase());
+    const mentionedUids = new Set();
+    if (mentionedNames.length){
+      Object.values(ALL_USERS).forEach(u => {
+        if (u.uid !== ME.uid && mentionedNames.some(n => u.name.toLowerCase().startsWith(n))){
+          mentionedUids.add(u.uid);
+          sendPushTo(u.uid, `${ME.name} mentioned you in #${_CH[curCh]?.name||curCh}`, txt);
+        }
+      });
+    }
+    // send to everyone else too (channel broadcast)
+    Object.values(ALL_USERS).forEach(u => { if(u.uid!==ME.uid && !mentionedUids.has(u.uid)) sendPushTo(u.uid, `#${_CH[curCh]?.name||curCh} — ${ME.name}`, txt); });
+  }
 };
 
 // ── FILE SHARE ──
@@ -1400,151 +1574,4 @@ window.confirmShare = async function(){
     if (!uploadRes.ok) throw new Error('Upload failed: '+uploadRes.statusText);
     const uploadData = await uploadRes.json();
     const url = uploadData.secure_url;
-    const ftype = pendingFtype||'doc';
-    const isDm = curCh.startsWith('dm-');
-    const targetUid = isDm ? curCh.replace('dm-','') : null;
-    const colPath = isDm ? `dm_messages/${dmKey(ME.uid,targetUid)}/msgs` : `channel_messages/${curCh}/msgs`;
-    const fileObj = { name:pendingFile.name, size:(pendingFile.size/1024).toFixed(1)+' KB', ftype, url };
-    await addDoc(collection(db, colPath), { uid:ME.uid, file:fileObj, ts:serverTimestamp() });
-    await addDoc(collection(db,'shared_files'), { name:pendingFile.name, uid:ME.uid, ftype, url, ts:serverTimestamp() });
-    if (isDm && targetUid) sendPushTo(targetUid, ME.name||'File shared', `Sent a file: ${pendingFile.name}`);
-    renderSharedFiles(); closeFileModal(); showToast('File shared');
-  } catch(err){
-    console.error('Upload error:', err);
-    btn.disabled=false; btn.textContent='Retry';
-    let errEl=document.getElementById('uploadErrMsg');
-    if (!errEl){ errEl=document.createElement('p'); errEl.id='uploadErrMsg'; errEl.style.cssText='color:var(--text-danger);font-size:12px;margin-top:8px;text-align:center'; btn.parentElement.before(errEl); }
-    errEl.textContent = '⚠️ '+(err.message||'Upload failed. Try again.');
-  }
-};
-
-// ── MESSAGE SEARCH ──
-let searchDebounce = null;
-let allMsgsCache = [];
-window.onSearch = async function(val){
-  const res = document.getElementById('searchResults');
-  if (!val.trim()){ res.classList.remove('show'); return; }
-  if (searchDebounce) clearTimeout(searchDebounce);
-  searchDebounce = setTimeout(async () => {
-    res.innerHTML = '<div class="sr-empty">Searching…</div>'; res.classList.add('show');
-    try {
-      // search current channel
-      const isDm = curCh.startsWith('dm-');
-      const targetUid = isDm ? curCh.replace('dm-','') : null;
-      const colPath = isDm ? `dm_messages/${dmKey(ME.uid,targetUid)}/msgs` : `channel_messages/${curCh}/msgs`;
-      const snap = await getDocs(query(collection(db, colPath), orderBy('ts','desc')));
-      const q2 = val.toLowerCase();
-      const results = snap.docs.filter(d => (d.data().text||'').toLowerCase().includes(q2)).slice(0,6);
-      if (!results.length){ res.innerHTML='<div class="sr-empty">No results in this channel</div>'; return; }
-      res.innerHTML = results.map(d => {
-        const m = d.data();
-        const sender = ALL_USERS[m.uid];
-        const ts = fmtTime(m.ts);
-        const hi = (m.text||'').replace(new RegExp(val.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'gi'), s=>`<mark style="background:var(--bg-warning);border-radius:2px">${s}</mark>`);
-        return `<div class="sr-item" onclick="jumpToMsg('${d.id}')">
-          <div class="sr-sender">${sender?.name||'Unknown'} <span style="font-weight:400;color:var(--text-tertiary)">${ts}</span></div>
-          <div class="sr-text">${hi}</div>
-        </div>`;
-      }).join('');
-    } catch(e){ res.innerHTML='<div class="sr-empty">Search failed</div>'; }
-  }, 300);
-};
-window.jumpToMsg = function(docId){
-  document.getElementById('searchResults').classList.remove('show');
-  document.getElementById('searchInput').value = '';
-  const el = document.getElementById('msg-'+docId);
-  if (el){ el.scrollIntoView({behavior:'smooth',block:'center'}); el.style.transition='background .3s'; el.style.background='var(--bg-warning)'; setTimeout(()=>el.style.background='',1500); }
-};
-document.addEventListener('click', e => {
-  if (!e.target.closest('.search-bar')) document.getElementById('searchResults')?.classList.remove('show');
-});
-
-// ── AUTH ──
-window.doFirstTimeSetup = async function(){
-  const email=document.getElementById('loginEmail').value.trim(), pass=document.getElementById('loginPass').value;
-  const errEl=document.getElementById('loginErr'), btn=document.getElementById('loginBtn');
-  if (!email||!pass){ errEl.textContent='Enter email and password first.'; errEl.style.display='block'; return; }
-  btn.disabled=true; btn.textContent='Setting up…'; errEl.style.display='none';
-  try {
-    const cred = await signInWithEmailAndPassword(auth, email, pass);
-    const profile = { name:cred.user.displayName||email.split('@')[0], email, phone:'', role:'Admin', isAdmin:true, status:'offline', createdAt:serverTimestamp() };
-    await setDoc(doc(db,'chat_users',cred.user.uid), profile);
-    ME = { uid:cred.user.uid, ...profile }; await loadAllUsers(); showApp();
-  } catch(e){ errEl.textContent='Setup failed: '+e.message; errEl.style.display='block'; btn.disabled=false; btn.textContent='Sign in'; }
-};
-window.doLogin = async function(){
-  const email=document.getElementById('loginEmail').value.trim(), pass=document.getElementById('loginPass').value;
-  const errEl=document.getElementById('loginErr'), btn=document.getElementById('loginBtn');
-  errEl.style.display='none'; btn.disabled=true; btn.textContent='Signing in…';
-  try { await signInWithEmailAndPassword(auth, email, pass); }
-  catch(e){ errEl.textContent = e.code==='auth/invalid-credential'||e.code==='auth/wrong-password' ? 'Invalid email or password.' : e.code==='auth/user-not-found' ? 'No account with this email.' : e.code==='auth/too-many-requests' ? 'Too many attempts. Wait a few minutes.' : e.code==='auth/network-request-failed' ? 'Network error. Check your connection.' : e.message; errEl.style.display='block'; btn.disabled=false; btn.textContent='Sign in'; }
-};
-window.doGoogleLogin = async function(){
-  const btn=document.getElementById('googleBtn'), errEl=document.getElementById('loginErr');
-  errEl.style.display='none'; btn.disabled=true;
-  try { await signInWithPopup(auth, new GoogleAuthProvider()); }
-  catch(e){ if(e.code!=='auth/popup-closed-by-user'&&e.code!=='auth/cancelled-popup-request'){ errEl.textContent=e.code==='auth/popup-blocked'?'Popup blocked. Allow popups for this site.':e.message; errEl.style.display='block'; } }
-  btn.disabled=false;
-};
-window.doLogout = async function(){ clearTyping(); if (msgUnsub) msgUnsub(); if (typingUnsub) typingUnsub(); await signOut(auth); };
-
-// ── USER MANAGEMENT ──
-let selectedRole = 'admin';
-window.openCreateUser = function(){ if (!ME.isAdmin) return; document.getElementById('cuErr').style.display='none'; ['cuName','cuEmail','cuPhone','cuPass'].forEach(id=>document.getElementById(id).value=''); selectRole('admin'); document.getElementById('createUserModal').classList.add('open'); };
-window.closeCreateUser = function(){ document.getElementById('createUserModal').classList.remove('open'); };
-window.selectRole = function(r){ selectedRole=r; document.getElementById('roleOptAdmin').className='role-opt'+(r==='admin'?' selected-admin':''); document.getElementById('roleOptEmp').className='role-opt'+(r==='employee'?' selected-emp':''); };
-window.createUser = async function(){
-  const name=document.getElementById('cuName').value.trim(), email=document.getElementById('cuEmail').value.trim(), phone=document.getElementById('cuPhone').value.trim(), pass=document.getElementById('cuPass').value;
-  const errEl=document.getElementById('cuErr'), btn=document.getElementById('cuBtn');
-  errEl.style.display='none';
-  if (!name||!email||!pass){ errEl.textContent='Name, email, and password are required.'; errEl.style.display='block'; return; }
-  if (pass.length<6){ errEl.textContent='Password must be at least 6 characters.'; errEl.style.display='block'; return; }
-  btn.disabled=true; btn.textContent='Creating…';
-  try {
-    const { initializeApp:initApp2, getApp, deleteApp } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js");
-    const { getAuth:getAuth2, createUserWithEmailAndPassword:createEAP } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js");
-    let secondaryApp;
-    try { secondaryApp=getApp('secondary'); } catch(e){ secondaryApp=initApp2(firebaseConfig,'secondary'); }
-    const auth2=getAuth2(secondaryApp);
-    const cred=await createEAP(auth2,email,pass);
-    await signOut(auth2);
-    await setDoc(doc(db,'chat_users',cred.user.uid),{ name,email,phone,role:selectedRole==='admin'?'Admin':'Agent',isAdmin:selectedRole==='admin',status:'offline',createdBy:ME.uid,createdAt:serverTimestamp() });
-    closeCreateUser(); showToast(`✓ ${name} added as ${selectedRole==='admin'?'Admin':'Agent'}`);
-  } catch(e){ errEl.textContent=e.message; errEl.style.display='block'; }
-  btn.disabled=false; btn.textContent='Create account';
-};
-let pendingRemoveUid = null;
-window.confirmRemoveUser = function(uid,name){ pendingRemoveUid=uid; document.getElementById('ruName').textContent=name; document.getElementById('ruErr').style.display='none'; document.getElementById('removeUserModal').classList.add('open'); };
-window.closeRemoveUser = function(){ document.getElementById('removeUserModal').classList.remove('open'); pendingRemoveUid=null; };
-window.removeUser = async function(){
-  if (!pendingRemoveUid) return;
-  const btn=document.getElementById('ruBtn'), errEl=document.getElementById('ruErr');
-  btn.disabled=true; btn.textContent='Removing…';
-  try { await deleteDoc(doc(db,'chat_users',pendingRemoveUid)); showToast('Member removed'); closeRemoveUser(); }
-  catch(e){ errEl.textContent=e.message; errEl.style.display='block'; }
-  btn.disabled=false; btn.textContent='Remove member';
-};
-
-// ── HELPERS ──
-function showToast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),3200); }
-window.kd = function(e){ if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); sendMsg(); } };
-window.ar = function(el){ el.style.height='auto'; el.style.height=Math.min(el.scrollHeight,140)+'px'; };
-window.ins = function(a,b){ const el=document.getElementById('msgInput'),s=el.selectionStart,en=el.selectionEnd; el.value=el.value.slice(0,s)+a+el.value.slice(s,en)+b+el.value.slice(en); el.focus(); };
-
-// ── MOBILE PANELS ──
-window.toggleSidebar = function(){ document.querySelector('.sidebar').classList.toggle('mobile-open'); document.getElementById('mobileBackdrop').classList.toggle('show'); };
-window.toggleRightPanel = function(){ document.querySelector('.right-panel').classList.toggle('mobile-open'); document.getElementById('mobileBackdrop').classList.toggle('show'); };
-window.closeMobilePanels = function(){ document.querySelector('.sidebar').classList.remove('mobile-open'); document.querySelector('.right-panel').classList.remove('mobile-open'); document.getElementById('mobileBackdrop').classList.remove('show'); };
-
-// ── PWA ──
-let deferredInstallPrompt = null;
-const isStandalone = window.matchMedia('(display-mode:standalone)').matches || window.navigator.standalone===true;
-const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.MSStream;
-window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferredInstallPrompt=e; const btn=document.getElementById('installBtn'); if(btn&&!isStandalone) btn.classList.add('show'); });
-window.addEventListener('appinstalled', () => { deferredInstallPrompt=null; document.getElementById('installBtn')?.classList.remove('show'); });
-window.installApp = async function(){ if(deferredInstallPrompt){ deferredInstallPrompt.prompt(); await deferredInstallPrompt.userChoice; deferredInstallPrompt=null; document.getElementById('installBtn').classList.remove('show'); } else if(isIOS){ showToast('Tap Share → "Add to Home Screen"'); } else { showToast('Use your browser menu to install this app'); } };
-if (isIOS && !isStandalone) document.getElementById('installBtn')?.classList.add('show');
-if ('serviceWorker' in navigator) window.addEventListener('load', ()=>{ navigator.serviceWorker.register('./sw.js').catch(()=>{}); });
-</script>
-</body>
-</html>
+    const ft
