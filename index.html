@@ -1963,7 +1963,7 @@ function renderMsgsFromSnap(snap, colPath, ch, area){
     const editedLabel = msg.edited ? '<span class="edit-label">(edited)</span>' : '';
     const canEdit = isOwn && !msg.file && !msg.voice;
     const canPin = !isDm;
-    const replyText = (msg.text||msg.file?.name||msg.voice?'🎤 Voice message':'').replace(/'/g,"\\'").replace(/\n/g,' ').slice(0,80);
+    const replyText = (msg.text||msg.file?.name||(msg.voice?'🎤 Voice message':'')).replace(/'/g,"\\'").replace(/\n/g,' ').slice(0,80);
     const fwdSafeText = (msg.text||msg.file?.name||'Voice message').replace(/'/g,"\\'").replace(/\n/g,' ').slice(0,80);
     const actionsHtml = `<div class="msg-actions">
       <button class="ma-btn" onclick="openEmojiPicker(event,'${colPath}','${docId}')" title="React"><i class="ti ti-mood-smile"></i></button>
