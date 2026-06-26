@@ -1248,9 +1248,11 @@ async function initApp(){
   onSnapshot(collection(db,'chat_users'), snap => {
     ALL_USERS = {};
     snap.forEach(d => { ALL_USERS[d.id] = { uid:d.id, ...d.data() }; });
-    // update ME's profile pic if changed
+    // update ME's live fields from Firestore so they stay in sync for all users
     if (ALL_USERS[ME.uid]?.photoURL) ME.photoURL = ALL_USERS[ME.uid].photoURL;
+    if (ALL_USERS[ME.uid]) ME.customStatus = ALL_USERS[ME.uid].customStatus || null;
     updateSfAvatar();
+    updateSfStatusPill();
     buildDmList(); renderMembers(); updateOnlineCount();
   });
   onSnapshot(doc(db,'chat_users', ME.uid), snap => {
@@ -1350,6 +1352,9 @@ function buildDmList(){
     const avBg = v.photoURL ? 'background:transparent' : avStyle;
 
     if (ME.isAdmin || v.isAdmin) {
+      const statusPill = v.customStatus?.text
+        ? `<span class="custom-status-pill" style="margin-top:2px;display:inline-flex">${v.customStatus.emoji} ${v.customStatus.text}</span>`
+        : '';
       html += `<div class="dm-item${chId===curCh?' active':''}" onclick="switchCh('${chId}')" id="ch-${chId}">
         <div class="dm-av-wrap">
           <div class="dm-av" style="${avBg}">${avContent}</div>
@@ -1360,6 +1365,7 @@ function buildDmList(){
             <span class="dm-name${unread?' unread':''}">${v.name}${v.isAdmin && !ME.isAdmin ? ' <i class="ti ti-shield" style="font-size:10px;opacity:.5;vertical-align:middle"></i>':''}</span>
             ${previewTs ? `<span class="dm-ts">${previewTs}</span>` : ''}
           </div>
+          ${statusPill}
           <div class="dm-row2">
             <span class="dm-preview${unread?' unread':''}">${previewText || '<span style="opacity:.5">No messages yet</span>'}</span>
             ${unread ? `<span class="dm-badge">${unread > 9 ? '9+' : unread}</span>` : ''}
@@ -1416,11 +1422,16 @@ function renderMembers(){
     const col = avatarColor(v.uid);
     const avContent = v.photoURL ? `<img class="mc-av-img" src="${v.photoURL}" alt="${v.name}">` : initials(v.name);
     const avStyle = v.photoURL ? 'background:transparent' : (AV_STYLES[col]||'');
+    // FIX: show each user's custom status in the members panel
+    const statusLine = v.customStatus?.text
+      ? `<div style="margin-top:2px"><span class="custom-status-pill">${v.customStatus.emoji} ${v.customStatus.text}</span></div>`
+      : '';
     let detail = ME.isAdmin
       ? `<div class="mc-role">${v.role||'Agent'} · <span style="color:${v.isAdmin?'var(--text-success)':'var(--text-secondary)'}">${v.isAdmin?'Admin':'Agent'}</span></div>
+         ${statusLine}
          <div class="mc-contact"><i class="ti ti-mail" style="font-size:11px;vertical-align:-1px;margin-right:2px"></i>${v.email||'—'}<br><i class="ti ti-phone" style="font-size:11px;vertical-align:-1px;margin-right:2px"></i>${v.phone||'—'}</div>
          <div class="mc-contact" style="margin-top:2px;color:var(--text-tertiary)"><i class="ti ti-activity" style="font-size:11px;vertical-align:-1px;margin-right:2px"></i>Active ${fmtRelative(v.lastActive)} · ${v.messageCount||0} msgs</div>`
-      : `<div class="mc-role">${v.isAdmin?'Team Lead':'Agent'}</div><div class="mc-anon"><span class="anon-pill"><i class="ti ti-lock"></i> Email hidden</span><span class="anon-pill"><i class="ti ti-lock"></i> Phone hidden</span></div>`;
+      : `<div class="mc-role">${v.isAdmin?'Team Lead':'Agent'}</div>${statusLine}<div class="mc-anon"><span class="anon-pill"><i class="ti ti-lock"></i> Email hidden</span><span class="anon-pill"><i class="ti ti-lock"></i> Phone hidden</span></div>`;
     const canDelete = ME.isAdmin && v.uid !== ME.uid;
     const canToggleRole = ME.isAdmin && v.uid !== ME.uid;
     return `<div class="mc">
@@ -2872,10 +2883,11 @@ window.saveCustomStatus = async function(){
 function updateSfStatusPill(){
   const sub = document.getElementById('sfSub');
   if (!sub) return;
+  const roleLabel = ME.isAdmin ? 'Admin' : 'Agent';
   if (ME.customStatus?.text){
     sub.innerHTML = `<span class="custom-status-pill">${ME.customStatus.emoji} ${ME.customStatus.text}</span>`;
   } else {
-    sub.textContent = ME.isAdmin ? 'Admin' : 'Agent';
+    sub.textContent = roleLabel;
   }
 }
 
