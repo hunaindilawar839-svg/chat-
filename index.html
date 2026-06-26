@@ -1412,20 +1412,19 @@ async function initApp(){
   await loadChannelNames();
   buildDmList(); renderMembers(); renderSharedFiles(); switchCh('general'); listenLeaderboard();
   // live listeners
+  const RENDER_FIELDS = ['name','photoURL','status','isAdmin','role','muted','clockedIn','customStatus'];
   onSnapshot(collection(db,'chat_users'), snap => {
-    // Track which fields changed to avoid unnecessary full re-renders
     let needsRender = false;
-    const WATCH = ['name','photoURL','status','isAdmin','role','muted','clockedIn','customStatus'];
     snap.docChanges().forEach(change => {
       const newData = { uid: change.doc.id, ...change.doc.data() };
       const oldData = ALL_USERS[change.doc.id];
       ALL_USERS[change.doc.id] = newData;
-      if (!oldData) { needsRender = true; return; }
-      for (const k of WATCH) {
+      if (!oldData || change.type === 'added') { needsRender = true; return; }
+      for (const k of RENDER_FIELDS) {
         if (JSON.stringify(oldData[k]) !== JSON.stringify(newData[k])) { needsRender = true; break; }
       }
     });
-    // update ME's live fields from Firestore so they stay in sync
+    // Always sync ME's own live fields
     if (ALL_USERS[ME.uid]?.photoURL) ME.photoURL = ALL_USERS[ME.uid].photoURL;
     if (ALL_USERS[ME.uid]) ME.customStatus = ALL_USERS[ME.uid].customStatus || null;
     updateSfAvatar();
@@ -3052,11 +3051,20 @@ window.closeCustomStatusModal = function(){ document.getElementById('customStatu
 window.saveCustomStatus = async function(){
   const emoji = document.getElementById('statusEmojiBtn').textContent;
   const text = document.getElementById('statusTextInput').value.trim();
-  ME.customStatus = text ? { emoji, text } : null;
-  await setDoc(doc(db,'chat_users',ME.uid), { customStatus: ME.customStatus || null }, {merge:true});
+  const newStatus = text ? { emoji, text } : null;
+
+  // ── Optimistic update: instant UI, write in background ──
+  ME.customStatus = newStatus;
+  if (ALL_USERS[ME.uid]) ALL_USERS[ME.uid] = { ...ALL_USERS[ME.uid], customStatus: newStatus };
   updateSfStatusPill();
+  renderMembers();
   closeCustomStatusModal();
   showToast(text ? `Status set: ${emoji} ${text}` : 'Status cleared');
+
+  // ── Background Firestore write (non-blocking) ──
+  setDoc(doc(db,'chat_users',ME.uid), { customStatus: newStatus || null }, {merge:true}).catch(e => {
+    showToast('Failed to save status: ' + e.message);
+  });
 };
 function updateSfStatusPill(){
   const sub = document.getElementById('sfSub');
@@ -3457,30 +3465,43 @@ function initShiftButton() {
 window.toggleShift = async function() {
   const userData = ALL_USERS[ME.uid];
   const isClockedIn = userData?.clockedIn === true;
+  const newState = !isClockedIn;
+
+  // ── Optimistic update: instant UI, write in background ──
+  ALL_USERS[ME.uid] = { ...ALL_USERS[ME.uid], clockedIn: newState };
+  const btn = document.getElementById('shiftBtn');
+  const icon = document.getElementById('shiftIcon');
+  if (btn && icon) {
+    if (newState) {
+      btn.className = 'shift-btn clocked-in'; btn.title = 'Clock out';
+      icon.className = 'ti ti-clock-stop';
+    } else {
+      btn.className = 'shift-btn'; btn.title = 'Clock in';
+      icon.className = 'ti ti-clock-play';
+    }
+  }
+  renderMembers();
+  showToast(newState ? '✅ Clocked in — have a great shift!' : '🕐 Clocked out');
+
+  // ── Background Firestore writes (non-blocking) ──
   const now = serverTimestamp();
   try {
     if (isClockedIn) {
-      await updateDoc(doc(db, 'chat_users', ME.uid), {
-        clockedIn: false,
-        lastClockOut: now
-      });
-      // Log the shift
-      await addDoc(collection(db, 'shifts'), {
+      updateDoc(doc(db, 'chat_users', ME.uid), { clockedIn: false, lastClockOut: now });
+      addDoc(collection(db, 'shifts'), {
         uid: ME.uid, name: ME.name,
         clockIn: userData.lastClockIn || null,
-        clockOut: now,
-        ts: now
+        clockOut: now, ts: now
       });
-      showToast('🕐 Clocked out');
     } else {
-      await updateDoc(doc(db, 'chat_users', ME.uid), {
-        clockedIn: true,
-        lastClockIn: now
-      });
-      showToast('✅ Clocked in — have a great shift!');
+      updateDoc(doc(db, 'chat_users', ME.uid), { clockedIn: true, lastClockIn: now });
     }
-    // ALL_USERS and renderMembers() update automatically via onSnapshot(chat_users)
-  } catch(e) { showToast('Failed: ' + e.message); }
+  } catch(e) {
+    // Rollback on failure
+    ALL_USERS[ME.uid] = { ...ALL_USERS[ME.uid], clockedIn: isClockedIn };
+    renderMembers();
+    showToast('Failed: ' + e.message);
+  }
 };
 
 // ══════════════════════════════════════════════════════════════════
@@ -3492,8 +3513,7 @@ let ticketFilter = 'all';
 
 window.openTickets = function() {
   document.getElementById('ticketOverlay').classList.add('open');
-  // Listener is started eagerly in initApp — just render what we already have
-  renderTicketList();
+  renderTicketList(); // data already live from initApp listener
 };
 window.closeTickets = function() { document.getElementById('ticketOverlay').classList.remove('open'); };
 
@@ -3550,7 +3570,7 @@ window.openTicketDetail = function(ticketId) {
         <div style="font-size:11.5px;color:var(--text-tertiary);margin-top:4px">Created by ${creator} · ${t.ts?fmtRelative(t.ts):''}</div>
       </div>
       <div style="display:flex;gap:6px;flex-shrink:0">
-        ${isAdmin ? `<button class="btn-sec" style="padding:5px 12px;font-size:12px;color:var(--text-danger);border-color:rgba(163,45,45,.3)" onclick="deleteTicket('${t.id}')"><i class="ti ti-trash" style="font-size:13px;margin-right:3px"></i>Delete</button>` : ''}
+        ${isAdmin ? `<button class="btn-sec" style="padding:5px 12px;font-size:12px;color:var(--text-danger);border-color:rgba(163,45,45,.25)" onclick="deleteTicket('${t.id}')"><i class="ti ti-trash" style="font-size:12px;margin-right:3px;vertical-align:-1px"></i>Delete</button>` : ''}
         <button class="btn-sec" style="padding:5px 12px;font-size:12px" onclick="closeTicketDetail()">Close</button>
       </div>
     </div>
@@ -3755,10 +3775,10 @@ initApp = async function() {
   listenChannelUnreads();
   // Init shift button
   initShiftButton();
-  // Start ticket listener eagerly so badge works before the user opens the modal
+  // Start single ticket listener eagerly — badge + list share one snapshot
   if (!ticketsUnsub) {
-    const q = query(collection(db, 'tickets'), orderBy('ts', 'desc'), limit(100));
-    ticketsUnsub = onSnapshot(q, snap => {
+    const _tq = query(collection(db, 'tickets'), orderBy('ts', 'desc'), limit(100));
+    ticketsUnsub = onSnapshot(_tq, snap => {
       allTickets = snap.docs.map(d => ({ id: d.id, ...d.data() }));
       renderTicketList();
       const myOpen = allTickets.filter(t => (t.assignedTo === ME.uid || t.createdBy === ME.uid) && t.status !== 'resolved').length;
