@@ -563,6 +563,74 @@ kbd{background:var(--bg-secondary);border:0.5px solid var(--border-md);border-ra
 .bulk-dl-btn{background:none;border:0.5px solid var(--border);border-radius:var(--radius-sm);padding:4px 9px;font-size:11px;cursor:pointer;color:var(--text-secondary);display:flex;align-items:center;gap:5px;font-family:inherit;transition:background .1s,border-color .1s;margin-top:8px;width:100%}
 .bulk-dl-btn:hover{background:var(--bg-secondary);border-color:var(--green);color:var(--text-success)}
 .bulk-dl-btn i{font-size:13px}
+
+/* ── CHANNEL UNREAD BADGE ── */
+.ch-unread-badge{background:var(--green);color:#fff;font-size:10px;font-weight:700;min-width:18px;height:18px;border-radius:9px;padding:0 5px;display:flex;align-items:center;justify-content:center;margin-left:auto;flex-shrink:0}
+.ch-item.active .ch-unread-badge{background:var(--green-dark)}
+
+/* ── IMAGE LIGHTBOX ── */
+.lightbox-overlay{position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:1000;display:none;align-items:center;justify-content:center;flex-direction:column;gap:12px;cursor:zoom-out;backdrop-filter:blur(4px)}
+.lightbox-overlay.open{display:flex}
+.lightbox-img{max-width:92vw;max-height:82vh;border-radius:var(--radius-md);box-shadow:0 8px 48px rgba(0,0,0,.6);object-fit:contain;cursor:default}
+.lightbox-bar{display:flex;align-items:center;gap:12px}
+.lightbox-name{color:rgba(255,255,255,.75);font-size:12.5px}
+.lightbox-dl{background:none;border:0.5px solid rgba(255,255,255,.3);border-radius:var(--radius-md);padding:6px 14px;color:#fff;font-size:12px;cursor:pointer;font-family:inherit;transition:background .12s}
+.lightbox-dl:hover{background:rgba(255,255,255,.1)}
+.lightbox-close{position:absolute;top:16px;right:20px;background:none;border:none;color:rgba(255,255,255,.7);font-size:24px;cursor:pointer;line-height:1;padding:4px;transition:color .12s}
+.lightbox-close:hover{color:#fff}
+
+/* ── TICKET / TASK SYSTEM ── */
+.ticket-badge{background:var(--bg-info);color:var(--text-info);font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px;margin-left:4px}
+.ticket-card{background:var(--bg-primary);border:0.5px solid var(--border);border-radius:var(--radius-md);padding:12px 14px;margin-bottom:8px;cursor:pointer;transition:border-color .12s,box-shadow .12s}
+.ticket-card:hover{border-color:var(--border-md);box-shadow:var(--shadow-sm)}
+.ticket-card.open{border-left:3px solid var(--green)}
+.ticket-card.in_progress{border-left:3px solid var(--text-warning)}
+.ticket-card.resolved{border-left:3px solid var(--border-md);opacity:.7}
+.ticket-title{font-size:13px;font-weight:600;color:var(--text-primary);margin-bottom:4px}
+.ticket-meta{font-size:11px;color:var(--text-tertiary);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.ticket-status{font-size:10.5px;font-weight:600;padding:2px 7px;border-radius:8px}
+.ticket-status.open{background:var(--bg-success);color:var(--text-success)}
+.ticket-status.in_progress{background:var(--bg-warning);color:var(--text-warning)}
+.ticket-status.resolved{background:var(--bg-secondary);color:var(--text-tertiary)}
+.ticket-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);backdrop-filter:blur(2px);z-index:650;display:none;align-items:flex-start;justify-content:center;padding-top:60px}
+.ticket-overlay.open{display:flex}
+.ticket-modal{background:var(--bg-primary);border-radius:var(--radius-xl);border:0.5px solid var(--border);padding:24px;width:min(600px,94vw);max-height:82vh;display:flex;flex-direction:column;box-shadow:var(--shadow-lg);animation:modalIn .18s ease-out}
+.ticket-list-area{flex:1;overflow-y:auto;margin-top:10px}
+.ticket-tabs{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap}
+.t-tab{background:none;border:0.5px solid var(--border);border-radius:10px;padding:4px 12px;font-size:12px;cursor:pointer;color:var(--text-secondary);font-family:inherit;transition:all .12s}
+.t-tab.active{background:var(--bg-success);border-color:var(--green);color:var(--text-success);font-weight:600}
+.ticket-detail-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);backdrop-filter:blur(2px);z-index:700;display:none;align-items:flex-start;justify-content:center;padding-top:60px}
+.ticket-detail-overlay.open{display:flex}
+.ticket-detail-modal{background:var(--bg-primary);border-radius:var(--radius-xl);border:0.5px solid var(--border);padding:24px;width:min(560px,94vw);max-height:82vh;display:flex;flex-direction:column;box-shadow:var(--shadow-lg);animation:modalIn .18s ease-out;overflow-y:auto}
+
+/* ── SHIFT / CLOCK IN-OUT ── */
+.shift-btn{background:var(--bg-success);border:0.5px solid var(--green);border-radius:var(--radius-md);padding:5px 12px;font-size:12px;font-weight:600;cursor:pointer;color:var(--text-success);font-family:inherit;display:flex;align-items:center;gap:5px;transition:all .12s;flex-shrink:0}
+.shift-btn:hover{background:var(--green);color:#fff}
+.shift-btn.clocked-in{background:var(--bg-danger);border-color:var(--text-danger);color:var(--text-danger)}
+.shift-btn.clocked-in:hover{background:var(--text-danger);color:#fff}
+.shift-indicator{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:500;padding:2px 7px;border-radius:8px;background:var(--bg-success);color:var(--text-success)}
+.shift-indicator.off{background:var(--bg-secondary);color:var(--text-tertiary)}
+
+/* ── EDIT HISTORY ── */
+.edit-history-btn{font-size:10px;color:var(--text-tertiary);cursor:pointer;text-decoration:underline;margin-left:4px;font-style:italic;background:none;border:none;font-family:inherit;padding:0}
+.edit-history-btn:hover{color:var(--text-primary)}
+.edit-history-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);backdrop-filter:blur(2px);z-index:700;display:none;align-items:center;justify-content:center}
+.edit-history-overlay.open{display:flex}
+.edit-history-modal{background:var(--bg-primary);border-radius:var(--radius-xl);border:0.5px solid var(--border);padding:24px;width:min(480px,94vw);max-height:72vh;display:flex;flex-direction:column;box-shadow:var(--shadow-lg);animation:modalIn .18s ease-out}
+.eh-entry{padding:10px 0;border-bottom:0.5px solid var(--border)}
+.eh-entry:last-child{border-bottom:none}
+.eh-meta{font-size:11px;color:var(--text-tertiary);margin-bottom:4px}
+.eh-text{font-size:13px;color:var(--text-primary);line-height:1.55;word-break:break-word}
+.eh-current{background:var(--bg-success);border-radius:var(--radius-sm);padding:8px 10px;margin-bottom:10px;font-size:13px;color:var(--text-primary);line-height:1.55}
+
+/* ── REPORT MESSAGE ── */
+.report-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);backdrop-filter:blur(2px);z-index:700;display:none;align-items:center;justify-content:center}
+.report-overlay.open{display:flex}
+.report-select{width:100%;border:0.5px solid var(--border-md);border-radius:var(--radius-md);padding:9px 12px;font-size:13px;color:var(--text-primary);background:var(--bg-secondary);font-family:inherit;outline:none;margin-bottom:10px}
+.report-select:focus{border-color:var(--green)}
+
+/* ── MUTE USER ── */
+.muted-label{background:var(--bg-danger);color:var(--text-danger);font-size:10px;font-weight:600;padding:2px 6px;border-radius:4px;margin-left:4px}
 </style>
 </head>
 <body>
@@ -633,7 +701,8 @@ kbd{background:var(--bg-secondary);border:0.5px solid var(--border-md);border-ra
           <div class="av" id="sfAv"></div>
           <div class="av-edit-overlay"><i class="ti ti-camera"></i></div>
         </div>
-        <div><div class="sf-name" id="sfName"></div><div class="sf-sub" id="sfSub"></div></div>
+        <div style="flex:1;min-width:0"><div class="sf-name" id="sfName"></div><div class="sf-sub" id="sfSub"></div></div>
+        <button class="shift-btn" id="shiftBtn" onclick="toggleShift()" title="Clock in / out" style="display:none"><i class="ti ti-clock-play" id="shiftIcon"></i></button>
         <button class="theme-toggle-btn" id="themeToggleBtn" onclick="toggleTheme()" title="Toggle dark/light mode"><i class="ti ti-moon" id="themeIcon"></i></button>
         <button class="theme-toggle-btn" onclick="openKeyboardShortcuts()" title="Keyboard shortcuts"><i class="ti ti-keyboard"></i></button>
         <button class="install-btn" id="installBtn" onclick="installApp()" title="Install app"><i class="ti ti-download" style="font-size:16px"></i></button>
@@ -656,6 +725,7 @@ kbd{background:var(--bg-secondary);border:0.5px solid var(--border-md);border-ra
         <button class="icon-btn" id="addUserBtn" onclick="openCreateUser()" title="Add team member" style="display:none"><i class="ti ti-user-plus" style="font-size:15px"></i></button>
         <button class="icon-btn" onclick="openGlobalSearch()" title="Global search (Ctrl+K)"><i class="ti ti-search" style="font-size:15px"></i></button>
         <button class="icon-btn" id="activityLogBtn" onclick="openActivityLog()" title="Activity log" style="display:none"><i class="ti ti-activity" style="font-size:15px"></i></button>
+        <button class="icon-btn" id="ticketsBtn" onclick="openTickets()" title="Tickets / Tasks"><i class="ti ti-ticket" style="font-size:15px"></i><span id="ticketsBadge" style="display:none;position:absolute;top:2px;right:2px;width:7px;height:7px;background:#E24B4A;border-radius:50%"></span></button>
         <button class="icon-btn" id="pinnedBtn" onclick="togglePinnedPanel()" title="Pinned messages" style="display:none"><i class="ti ti-pin" style="font-size:15px"></i></button>
         <button class="icon-btn" onclick="document.getElementById('fileInMedia').click()" title="Attach image/video"><i class="ti ti-paperclip" style="font-size:15px"></i></button>
         <button class="icon-btn team-toggle-btn" onclick="toggleRightPanel()" title="Team"><i class="ti ti-users" style="font-size:15px"></i></button>
@@ -1005,6 +1075,103 @@ kbd{background:var(--bg-secondary);border:0.5px solid var(--border-md);border-ra
 </div>
 
 <!-- FIREBASE -->
+
+<!-- IMAGE LIGHTBOX -->
+<div class="lightbox-overlay" id="lightboxOverlay" onclick="closeLightbox(event)">
+  <button class="lightbox-close" onclick="document.getElementById('lightboxOverlay').classList.remove('open')"><i class="ti ti-x"></i></button>
+  <img class="lightbox-img" id="lightboxImg" onclick="event.stopPropagation()" alt="">
+  <div class="lightbox-bar">
+    <span class="lightbox-name" id="lightboxName"></span>
+    <a class="lightbox-dl" id="lightboxDl" download target="_blank" onclick="event.stopPropagation()"><i class="ti ti-download" style="font-size:13px;margin-right:4px"></i>Download</a>
+  </div>
+</div>
+
+<!-- TICKETS MODAL -->
+<div class="ticket-overlay" id="ticketOverlay" onclick="if(event.target===this)closeTickets()">
+  <div class="ticket-modal">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+      <h3 style="font-size:15px;font-weight:600;color:var(--text-primary);display:flex;align-items:center;gap:8px"><i class="ti ti-ticket" style="color:var(--green)"></i> Tickets & Tasks</h3>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button class="btn-pri" style="padding:6px 14px;font-size:12px" onclick="openNewTicket()"><i class="ti ti-plus" style="font-size:12px;margin-right:4px"></i>New Ticket</button>
+        <button class="btn-sec" style="padding:6px 14px;font-size:12px" onclick="closeTickets()">Close</button>
+      </div>
+    </div>
+    <div class="ticket-tabs">
+      <button class="t-tab active" onclick="filterTickets('all',this)">All</button>
+      <button class="t-tab" onclick="filterTickets('open',this)">Open</button>
+      <button class="t-tab" onclick="filterTickets('in_progress',this)">In Progress</button>
+      <button class="t-tab" onclick="filterTickets('resolved',this)">Resolved</button>
+      <button class="t-tab" onclick="filterTickets('mine',this)">Assigned to me</button>
+    </div>
+    <div class="ticket-list-area" id="ticketListArea"><div style="padding:24px;text-align:center;font-size:13px;color:var(--text-tertiary)">Loading…</div></div>
+  </div>
+</div>
+
+<!-- NEW TICKET MODAL -->
+<div class="modal-overlay" id="newTicketModal">
+  <div class="modal" style="max-width:420px">
+    <h3>Create Ticket</h3>
+    <p class="modal-sub">Describe the issue or task. An admin can assign and track it.</p>
+    <div id="ntErr" class="err-box"></div>
+    <label class="form-label">Title</label>
+    <input class="form-input" id="ntTitle" placeholder="e.g. Fix login error for client X" maxlength="100">
+    <label class="form-label">Description</label>
+    <textarea class="edit-input" id="ntDesc" rows="3" placeholder="More details…" maxlength="500"></textarea>
+    <label class="form-label">Priority</label>
+    <select class="report-select" id="ntPriority">
+      <option value="low">🟢 Low</option>
+      <option value="medium" selected>🟡 Medium</option>
+      <option value="high">🔴 High</option>
+    </select>
+    <div class="modal-actions">
+      <button class="btn-sec" onclick="closeNewTicket()">Cancel</button>
+      <button class="btn-pri" id="ntBtn" onclick="submitTicket()">Create Ticket</button>
+    </div>
+  </div>
+</div>
+
+<!-- TICKET DETAIL MODAL -->
+<div class="ticket-detail-overlay" id="ticketDetailOverlay" onclick="if(event.target===this)closeTicketDetail()">
+  <div class="ticket-detail-modal" id="ticketDetailContent"></div>
+</div>
+
+<!-- EDIT HISTORY MODAL -->
+<div class="edit-history-overlay" id="editHistoryOverlay" onclick="if(event.target===this)closeEditHistory()">
+  <div class="edit-history-modal">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+      <h3 style="font-size:15px;font-weight:600;color:var(--text-primary)">✏️ Edit History</h3>
+      <button class="btn-sec" style="padding:5px 12px;font-size:12px" onclick="closeEditHistory()">Close</button>
+    </div>
+    <div style="font-size:11.5px;color:var(--text-tertiary);margin-bottom:10px">Current version (latest)</div>
+    <div class="eh-current" id="ehCurrent"></div>
+    <div style="font-size:11.5px;color:var(--text-tertiary);margin-bottom:6px">Previous versions</div>
+    <div style="flex:1;overflow-y:auto" id="ehList"></div>
+  </div>
+</div>
+
+<!-- REPORT MESSAGE MODAL -->
+<div class="report-overlay" id="reportOverlay" onclick="if(event.target===this)closeReport()">
+  <div class="modal" style="max-width:380px">
+    <h3>Report Message</h3>
+    <p class="modal-sub">Let admins know why this message is a problem.</p>
+    <div id="reportErr" class="err-box"></div>
+    <label class="form-label">Reason</label>
+    <select class="report-select" id="reportReason">
+      <option value="harassment">Harassment or bullying</option>
+      <option value="spam">Spam or misleading</option>
+      <option value="inappropriate">Inappropriate content</option>
+      <option value="misinformation">Misinformation</option>
+      <option value="other">Other</option>
+    </select>
+    <label class="form-label">Additional notes (optional)</label>
+    <textarea class="edit-input" id="reportNote" rows="2" placeholder="Any extra context…" maxlength="200"></textarea>
+    <div class="modal-actions">
+      <button class="btn-sec" onclick="closeReport()">Cancel</button>
+      <button class="btn-pri" id="reportBtn" onclick="submitReport()">Submit Report</button>
+    </div>
+  </div>
+</div>
+
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getFirestore, collection, collectionGroup, doc, setDoc, getDoc, getDocs, addDoc, updateDoc, deleteDoc, onSnapshot, query, orderBy, limit, serverTimestamp, where, arrayUnion, arrayRemove, increment } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
@@ -3064,6 +3231,543 @@ window.addEventListener('appinstalled', () => { deferredInstallPrompt=null; docu
 window.installApp = async function(){ if(deferredInstallPrompt){ deferredInstallPrompt.prompt(); await deferredInstallPrompt.userChoice; deferredInstallPrompt=null; document.getElementById('installBtn').classList.remove('show'); } else if(isIOS){ showToast('Tap Share → "Add to Home Screen"'); } else { showToast('Use your browser menu to install this app'); } };
 if (isIOS && !isStandalone) document.getElementById('installBtn')?.classList.add('show');
 if ('serviceWorker' in navigator) window.addEventListener('load', ()=>{ navigator.serviceWorker.register('./sw.js').catch(()=>{}); });
+
+
+// ══════════════════════════════════════════════════════════════════
+// FEATURE: CHANNEL UNREAD BADGES
+// ══════════════════════════════════════════════════════════════════
+const CHANNEL_UNREAD = { general:0, sales:0, leads:0, files:0 };
+
+function updateChannelBadges() {
+  const CHANNEL_IDS_LOCAL = ['general','sales','leads','files'];
+  CHANNEL_IDS_LOCAL.forEach(id => {
+    const el = document.getElementById('ch-' + id);
+    if (!el) return;
+    const count = CHANNEL_UNREAD[id] || 0;
+    let badge = el.querySelector('.ch-unread-badge');
+    if (count > 0) {
+      if (!badge) { badge = document.createElement('span'); badge.className = 'ch-unread-badge'; el.querySelector('.ml')?.prepend(badge) || el.appendChild(badge); }
+      badge.textContent = count > 99 ? '99+' : count;
+      el.querySelector('.ch-label')?.classList.add('ch-name-unread');
+    } else {
+      badge?.remove();
+      el.querySelector('.ch-label')?.classList.remove('ch-name-unread');
+    }
+  });
+}
+
+// Listen to all channels for unread messages in background
+function listenChannelUnreads() {
+  const CHANNEL_IDS_LOCAL = ['general','sales','leads','files'];
+  CHANNEL_IDS_LOCAL.forEach(id => {
+    const colPath = 'channel_messages/' + id + '/msgs';
+    onSnapshot(query(collection(db, colPath), orderBy('ts','desc'), limit(50)), snap => {
+      if (id === curCh) { CHANNEL_UNREAD[id] = 0; updateChannelBadges(); return; }
+      let unread = 0;
+      snap.docs.forEach(d => {
+        const m = d.data();
+        if (m.uid !== ME.uid && !(m.readBy||[]).includes(ME.uid)) unread++;
+      });
+      CHANNEL_UNREAD[id] = unread;
+      updateChannelBadges();
+    }, () => {});
+  });
+}
+
+// Clear badge when switching to a channel
+const _origSwitchChUnread = window.switchCh;
+window.switchCh = function(ch) {
+  if (!ch.startsWith('dm-')) { CHANNEL_UNREAD[ch] = 0; updateChannelBadges(); }
+  _origSwitchChUnread(ch);
+};
+
+// ══════════════════════════════════════════════════════════════════
+// FEATURE: IMAGE LIGHTBOX
+// ══════════════════════════════════════════════════════════════════
+window.openLightbox = function(url, name) {
+  document.getElementById('lightboxImg').src = url;
+  document.getElementById('lightboxImg').alt = name || '';
+  document.getElementById('lightboxName').textContent = name || '';
+  const dl = document.getElementById('lightboxDl');
+  dl.href = url; dl.download = name || 'image';
+  document.getElementById('lightboxOverlay').classList.add('open');
+};
+window.closeLightbox = function(e) {
+  if (!e || e.target === document.getElementById('lightboxOverlay')) {
+    document.getElementById('lightboxOverlay').classList.remove('open');
+  }
+};
+document.addEventListener('keydown', e => { if (e.key === 'Escape') document.getElementById('lightboxOverlay')?.classList.remove('open'); });
+
+// Patch image rendering to use lightbox instead of raw <a> link
+// We monkey-patch after initial render by delegating clicks
+document.addEventListener('click', e => {
+  const img = e.target.closest('.msgs img, #msgsArea img');
+  if (img && img.src && !img.closest('.msg-av') && !img.closest('.dm-av') && !img.closest('.mc-av')) {
+    e.preventDefault();
+    const name = img.closest('.bubble-wrap')?.querySelector('.fs')?.textContent?.split(' · ')[0] || 'image.jpg';
+    openLightbox(img.src, name);
+  }
+});
+
+// ══════════════════════════════════════════════════════════════════
+// FEATURE: MESSAGE EDIT HISTORY
+// ══════════════════════════════════════════════════════════════════
+// Patch saveEdit to store history before overwriting
+const _origSaveEdit = window.saveEdit;
+window.saveEdit = async function() {
+  if (!EDITING_MSG) return;
+  const newText = document.getElementById('editMsgInput').value.trim();
+  if (!newText) return;
+  const btn = document.getElementById('editSaveBtn');
+  btn.disabled = true; btn.textContent = 'Saving…';
+  try {
+    const msgRef = doc(db, EDITING_MSG.colPath, EDITING_MSG.docId);
+    const snap = await getDoc(msgRef);
+    if (snap.exists()) {
+      const old = snap.data();
+      const histEntry = { text: old.text || '', editedAt: new Date().toISOString(), editedBy: ME.name };
+      const prev = old.editHistory || [];
+      await updateDoc(msgRef, {
+        text: newText,
+        edited: true,
+        editHistory: [...prev, histEntry]
+      });
+    }
+    document.getElementById('editMsgModal').classList.remove('open');
+    EDITING_MSG = null;
+  } catch(e) { showToast('Failed to edit message'); }
+  btn.disabled = false; btn.textContent = 'Save changes';
+};
+
+window.openEditHistory = async function(colPath, docId, currentText) {
+  const snap = await getDoc(doc(db, colPath, docId));
+  if (!snap.exists()) return;
+  const data = snap.data();
+  const history = (data.editHistory || []).slice().reverse();
+  document.getElementById('ehCurrent').textContent = currentText || data.text || '';
+  const list = document.getElementById('ehList');
+  if (!history.length) {
+    list.innerHTML = '<div style="font-size:12.5px;color:var(--text-tertiary);padding:8px 0">No previous versions.</div>';
+  } else {
+    list.innerHTML = history.map((h, i) =>
+      `<div class="eh-entry">
+        <div class="eh-meta">Version ${history.length - i} · ${h.editedBy || 'Unknown'} · ${h.editedAt ? new Date(h.editedAt).toLocaleString() : ''}</div>
+        <div class="eh-text">${h.text || '<em style="color:var(--text-tertiary)">(empty)</em>'}</div>
+      </div>`
+    ).join('');
+  }
+  document.getElementById('editHistoryOverlay').classList.add('open');
+};
+window.closeEditHistory = function() { document.getElementById('editHistoryOverlay').classList.remove('open'); };
+
+// ══════════════════════════════════════════════════════════════════
+// FEATURE: REPORT A MESSAGE
+// ══════════════════════════════════════════════════════════════════
+let reportTarget = null;
+window.openReport = function(colPath, docId, senderName, previewText) {
+  reportTarget = { colPath, docId, senderName, previewText };
+  document.getElementById('reportErr').style.display = 'none';
+  document.getElementById('reportNote').value = '';
+  document.getElementById('reportOverlay').classList.add('open');
+};
+window.closeReport = function() { document.getElementById('reportOverlay').classList.remove('open'); reportTarget = null; };
+window.submitReport = async function() {
+  if (!reportTarget) return;
+  const btn = document.getElementById('reportBtn');
+  const reason = document.getElementById('reportReason').value;
+  const note = document.getElementById('reportNote').value.trim();
+  btn.disabled = true; btn.textContent = 'Sending…';
+  try {
+    await addDoc(collection(db, 'reports'), {
+      colPath: reportTarget.colPath,
+      docId: reportTarget.docId,
+      senderName: reportTarget.senderName,
+      previewText: reportTarget.previewText,
+      reason, note,
+      reportedBy: ME.uid,
+      reportedByName: ME.name,
+      ts: serverTimestamp(),
+      status: 'pending'
+    });
+    closeReport();
+    showToast('Report submitted — admins will review it');
+  } catch(e) { document.getElementById('reportErr').textContent = e.message; document.getElementById('reportErr').style.display='block'; }
+  btn.disabled = false; btn.textContent = 'Submit Report';
+};
+
+// ══════════════════════════════════════════════════════════════════
+// FEATURE: ADMIN MUTE USER
+// ══════════════════════════════════════════════════════════════════
+window.toggleMuteUser = async function(uid, name, currentlyMuted) {
+  if (!ME.isAdmin) return;
+  if (!confirm(`${currentlyMuted ? 'Unmute' : 'Mute'} ${name}? ${currentlyMuted ? 'They will be able to send messages again.' : 'They will not be able to send messages.'}`)) return;
+  try {
+    await updateDoc(doc(db, 'chat_users', uid), { muted: !currentlyMuted });
+    logAdminAction(currentlyMuted ? 'unmuted_user' : 'muted_user', name);
+    showToast(`${name} ${currentlyMuted ? 'unmuted' : 'muted'}`);
+  } catch(e) { showToast('Failed: ' + e.message); }
+};
+
+// Block muted users from sending
+const _origSendMsgMute = window.sendMsg;
+window.sendMsg = async function() {
+  if (ALL_USERS[ME.uid]?.muted) { showToast('⛔ You have been muted by an admin'); return; }
+  await _origSendMsgMute();
+};
+
+// ══════════════════════════════════════════════════════════════════
+// FEATURE: SHIFT / CLOCK IN-OUT
+// ══════════════════════════════════════════════════════════════════
+let shiftUnsub = null;
+
+function initShiftButton() {
+  const btn = document.getElementById('shiftBtn');
+  if (!btn) return;
+  btn.style.display = 'flex';
+  // Listen to own shift status in real time
+  if (shiftUnsub) shiftUnsub();
+  shiftUnsub = onSnapshot(doc(db, 'chat_users', ME.uid), snap => {
+    if (!snap.exists()) return;
+    const isClockedIn = snap.data().clockedIn === true;
+    const icon = document.getElementById('shiftIcon');
+    if (isClockedIn) {
+      btn.className = 'shift-btn clocked-in';
+      btn.title = 'Clock out';
+      if (icon) { icon.className = 'ti ti-clock-stop'; }
+    } else {
+      btn.className = 'shift-btn';
+      btn.title = 'Clock in';
+      if (icon) { icon.className = 'ti ti-clock-play'; }
+    }
+  });
+}
+
+window.toggleShift = async function() {
+  const userData = ALL_USERS[ME.uid];
+  const isClockedIn = userData?.clockedIn === true;
+  const now = serverTimestamp();
+  try {
+    if (isClockedIn) {
+      await updateDoc(doc(db, 'chat_users', ME.uid), {
+        clockedIn: false,
+        lastClockOut: now
+      });
+      // Log the shift
+      await addDoc(collection(db, 'shifts'), {
+        uid: ME.uid, name: ME.name,
+        clockIn: userData.lastClockIn || null,
+        clockOut: now,
+        ts: now
+      });
+      showToast('🕐 Clocked out');
+    } else {
+      await updateDoc(doc(db, 'chat_users', ME.uid), {
+        clockedIn: true,
+        lastClockIn: now
+      });
+      showToast('✅ Clocked in — have a great shift!');
+    }
+    // Refresh ALL_USERS immediately
+    const snap = await getDoc(doc(db, 'chat_users', ME.uid));
+    if (snap.exists()) ALL_USERS[ME.uid] = { uid: ME.uid, ...snap.data() };
+    renderMembers();
+  } catch(e) { showToast('Failed: ' + e.message); }
+};
+
+// ══════════════════════════════════════════════════════════════════
+// FEATURE: TICKETS / TASK SYSTEM
+// ══════════════════════════════════════════════════════════════════
+let ticketsUnsub = null;
+let allTickets = [];
+let ticketFilter = 'all';
+
+window.openTickets = function() {
+  document.getElementById('ticketOverlay').classList.add('open');
+  if (ticketsUnsub) return;
+  const q = query(collection(db, 'tickets'), orderBy('ts', 'desc'), limit(100));
+  ticketsUnsub = onSnapshot(q, snap => {
+    allTickets = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    renderTicketList();
+    // update nav badge
+    const myOpen = allTickets.filter(t => (t.assignedTo === ME.uid || t.createdBy === ME.uid) && t.status !== 'resolved').length;
+    const badge = document.getElementById('ticketsBadge');
+    if (badge) badge.style.display = myOpen > 0 ? 'block' : 'none';
+  }, () => {});
+};
+window.closeTickets = function() { document.getElementById('ticketOverlay').classList.remove('open'); };
+
+window.filterTickets = function(filter, btn) {
+  ticketFilter = filter;
+  document.querySelectorAll('.t-tab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderTicketList();
+};
+
+function renderTicketList() {
+  const el = document.getElementById('ticketListArea');
+  let filtered = allTickets;
+  if (ticketFilter === 'mine') filtered = allTickets.filter(t => t.assignedTo === ME.uid || t.createdBy === ME.uid);
+  else if (ticketFilter !== 'all') filtered = allTickets.filter(t => t.status === ticketFilter);
+  if (!filtered.length) {
+    el.innerHTML = '<div style="padding:32px;text-align:center;font-size:13px;color:var(--text-tertiary)">No tickets found</div>';
+    return;
+  }
+  const priorityIcon = { high:'🔴', medium:'🟡', low:'🟢' };
+  el.innerHTML = filtered.map(t => {
+    const assignee = t.assignedTo ? ALL_USERS[t.assignedTo]?.name || 'Unknown' : 'Unassigned';
+    const creator = ALL_USERS[t.createdBy]?.name || 'Unknown';
+    const age = t.ts ? fmtRelative(t.ts) : '';
+    return `<div class="ticket-card ${t.status}" onclick="openTicketDetail('${t.id}')">
+      <div class="ticket-title">${priorityIcon[t.priority] || '🟡'} ${t.title}</div>
+      <div class="ticket-meta">
+        <span class="ticket-status ${t.status}">${t.status === 'in_progress' ? 'In Progress' : t.status === 'resolved' ? 'Resolved' : 'Open'}</span>
+        <span>By ${creator}</span>
+        ${t.assignedTo ? `<span>→ ${assignee}</span>` : '<span style="color:var(--text-tertiary)">Unassigned</span>'}
+        <span>${age}</span>
+      </div>
+      ${t.desc ? `<div style="font-size:12px;color:var(--text-secondary);margin-top:5px;line-height:1.45">${t.desc.slice(0,120)}${t.desc.length>120?'…':''}</div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+window.openTicketDetail = function(ticketId) {
+  const t = allTickets.find(x => x.id === ticketId);
+  if (!t) return;
+  const creator = ALL_USERS[t.createdBy]?.name || 'Unknown';
+  const assignee = t.assignedTo ? ALL_USERS[t.assignedTo]?.name || 'Unknown' : 'Unassigned';
+  const priorityIcon = { high:'🔴', medium:'🟡', low:'🟢' };
+  const isAdmin = ME.isAdmin;
+  const statusOptions = ['open','in_progress','resolved'].map(s =>
+    `<option value="${s}" ${t.status===s?'selected':''}>${s==='in_progress'?'In Progress':s==='resolved'?'Resolved':'Open'}</option>`).join('');
+  const agentOptions = Object.values(ALL_USERS).map(u =>
+    `<option value="${u.uid}" ${t.assignedTo===u.uid?'selected':''}>${u.name}</option>`).join('');
+
+  document.getElementById('ticketDetailContent').innerHTML = `
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:16px;gap:12px">
+      <div>
+        <div style="font-size:16px;font-weight:700;color:var(--text-primary);line-height:1.4">${priorityIcon[t.priority]||'🟡'} ${t.title}</div>
+        <div style="font-size:11.5px;color:var(--text-tertiary);margin-top:4px">Created by ${creator} · ${t.ts?fmtRelative(t.ts):''}</div>
+      </div>
+      <button class="btn-sec" style="padding:5px 12px;font-size:12px;flex-shrink:0" onclick="closeTicketDetail()">Close</button>
+    </div>
+    ${t.desc ? `<div style="font-size:13.5px;color:var(--text-primary);line-height:1.6;margin-bottom:16px;padding:12px;background:var(--bg-secondary);border-radius:var(--radius-md)">${t.desc}</div>` : ''}
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+      <div>
+        <div style="font-size:11px;color:var(--text-tertiary);font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px">Status</div>
+        ${isAdmin
+          ? `<select class="report-select" style="margin-bottom:0" onchange="updateTicketField('${t.id}','status',this.value)">${statusOptions}</select>`
+          : `<span class="ticket-status ${t.status}">${t.status==='in_progress'?'In Progress':t.status==='resolved'?'Resolved':'Open'}</span>`
+        }
+      </div>
+      <div>
+        <div style="font-size:11px;color:var(--text-tertiary);font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px">Assigned to</div>
+        ${isAdmin
+          ? `<select class="report-select" style="margin-bottom:0" onchange="updateTicketField('${t.id}','assignedTo',this.value)"><option value="">Unassigned</option>${agentOptions}</select>`
+          : `<div style="font-size:13px;color:var(--text-primary)">${assignee}</div>`
+        }
+      </div>
+    </div>
+    <div style="font-size:11px;color:var(--text-tertiary);font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Comments</div>
+    <div id="ticketComments" style="border:0.5px solid var(--border);border-radius:var(--radius-md);max-height:200px;overflow-y:auto;margin-bottom:10px;padding:10px">
+      <div style="font-size:12px;color:var(--text-tertiary)">Loading comments…</div>
+    </div>
+    <div style="display:flex;gap:8px">
+      <input class="form-input" id="ticketCommentInput" placeholder="Add a comment…" style="margin-bottom:0;flex:1" onkeydown="if(event.key==='Enter')addTicketComment('${t.id}')">
+      <button class="btn-pri" style="padding:9px 14px;font-size:13px;white-space:nowrap" onclick="addTicketComment('${t.id}')">Send</button>
+    </div>`;
+  document.getElementById('ticketDetailOverlay').classList.add('open');
+  loadTicketComments(t.id);
+};
+window.closeTicketDetail = function() { document.getElementById('ticketDetailOverlay').classList.remove('open'); };
+
+window.updateTicketField = async function(ticketId, field, value) {
+  try {
+    await updateDoc(doc(db, 'tickets', ticketId), { [field]: value, updatedAt: serverTimestamp() });
+    showToast('Ticket updated');
+  } catch(e) { showToast('Failed: ' + e.message); }
+};
+
+function loadTicketComments(ticketId) {
+  const el = document.getElementById('ticketComments');
+  if (!el) return;
+  onSnapshot(query(collection(db, 'tickets', ticketId, 'comments'), orderBy('ts','asc')), snap => {
+    if (!el) return;
+    if (snap.empty) { el.innerHTML = '<div style="font-size:12px;color:var(--text-tertiary)">No comments yet.</div>'; return; }
+    el.innerHTML = snap.docs.map(d => {
+      const c = d.data();
+      const name = ALL_USERS[c.uid]?.name || c.name || 'Unknown';
+      return `<div style="margin-bottom:8px;padding-bottom:8px;border-bottom:0.5px solid var(--border)">
+        <div style="font-size:11.5px;font-weight:600;color:var(--text-primary);margin-bottom:2px">${name} <span style="font-weight:400;color:var(--text-tertiary)">${c.ts?fmtRelative(c.ts):''}</span></div>
+        <div style="font-size:13px;color:var(--text-primary);line-height:1.5">${c.text}</div>
+      </div>`;
+    }).join('');
+    el.scrollTop = el.scrollHeight;
+  }, () => {});
+}
+
+window.addTicketComment = async function(ticketId) {
+  const inp = document.getElementById('ticketCommentInput');
+  const text = inp?.value.trim();
+  if (!text) return;
+  inp.value = '';
+  try {
+    await addDoc(collection(db, 'tickets', ticketId, 'comments'), {
+      uid: ME.uid, name: ME.name, text, ts: serverTimestamp()
+    });
+    await updateDoc(doc(db, 'tickets', ticketId), { lastActivity: serverTimestamp() });
+  } catch(e) { showToast('Failed to add comment'); }
+};
+
+window.openNewTicket = function() {
+  document.getElementById('ntErr').style.display = 'none';
+  document.getElementById('ntTitle').value = '';
+  document.getElementById('ntDesc').value = '';
+  document.getElementById('newTicketModal').classList.add('open');
+};
+window.closeNewTicket = function() { document.getElementById('newTicketModal').classList.remove('open'); };
+window.submitTicket = async function() {
+  const title = document.getElementById('ntTitle').value.trim();
+  const desc = document.getElementById('ntDesc').value.trim();
+  const priority = document.getElementById('ntPriority').value;
+  const errEl = document.getElementById('ntErr');
+  const btn = document.getElementById('ntBtn');
+  if (!title) { errEl.textContent='Title is required.'; errEl.style.display='block'; return; }
+  btn.disabled = true; btn.textContent = 'Creating…'; errEl.style.display = 'none';
+  try {
+    await addDoc(collection(db, 'tickets'), {
+      title, desc, priority, status: 'open',
+      createdBy: ME.uid, createdByName: ME.name,
+      assignedTo: null,
+      ts: serverTimestamp()
+    });
+    closeNewTicket();
+    showToast('🎟️ Ticket created');
+  } catch(e) { errEl.textContent = e.message; errEl.style.display = 'block'; }
+  btn.disabled = false; btn.textContent = 'Create Ticket';
+};
+
+// ══════════════════════════════════════════════════════════════════
+// PATCH: Add Report + Edit History + Mute buttons to action toolbar
+// ══════════════════════════════════════════════════════════════════
+// Override renderMsgsFromSnap to inject new action buttons
+const _origRenderForNewFeatures = window.renderMsgsFromSnap;
+window.renderMsgsFromSnap = function(snap, colPath, ch, area) {
+  _origRenderForNewFeatures(snap, colPath, ch, area);
+
+  // After render, patch each message row to add new buttons + edit history link
+  area.querySelectorAll('.msg-row').forEach(row => {
+    const docId = row.id.replace('msg-', '');
+    if (!docId) return;
+    const msgData = snap.docs.find(d => d.id === docId)?.data();
+    if (!msgData) return;
+
+    const actions = row.querySelector('.msg-actions');
+    if (actions && !actions.querySelector('.report-btn')) {
+      // Add Report button (not on own messages)
+      if (msgData.uid !== ME.uid) {
+        const reportBtn = document.createElement('button');
+        reportBtn.className = 'ma-btn report-btn';
+        reportBtn.title = 'Report message';
+        reportBtn.innerHTML = '<i class="ti ti-flag"></i>';
+        const senderName = (ALL_USERS[msgData.uid]?.name || 'Unknown').replace(/'/g, "\\'");
+        const previewText = (msgData.text || '').slice(0, 60).replace(/'/g, "\\'").replace(/\n/g, ' ');
+        reportBtn.onclick = () => openReport(colPath, docId, senderName, previewText);
+        actions.insertBefore(reportBtn, actions.lastElementChild);
+      }
+    }
+
+    // Add edit history link next to (edited) label
+    if (msgData.edited && msgData.editHistory?.length) {
+      const editLabel = row.querySelector('.edit-label');
+      if (editLabel && !editLabel.nextSibling?.classList?.contains('eh-link')) {
+        const link = document.createElement('button');
+        link.className = 'edit-history-btn eh-link';
+        link.textContent = 'history';
+        const currentText = (msgData.text || '').replace(/'/g, "\\'");
+        link.onclick = () => openEditHistory(colPath, docId, currentText);
+        editLabel.parentNode.insertBefore(link, editLabel.nextSibling);
+      }
+    }
+  });
+};
+
+// ══════════════════════════════════════════════════════════════════
+// PATCH: renderMembers to show mute button + shift status + reports badge
+// ══════════════════════════════════════════════════════════════════
+const _origRenderMembersFeatures = renderMembers;
+renderMembers = function() {
+  _origRenderMembersFeatures();
+  // After base render, patch each mc card to add mute button and shift indicator
+  if (!ME.isAdmin) return;
+  document.querySelectorAll('.mc').forEach(card => {
+    const muteBtn = card.querySelector('.mute-btn');
+    if (muteBtn) return; // already patched
+    // Find UID from existing action buttons
+    const trashBtn = card.querySelector('.mc-del[onclick*="confirmRemoveUser"]');
+    if (!trashBtn) return;
+    const match = trashBtn.getAttribute('onclick')?.match(/confirmRemoveUser\('([^']+)'/);
+    if (!match) return;
+    const uid = match[1];
+    const user = ALL_USERS[uid];
+    if (!user || uid === ME.uid) return;
+    const isMuted = user.muted === true;
+    const isClockedIn = user.clockedIn === true;
+
+    // Shift indicator
+    const nameEl = card.querySelector('.mc-name');
+    if (nameEl && !nameEl.querySelector('.shift-indicator')) {
+      const shiftEl = document.createElement('span');
+      shiftEl.className = 'shift-indicator' + (isClockedIn ? '' : ' off');
+      shiftEl.innerHTML = isClockedIn ? '🟢 On shift' : '⚫ Off shift';
+      shiftEl.style.cssText = 'margin-left:7px;font-size:10px';
+      nameEl.appendChild(shiftEl);
+    }
+
+    // Muted label
+    if (isMuted) {
+      const roleEl = card.querySelector('.mc-role');
+      if (roleEl && !roleEl.querySelector('.muted-label')) {
+        roleEl.insertAdjacentHTML('beforeend', ' <span class="muted-label">Muted</span>');
+      }
+    }
+
+    // Mute/unmute button
+    const muteButton = document.createElement('button');
+    muteButton.className = 'mc-del mute-btn';
+    muteButton.title = isMuted ? 'Unmute user' : 'Mute user';
+    muteButton.style.color = isMuted ? 'var(--text-success)' : 'var(--text-warning)';
+    muteButton.innerHTML = `<i class="ti ti-${isMuted ? 'volume' : 'volume-off'}" style="font-size:14px"></i>`;
+    const safeName = (user.name || 'User').replace(/'/g, "\\'");
+    muteButton.onclick = () => toggleMuteUser(uid, safeName, isMuted);
+    card.appendChild(muteButton);
+  });
+}
+
+// ══════════════════════════════════════════════════════════════════
+// INIT NEW FEATURES on app start
+// ══════════════════════════════════════════════════════════════════
+const _origInitAppNewFeatures = initApp;
+initApp = async function() {
+  await _origInitAppNewFeatures();
+  // Start channel unread listeners
+  listenChannelUnreads();
+  // Init shift button
+  initShiftButton();
+  // Start ticket badge listener
+  onSnapshot(query(collection(db,'tickets'), where('status','!=','resolved')), snap => {
+    const mine = snap.docs.filter(d => d.data().assignedTo === ME.uid || d.data().createdBy === ME.uid).length;
+    const badge = document.getElementById('ticketsBadge');
+    if (badge) badge.style.display = mine > 0 ? 'block' : 'none';
+  }, () => {});
+}
+
+// Add to admin log labels
+ADMIN_LOG_LABELS['muted_user'] = { icon:'ti-volume-off', color:'var(--text-warning)', verb:'muted' };
+ADMIN_LOG_LABELS['unmuted_user'] = { icon:'ti-volume', color:'var(--text-success)', verb:'unmuted' };
+ADMIN_LOG_LABELS['shift_start'] = { icon:'ti-clock-play', color:'var(--text-success)', verb:'clocked in' };
+ADMIN_LOG_LABELS['shift_end'] = { icon:'ti-clock-stop', color:'var(--text-tertiary)', verb:'clocked out' };
+
 </script>
 </body>
 </html>
