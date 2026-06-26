@@ -1611,7 +1611,7 @@ function renderMembers(){
       : `<div class="mc-role">${v.isAdmin?'Team Lead':'Agent'}${shiftBadge}</div>${statusLine}<div class="mc-anon"><span class="anon-pill"><i class="ti ti-lock"></i> Email hidden</span><span class="anon-pill"><i class="ti ti-lock"></i> Phone hidden</span></div>`;
     const canDelete = ME.isAdmin && v.uid !== ME.uid;
     const canToggleRole = ME.isAdmin && v.uid !== ME.uid;
-    return `<div class="mc">
+    return `<div class="mc" data-uid="${v.uid}">
       <div class="mc-av-wrap">
         <div class="mc-av" style="${avStyle}">${avContent}</div>
         ${isOnline ? '<div class="online-dot"></div>' : ''}
@@ -1622,6 +1622,51 @@ function renderMembers(){
     </div>`;
   }).join('') || '<div style="font-size:12px;color:var(--text-tertiary);padding:6px 0">No members yet</div>';
   updateOnlineCount();
+}
+
+// Surgically update ONE member card without rebuilding the whole list.
+// Called by optimistic updates (shift, status) for instant visible feedback.
+function patchMemberCard(uid) {
+  const v = ALL_USERS[uid];
+  if (!v) return;
+  const card = document.querySelector(`#membersList .mc[data-uid="${uid}"]`);
+  if (!card) { renderMembers(); return; } // card not yet in DOM — fall back
+  const isOnline = v.status === 'online';
+  const statusLine = v.customStatus?.text
+    ? `<div style="margin-top:2px"><span class="custom-status-pill">${v.customStatus.emoji} ${v.customStatus.text}</span></div>`
+    : '';
+  const shiftBadge = `<span class="shift-indicator${v.clockedIn === true ? '' : ' off'}" style="margin-left:7px;font-size:10px">${v.clockedIn === true ? '🟢 On shift' : '⚫ Off shift'}</span>`;
+  const detail = ME.isAdmin
+    ? `<div class="mc-role">${v.role||'Agent'} · <span style="color:${v.isAdmin?'var(--text-success)':'var(--text-secondary)'}">${v.isAdmin?'Admin':'Agent'}</span>${shiftBadge}</div>
+       ${statusLine}
+       <div class="mc-contact"><i class="ti ti-mail" style="font-size:11px;vertical-align:-1px;margin-right:2px"></i>${v.email||'—'}<br><i class="ti ti-phone" style="font-size:11px;vertical-align:-1px;margin-right:2px"></i>${v.phone||'—'}</div>
+       <div class="mc-contact" style="margin-top:2px;color:var(--text-tertiary)"><i class="ti ti-activity" style="font-size:11px;vertical-align:-1px;margin-right:2px"></i>Active ${fmtRelative(v.lastActive)} · ${v.messageCount||0} msgs</div>`
+    : `<div class="mc-role">${v.isAdmin?'Team Lead':'Agent'}${shiftBadge}</div>${statusLine}<div class="mc-anon"><span class="anon-pill"><i class="ti ti-lock"></i> Email hidden</span><span class="anon-pill"><i class="ti ti-lock"></i> Phone hidden</span></div>`;
+  // Update online dot
+  const wrap = card.querySelector('.mc-av-wrap');
+  if (wrap) {
+    const dot = wrap.querySelector('.online-dot');
+    if (isOnline && !dot) wrap.insertAdjacentHTML('beforeend', '<div class="online-dot"></div>');
+    if (!isOnline && dot) dot.remove();
+  }
+  // Update detail section (role/shift/status lines only)
+  const detailWrap = card.querySelector('div[style*="flex:1"]');
+  if (detailWrap) {
+    const nameEl = detailWrap.querySelector('.mc-name');
+    if (nameEl) nameEl.nextSibling && (detailWrap.innerHTML = `<div class="mc-name">${v.name}</div>${detail}`);
+  }
+  // Re-attach mute button if admin and it got wiped
+  if (ME.isAdmin && uid !== ME.uid && !card.querySelector('.mute-btn')) {
+    const isMuted = v.muted === true;
+    const muteButton = document.createElement('button');
+    muteButton.className = 'mc-del mute-btn';
+    muteButton.title = isMuted ? 'Unmute user' : 'Mute user';
+    muteButton.style.color = isMuted ? 'var(--text-success)' : 'var(--text-warning)';
+    muteButton.innerHTML = `<i class="ti ti-${isMuted ? 'volume' : 'volume-off'}" style="font-size:14px"></i>`;
+    const safeName = (v.name || 'User').replace(/'/g, "\'");
+    muteButton.onclick = () => toggleMuteUser(uid, safeName, isMuted);
+    card.appendChild(muteButton);
+  }
 }
 
 // ── SHARED FILES (with filter) ──
@@ -3057,7 +3102,7 @@ window.saveCustomStatus = async function(){
   ME.customStatus = newStatus;
   if (ALL_USERS[ME.uid]) ALL_USERS[ME.uid] = { ...ALL_USERS[ME.uid], customStatus: newStatus };
   updateSfStatusPill();
-  renderMembers();
+  patchMemberCard(ME.uid); // instant targeted update, no full re-render
   closeCustomStatusModal();
   showToast(text ? `Status set: ${emoji} ${text}` : 'Status cleared');
 
@@ -3480,7 +3525,7 @@ window.toggleShift = async function() {
       icon.className = 'ti ti-clock-play';
     }
   }
-  renderMembers();
+  patchMemberCard(ME.uid); // instant targeted update, no full re-render
   showToast(newState ? '✅ Clocked in — have a great shift!' : '🕐 Clocked out');
 
   // ── Background Firestore writes (non-blocking) ──
@@ -3499,7 +3544,7 @@ window.toggleShift = async function() {
   } catch(e) {
     // Rollback on failure
     ALL_USERS[ME.uid] = { ...ALL_USERS[ME.uid], clockedIn: isClockedIn };
-    renderMembers();
+    patchMemberCard(ME.uid);
     showToast('Failed: ' + e.message);
   }
 };
