@@ -1593,12 +1593,13 @@ function renderMembers(){
     const statusLine = v.customStatus?.text
       ? `<div style="margin-top:2px"><span class="custom-status-pill">${v.customStatus.emoji} ${v.customStatus.text}</span></div>`
       : '';
+    const shiftBadge = `<span class="shift-indicator${v.clockedIn === true ? '' : ' off'}" style="margin-left:7px;font-size:10px">${v.clockedIn === true ? '🟢 On shift' : '⚫ Off shift'}</span>`;
     let detail = ME.isAdmin
-      ? `<div class="mc-role">${v.role||'Agent'} · <span style="color:${v.isAdmin?'var(--text-success)':'var(--text-secondary)'}">${v.isAdmin?'Admin':'Agent'}</span></div>
+      ? `<div class="mc-role">${v.role||'Agent'} · <span style="color:${v.isAdmin?'var(--text-success)':'var(--text-secondary)'}">${v.isAdmin?'Admin':'Agent'}</span>${shiftBadge}</div>
          ${statusLine}
          <div class="mc-contact"><i class="ti ti-mail" style="font-size:11px;vertical-align:-1px;margin-right:2px"></i>${v.email||'—'}<br><i class="ti ti-phone" style="font-size:11px;vertical-align:-1px;margin-right:2px"></i>${v.phone||'—'}</div>
          <div class="mc-contact" style="margin-top:2px;color:var(--text-tertiary)"><i class="ti ti-activity" style="font-size:11px;vertical-align:-1px;margin-right:2px"></i>Active ${fmtRelative(v.lastActive)} · ${v.messageCount||0} msgs</div>`
-      : `<div class="mc-role">${v.isAdmin?'Team Lead':'Agent'}</div>${statusLine}<div class="mc-anon"><span class="anon-pill"><i class="ti ti-lock"></i> Email hidden</span><span class="anon-pill"><i class="ti ti-lock"></i> Phone hidden</span></div>`;
+      : `<div class="mc-role">${v.isAdmin?'Team Lead':'Agent'}${shiftBadge}</div>${statusLine}<div class="mc-anon"><span class="anon-pill"><i class="ti ti-lock"></i> Email hidden</span><span class="anon-pill"><i class="ti ti-lock"></i> Phone hidden</span></div>`;
     const canDelete = ME.isAdmin && v.uid !== ME.uid;
     const canToggleRole = ME.isAdmin && v.uid !== ME.uid;
     return `<div class="mc">
@@ -3712,18 +3713,6 @@ renderMembers = function() {
     const user = ALL_USERS[uid];
     if (!user || uid === ME.uid) return;
     const isMuted = user.muted === true;
-    const isClockedIn = user.clockedIn === true;
-
-    // Shift indicator
-    const nameEl = card.querySelector('.mc-name');
-    if (nameEl && !nameEl.querySelector('.shift-indicator')) {
-      const shiftEl = document.createElement('span');
-      shiftEl.className = 'shift-indicator' + (isClockedIn ? '' : ' off');
-      shiftEl.innerHTML = isClockedIn ? '🟢 On shift' : '⚫ Off shift';
-      shiftEl.style.cssText = 'margin-left:7px;font-size:10px';
-      nameEl.appendChild(shiftEl);
-    }
-
     // Muted label
     if (isMuted) {
       const roleEl = card.querySelector('.mc-role');
