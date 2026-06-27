@@ -2659,12 +2659,23 @@ window.confirmShare = async function(){
     const CLOUDINARY_CLOUD='dxbemgl70', CLOUDINARY_PRESET='dxbemgl70';
     const formData=new FormData();
     formData.append('file',pendingFile); formData.append('upload_preset',CLOUDINARY_PRESET); formData.append('folder',`navain_chat/${curCh}`);
-    const resourceType = pendingFtype==='img' ? 'image' : 'raw';
+    // Cloudinary delivers PDFs as 'image' resource type for proper in-browser
+    // rendering (raw delivery often shows a blank tab instead of the PDF —
+    // raw is for files Cloudinary can't otherwise interpret, like zips/docx).
+    // NOTE: pendingFtype is just a UI icon label (csv/img/pdf) and defaults to
+    // 'pdf' for ANY non-image, non-spreadsheet file — so check the real
+    // filename here rather than trusting pendingFtype, or non-PDF files like
+    // .docx/.zip would get misrouted to the image endpoint and fail to upload.
+    const isActuallyPdf = /\.pdf$/i.test(pendingFile.name) || pendingFile.type === 'application/pdf';
+    const resourceType = (pendingFtype==='img' || isActuallyPdf) ? 'image' : 'raw';
     const uploadRes = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/${resourceType}/upload`,{ method:'POST', body:formData });
     if (!uploadRes.ok) throw new Error('Upload failed: '+uploadRes.statusText);
     const uploadData = await uploadRes.json();
     const url = uploadData.secure_url;
-    const ftype = pendingFtype||'doc';
+    // Store the REAL file type (not the UI icon label) so the chat bubble icon
+    // and PDF-preview iframe behave correctly for every file — previously any
+    // non-image, non-spreadsheet file (.docx, .zip, etc.) was mislabeled 'pdf'.
+    const ftype = pendingFtype==='img' ? 'img' : pendingFtype==='csv' ? 'csv' : (isActuallyPdf ? 'pdf' : 'doc');
     const isDm = curCh.startsWith('dm-');
     const targetUid = isDm ? curCh.replace('dm-','') : null;
     const colPath = isDm ? `dm_messages/${dmKey(ME.uid,targetUid)}/msgs` : `channel_messages/${curCh}/msgs`;
