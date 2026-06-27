@@ -367,7 +367,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   .hamburger-btn,.team-toggle-btn,.rp-close-btn{display:flex}
   .topbar{padding:10px 12px}
   /* Hide non-essential topbar buttons on mobile to prevent overflow */
-  .topbar-r .icon-btn:not(.team-toggle-btn):not(#searchBtn):not([onclick*="openGlobalSearch"]):not(#ticketsBtn){display:none}
+  .topbar-r .icon-btn:not(.team-toggle-btn):not(#searchBtn):not([onclick*="openGlobalSearch"]):not(#ticketsBtn):not(#submitLeadBtn):not(#bulkLeadBtn){display:none}
   .topbar-r .call-topbar-btn{display:none!important}
   .msgs{padding:10px 12px 4px}
   .input-area{padding:7px 12px 12px}
@@ -4244,21 +4244,34 @@ let bulkExistingPhones = new Set();
 
 const BULK_FIELDS = [
   { key:'name', label:'Full name', required:true },
+  { key:'firstName', label:'First name (if no full name col)', required:false },
+  { key:'lastName', label:'Last name (if no full name col)', required:false },
   { key:'phone', label:'Phone', required:true },
   { key:'email', label:'Email', required:false },
   { key:'company', label:'Business / Company', required:false },
   { key:'industry', label:'Industry', required:false },
+  { key:'status', label:'Status (from CSV)', required:false },
   { key:'notes', label:'Notes', required:false }
 ];
 
 // Fuzzy header aliases for auto-matching common scraper/export column names
 const BULK_HEADER_ALIASES = {
-  name: ['name','full name','fullname','contact name','lead name','client name','owner name','business owner'],
-  phone: ['phone','phone number','telephone','mobile','cell','contact number','phone1','primary phone'],
-  email: ['email','email address','e-mail','contact email'],
-  company: ['company','business','business name','organization','org','practice','practice name','clinic','firm','agency'],
-  industry: ['industry','category','vertical','niche','business type','type'],
-  notes: ['notes','note','comments','comment','remarks','description','memo']
+  name: ['name','full name','fullname','contact name','lead name','client name','owner name','business owner',
+         'agent name','realtor name','person name',
+         'contact','representative','rep name','salesperson','agent','realtor','prospect'],
+  firstName: ['first name','firstname','first','given name','fname','f name','forename'],
+  lastName: ['last name','lastname','last','surname','family name','lname','l name'],
+  phone: ['phone','phone number','telephone','mobile','cell','contact number','phone1','primary phone',
+          'phone 1','cell phone','mobile number','work phone','office phone','direct phone','tel',
+          'phone_number','phonenumber','contactphone','phone no','ph','ph no'],
+  email: ['email','email address','e-mail','contact email','email1','work email','primary email','e mail'],
+  company: ['company','business','business name','organization','org','practice','practice name',
+            'clinic','firm','agency','employer','company name','brokerage','office','brand'],
+  industry: ['industry','category','vertical','niche','business type','type','sector','market','field'],
+  status: ['status','lead status','stage','pipeline stage','disposition','call status','contact status',
+           'outcome','result','lead stage','crm status','current status'],
+  notes: ['notes','note','comments','comment','remarks','description','memo','details','info','additional info',
+          'extra','extra info','custom notes','agent notes','follow up','followup']
 };
 
 function normalizeHeader(h){ return String(h||'').toLowerCase().replace(/[^a-z0-9]/g,''); }
@@ -4363,9 +4376,15 @@ window.bulkGoNext = async function(){
   const onMap = document.getElementById('bulkStepTab-map').classList.contains('active');
   const onPreview = document.getElementById('bulkStepTab-preview').classList.contains('active');
   if (onMap){
-    if (!bulkFieldMap.name || !bulkFieldMap.phone){
+    if (!bulkFieldMap.name && !bulkFieldMap.firstName && !bulkFieldMap.lastName){
       const errEl = document.getElementById('bulkErr');
-      errEl.textContent = 'Map both Full name and Phone to continue — they\'re required.';
+      errEl.textContent = 'Map Full name (or First name + Last name) and Phone to continue — they\'re required.';
+      errEl.style.display = 'block';
+      return;
+    }
+    if (!bulkFieldMap.phone){
+      const errEl = document.getElementById('bulkErr');
+      errEl.textContent = 'Phone column is required — please map it to continue.';
       errEl.style.display = 'block';
       return;
     }
@@ -4387,21 +4406,29 @@ async function bulkBuildPreview(){
 
   const seenInFile = new Set();
   bulkParsedLeads = bulkCsvRows.map(row => {
-    const name = (row[bulkFieldMap.name]||'').trim();
+    let name = (row[bulkFieldMap.name]||'').trim();
+    // If full name is empty, try combining first + last
+    if (!name && (bulkFieldMap.firstName || bulkFieldMap.lastName)){
+      const fn = bulkFieldMap.firstName ? (row[bulkFieldMap.firstName]||'').trim() : '';
+      const ln = bulkFieldMap.lastName  ? (row[bulkFieldMap.lastName ]||'').trim() : '';
+      name = [fn, ln].filter(Boolean).join(' ');
+    }
     const phone = (row[bulkFieldMap.phone]||'').trim();
     const email = bulkFieldMap.email ? (row[bulkFieldMap.email]||'').trim() : '';
     const company = bulkFieldMap.company ? (row[bulkFieldMap.company]||'').trim() : '';
     const industryRaw = bulkFieldMap.industry ? (row[bulkFieldMap.industry]||'').trim() : '';
+    const statusRaw = bulkFieldMap.status ? (row[bulkFieldMap.status]||'').trim() : '';
     const notes = bulkFieldMap.notes ? (row[bulkFieldMap.notes]||'').trim() : '';
     const normPhone = normalizePhone(phone);
     const industry = guessIndustryValue(industryRaw);
+    const status = guessCsvStatus(statusRaw);
 
     let flag = 'ok';
     if (!name || !phone) flag = 'miss';
     else if (normPhone && (bulkExistingPhones.has(normPhone) || seenInFile.has(normPhone))) flag = 'dup';
     if (normPhone && flag !== 'miss') seenInFile.add(normPhone);
 
-    return { name, phone, email, company, industry, notes, flag };
+    return { name, phone, email, company, industry, status, notes, flag };
   });
 
   renderBulkPreview();
@@ -4416,6 +4443,16 @@ function guessIndustryValue(raw){
   if (norm.includes('medical') || norm.includes('clinic') || norm.includes('health')) return 'medical';
   if (norm.includes('law') || norm.includes('legal') || norm.includes('attorney')) return 'law';
   return 'other';
+}
+
+function guessCsvStatus(raw){
+  const norm = normalizeHeader(raw);
+  if (!norm) return 'new';
+  if (norm.includes('interest') || norm.includes('hot') || norm.includes('warm') || norm.includes('prospect')) return 'interested';
+  if (norm.includes('contact') || norm.includes('reached') || norm.includes('called') || norm.includes('spoke')) return 'contacted';
+  if (norm.includes('close') || norm.includes('won') || norm.includes('converted') || norm.includes('signed')) return 'closed';
+  if (norm.includes('lost') || norm.includes('dead') || norm.includes('notinterest') || norm.includes('noint') || norm.includes('cold') || norm.includes('dnc')) return 'lost';
+  return 'new';
 }
 
 function renderBulkPreview(){
@@ -4459,7 +4496,7 @@ async function bulkRunImport(){
         const ref = doc(collection(db,'leads'));
         batch.set(ref, {
           name: l.name, phone: l.phone, email: l.email||null, company: l.company||null,
-          industry: l.industry||'other', status: 'new', notes: l.notes||null,
+          industry: l.industry||'other', status: l.status||'new', notes: l.notes||null,
           submittedBy: ME.uid, submittedByName: ME.name,
           assignedTo: ME.uid, assignedToName: ME.name,
           ts: serverTimestamp(), updatedAt: serverTimestamp(),
