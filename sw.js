@@ -1,18 +1,20 @@
-// ── MERGED SERVICE WORKER ──
-// This single file handles BOTH push systems used by Navain Chat:
-//   1. OneSignal (sendPushTo() in index.html — DMs, mentions, leads, calls)
-//   2. Firebase Cloud Messaging (legacy/secondary path via initNotifications())
-// Previously these lived in two separate files (sw.js + OneSignalSDKWorker.js)
-// registered at the same root scope, which silently fights over who controls
-// push delivery — especially after reinstalls/cache clears, which happen far
-// more often on mobile than on a desktop tab left open for days. Combining
-// them into one file/one scope removes that collision entirely.
-importScripts("https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.sw.js");
-
+// ── APP SERVICE WORKER (root scope) ──
+// Handles Firebase Cloud Messaging background push + PWA offline caching.
+//
+// IMPORTANT: this file intentionally does NOT import OneSignal's worker.
+// We tried merging both into one file/one scope (see git history), but
+// Chrome's "Event handler must be added on the initial evaluation of worker
+// script" requirement + OneSignal's own internal install/activate listeners
+// caused this worker to get stuck permanently "trying to install" — visible
+// as a page that reloads endlessly and never settles. OneSignal's own docs
+// recommend separate files at separate scopes as the simpler, more reliable
+// setup; only combine if you specifically need a single file. See
+// push/OneSignalSDKWorker.js for the OneSignal worker, registered at the
+// '/push/' scope so it can never collide with this one again.
 importScripts('https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js');
 
-const CACHE_NAME = 'navain-chat-v4';
+const CACHE_NAME = 'navain-chat-v5';
 const SHELL = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png'];
 
 firebase.initializeApp({
@@ -60,13 +62,11 @@ self.addEventListener('notificationclick', e => {
 // until the user actually reloads/relaunches the app, which is the normal,
 // safe PWA update lifecycle.
 //
-// IMPORTANT: cache.addAll() is all-or-nothing — if ANY one of these URLs
-// fails to fetch cleanly (a 404, a redirect quirk, a transient network blip,
-// hosting-specific routing behavior, etc.), the WHOLE install step rejects.
-// A failed install never reaches "activated" — it just silently retries on
-// every future page load forever, which looks exactly like a page that keeps
-// reloading and never settles. We cache each file independently instead, so
-// one bad/missing entry can't take down the entire installation.
+// cache.addAll() is all-or-nothing — if ANY one of these URLs fails to fetch
+// cleanly, the WHOLE install step rejects and the worker never reaches
+// "activated", which looks exactly like a page that reloads and never
+// settles. We cache each file independently so one bad entry can't take
+// down the entire installation.
 self.addEventListener('install', e => {
   e.waitUntil(
     caches.open(CACHE_NAME).then(cache =>
