@@ -1606,11 +1606,15 @@ async function initOneSignal(uid){
   try {
     window.OneSignalDeferred = window.OneSignalDeferred || [];
     window.OneSignalDeferred.push(async (OneSignal) => {
-      // Use our merged sw.js (OneSignal + Firebase Messaging combined) instead of
-      // OneSignal's default OneSignalSDKWorker.js, so there's only ONE service worker
-      // at root scope. Two separate workers at the same scope silently collide —
-      // see sw.js header comment for details.
-      await OneSignal.init({ appId: ONESIGNAL_APP_ID, notifyButton:{ enable:false }, allowLocalhostAsSecureOrigin:true, serviceWorkerPath:'sw.js', serviceWorkerParam:{ scope:'/' } });
+      // OneSignal gets its OWN service worker at its OWN scope (/push/),
+      // separate from sw.js (our app worker, at root scope). We tried merging
+      // both into one file/one scope — it caused the worker to get stuck
+      // permanently "trying to install" (Chrome's "event handler must be
+      // added on initial evaluation" requirement doesn't play well with two
+      // SDKs' install/activate listeners sharing one file). Separate scopes
+      // is also what OneSignal's own docs recommend as the simpler, more
+      // reliable default — only combine if you specifically need to.
+      await OneSignal.init({ appId: ONESIGNAL_APP_ID, notifyButton:{ enable:false }, allowLocalhostAsSecureOrigin:true, serviceWorkerPath:'push/OneSignalSDKWorker.js', serviceWorkerParam:{ scope:'/push/' } });
       await OneSignal.login(uid);
       await OneSignal.Notifications.requestPermission();
       async function trySaveId(){
