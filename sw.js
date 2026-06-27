@@ -12,7 +12,7 @@ importScripts("https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.sw.js");
 importScripts('https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js');
 
-const CACHE_NAME = 'navain-chat-v3';
+const CACHE_NAME = 'navain-chat-v4';
 const SHELL = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png'];
 
 firebase.initializeApp({
@@ -59,8 +59,22 @@ self.addEventListener('notificationclick', e => {
 // "Identifier 'X' has already been declared". Instead, the new SW waits
 // until the user actually reloads/relaunches the app, which is the normal,
 // safe PWA update lifecycle.
+//
+// IMPORTANT: cache.addAll() is all-or-nothing — if ANY one of these URLs
+// fails to fetch cleanly (a 404, a redirect quirk, a transient network blip,
+// hosting-specific routing behavior, etc.), the WHOLE install step rejects.
+// A failed install never reaches "activated" — it just silently retries on
+// every future page load forever, which looks exactly like a page that keeps
+// reloading and never settles. We cache each file independently instead, so
+// one bad/missing entry can't take down the entire installation.
 self.addEventListener('install', e => {
-  e.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll(SHELL)).catch(() => {}));
+  e.waitUntil(
+    caches.open(CACHE_NAME).then(cache =>
+      Promise.all(SHELL.map(url =>
+        cache.add(url).catch(err => console.warn('SW: failed to pre-cache', url, err))
+      ))
+    )
+  );
 });
 self.addEventListener('activate', e => {
   e.waitUntil(caches.keys().then(keys =>
