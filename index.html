@@ -1589,6 +1589,7 @@ const storage = getStorage(app);
 
 // ── GLOBALS ──
 let ME = {}, ALL_USERS = {}, curCh = 'general', msgUnsub = null, typingTimeout = null;
+let _lastMsgRenderArgs = null; // cache for re-rendering messages when ALL_USERS updates
 let UNREAD = {}, pendingFile = null, pendingFtype = null, EDITING_MSG = null;
 let DM_PREVIEWS = {}; // { chId: { text, ts } }
 let pendingProfilePic = null; // blob for profile pic upload
@@ -1822,7 +1823,14 @@ async function initApp(){
     if (ALL_USERS[ME.uid]) ME.customStatus = ALL_USERS[ME.uid].customStatus || null;
     updateSfAvatar();
     updateSfStatusPill();
-    if (needsRender) { buildDmList(); renderMembers(); updateOnlineCount(); }
+    if (needsRender) {
+      buildDmList(); renderMembers(); updateOnlineCount();
+      // Re-render messages so names replace 'Unknown' as soon as user data arrives
+      if (_lastMsgRenderArgs) {
+        const { snap, colPath, ch, area } = _lastMsgRenderArgs;
+        window.renderMsgsFromSnap(snap, colPath, ch, area);
+      }
+    }
   });
   onSnapshot(doc(db,'chat_users', ME.uid), snap => {
     if (!snap.exists()){ if (msgUnsub) msgUnsub(); signOut(auth); showToast('Your access was removed by an admin.'); }
@@ -2209,6 +2217,7 @@ function listenMessages(ch, isDm, targetUid, tv){
 }
 
 function renderMsgsFromSnap(snap, colPath, ch, area){
+  _lastMsgRenderArgs = { snap, colPath, ch, area };
   if (snap.empty){
     const isDmView = ch.startsWith('dm-');
     const partnerName = isDmView ? (ALL_USERS[ch.replace('dm-','')]?.name||'this person') : '#'+(_CH[ch]?.name||ch);
