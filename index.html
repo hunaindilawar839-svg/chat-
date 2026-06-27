@@ -878,7 +878,7 @@ kbd{background:var(--bg-secondary);border:0.5px solid var(--border-md);border-ra
       <div class="topbar-r">
         <button class="icon-btn" id="submitLeadBtn" onclick="openSubmitLead()" title="Submit a lead" style="color:var(--text-success);border-color:var(--green)"><i class="ti ti-user-plus" style="font-size:15px"></i></button>
         <button class="icon-btn" id="bulkLeadBtn" onclick="document.getElementById('bulkLeadFileInput').click()" title="Bulk upload leads (CSV)" style="color:var(--text-success);border-color:var(--green)"><i class="ti ti-file-upload" style="font-size:15px"></i></button>
-        <input type="file" id="bulkLeadFileInput" style="display:none" accept=".csv" onchange="handleBulkLeadFile(event)">
+        <input type="file" id="bulkLeadFileInput" style="display:none" accept=".csv,.txt,text/csv,text/plain,application/csv,application/vnd.ms-excel,*/*" onchange="handleBulkLeadFile(event)">
         <button class="icon-btn" id="addUserBtn" onclick="openCreateUser()" title="Add team member" style="display:none"><i class="ti ti-user-plus" style="font-size:15px"></i></button>
         <button class="call-topbar-btn" id="voiceCallBtn" onclick="initiateCall()" title="Start voice call" style="display:none"><i class="ti ti-phone" style="font-size:15px"></i></button>
         <button class="icon-btn" onclick="openGlobalSearch()" title="Global search (Ctrl+K)"><i class="ti ti-search" style="font-size:15px"></i></button>
