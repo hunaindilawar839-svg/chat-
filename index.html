@@ -1606,7 +1606,11 @@ async function initOneSignal(uid){
   try {
     window.OneSignalDeferred = window.OneSignalDeferred || [];
     window.OneSignalDeferred.push(async (OneSignal) => {
-      await OneSignal.init({ appId: ONESIGNAL_APP_ID, notifyButton:{ enable:false }, allowLocalhostAsSecureOrigin:true });
+      // Use our merged sw.js (OneSignal + Firebase Messaging combined) instead of
+      // OneSignal's default OneSignalSDKWorker.js, so there's only ONE service worker
+      // at root scope. Two separate workers at the same scope silently collide —
+      // see sw.js header comment for details.
+      await OneSignal.init({ appId: ONESIGNAL_APP_ID, notifyButton:{ enable:false }, allowLocalhostAsSecureOrigin:true, serviceWorkerPath:'sw.js', serviceWorkerParam:{ scope:'/' } });
       await OneSignal.login(uid);
       await OneSignal.Notifications.requestPermission();
       async function trySaveId(){
