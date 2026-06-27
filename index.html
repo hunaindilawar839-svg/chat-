@@ -1204,6 +1204,10 @@ kbd{background:var(--bg-secondary);border:0.5px solid var(--border-md);border-ra
       <div class="ld-label">Status</div>
       <div class="ld-status-row" id="ldStatusRow"></div>
     </div>
+    <div class="ld-field" id="ldCsvStatusField" style="display:none">
+      <div class="ld-label">Status from CSV</div>
+      <div class="ld-value" id="ldCsvStatus" style="color:var(--text-info);font-style:italic">—</div>
+    </div>
     <div class="ld-field"><div class="ld-label">Notes</div><div class="ld-value" id="ldNotes" style="white-space:pre-wrap">—</div></div>
     <div class="modal-actions" style="justify-content:space-between">
       <button class="btn-danger" id="ldDeleteBtn" onclick="deleteLead()" style="padding:8px 12px"><i class="ti ti-trash" style="font-size:13px;vertical-align:-2px"></i></button>
@@ -4243,9 +4247,7 @@ let bulkParsedLeads = [];  // [{ data, flag: 'ok'|'dup'|'miss' }]
 let bulkExistingPhones = new Set();
 
 const BULK_FIELDS = [
-  { key:'name', label:'Full name', required:true },
-  { key:'firstName', label:'First name (if no full name col)', required:false },
-  { key:'lastName', label:'Last name (if no full name col)', required:false },
+  { key:'name', label:'Full name', required:false },
   { key:'phone', label:'Phone', required:true },
   { key:'email', label:'Email', required:false },
   { key:'company', label:'Business / Company', required:false },
@@ -4376,12 +4378,6 @@ window.bulkGoNext = async function(){
   const onMap = document.getElementById('bulkStepTab-map').classList.contains('active');
   const onPreview = document.getElementById('bulkStepTab-preview').classList.contains('active');
   if (onMap){
-    if (!bulkFieldMap.name && !bulkFieldMap.firstName && !bulkFieldMap.lastName){
-      const errEl = document.getElementById('bulkErr');
-      errEl.textContent = 'Map Full name (or First name + Last name) and Phone to continue — they\'re required.';
-      errEl.style.display = 'block';
-      return;
-    }
     if (!bulkFieldMap.phone){
       const errEl = document.getElementById('bulkErr');
       errEl.textContent = 'Phone column is required — please map it to continue.';
@@ -4422,13 +4418,14 @@ async function bulkBuildPreview(){
     const normPhone = normalizePhone(phone);
     const industry = guessIndustryValue(industryRaw);
     const status = guessCsvStatus(statusRaw);
+    const csvStatus = statusRaw || ''; // store raw CSV status text as-is
 
     let flag = 'ok';
-    if (!name || !phone) flag = 'miss';
+    if (!phone) flag = 'miss';
     else if (normPhone && (bulkExistingPhones.has(normPhone) || seenInFile.has(normPhone))) flag = 'dup';
     if (normPhone && flag !== 'miss') seenInFile.add(normPhone);
 
-    return { name, phone, email, company, industry, status, notes, flag };
+    return { name: name || '—', phone, email, company, industry, status, csvStatus, notes, flag };
   });
 
   renderBulkPreview();
@@ -4463,7 +4460,7 @@ function renderBulkPreview(){
     <div class="bulk-sum-card"><div class="bulk-sum-num">${bulkParsedLeads.length}</div><div class="bulk-sum-lbl">Total rows</div></div>
     <div class="bulk-sum-card"><div class="bulk-sum-num good">${okCount}</div><div class="bulk-sum-lbl">Will import</div></div>
     <div class="bulk-sum-card"><div class="bulk-sum-num warn">${dupCount}</div><div class="bulk-sum-lbl">Duplicates (skipped)</div></div>
-    <div class="bulk-sum-card"><div class="bulk-sum-num bad">${missCount}</div><div class="bulk-sum-lbl">Missing name/phone (skipped)</div></div>
+    <div class="bulk-sum-card"><div class="bulk-sum-num bad">${missCount}</div><div class="bulk-sum-lbl">Missing phone (skipped)</div></div>
   `;
   const rows = bulkParsedLeads.slice(0, 200); // cap preview render for very large files
   const flagLabel = { ok:'Import', dup:'Duplicate', miss:'Missing data' };
@@ -4496,7 +4493,7 @@ async function bulkRunImport(){
         const ref = doc(collection(db,'leads'));
         batch.set(ref, {
           name: l.name, phone: l.phone, email: l.email||null, company: l.company||null,
-          industry: l.industry||'other', status: l.status||'new', notes: l.notes||null,
+          industry: l.industry||'other', status: l.status||'new', csvStatus: l.csvStatus||null, notes: l.notes||null,
           submittedBy: ME.uid, submittedByName: ME.name,
           assignedTo: ME.uid, assignedToName: ME.name,
           ts: serverTimestamp(), updatedAt: serverTimestamp(),
@@ -4646,6 +4643,15 @@ window.openLeadDetail = function(leadId){
   document.getElementById('ldNotes').textContent = l.notes || '—';
   document.getElementById('ldStatusRow').innerHTML = LEAD_STATUSES.map(s =>
     `<button class="ld-status-opt sel-${s} ${l.status===s?'active':''}" onclick="setLeadStatus('${s}')">${LEAD_STATUS_LABELS[s]}</button>`).join('');
+  // Show raw CSV status if present
+  const csvStatusField = document.getElementById('ldCsvStatusField');
+  const csvStatusEl = document.getElementById('ldCsvStatus');
+  if (l.csvStatus){
+    csvStatusEl.textContent = l.csvStatus;
+    csvStatusField.style.display = '';
+  } else {
+    csvStatusField.style.display = 'none';
+  }
   document.getElementById('leadDetailModal').classList.add('open');
 };
 window.closeLeadDetail = function(){ document.getElementById('leadDetailModal').classList.remove('open'); currentLeadId = null; };
