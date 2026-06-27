@@ -2224,7 +2224,7 @@ function renderMsgsFromSnap(snap, colPath, ch, area){
   snap.docs.forEach((d, idx) => {
     const msg = d.data();
     const docId = d.id;
-    const mu = ALL_USERS[msg.uid] || { name:'Unknown', uid:msg.uid };
+    const mu = ALL_USERS[msg.uid] ? { ...ALL_USERS[msg.uid], name: ALL_USERS[msg.uid].name || msg.senderName || 'Unknown' } : { name: msg.senderName || 'Unknown', uid: msg.uid };
     const isOwn = msg.uid === ME.uid;
     const col = avatarColor(msg.uid);
     const sameSender = msg.uid===lastUid && !msg.file && !msg.voice;
@@ -2594,8 +2594,8 @@ window.sendMsg = async function(){
   // shows up on the leaderboard, and triggers confetti for viewers.
   const winMatch = txt.match(/^\/win\s+(.+)/i);
   const msgData = winMatch
-    ? { uid:ME.uid, text:winMatch[1].trim(), type:'win', ts:serverTimestamp(), readBy:[ME.uid] }
-    : { uid:ME.uid, text:txt, ts:serverTimestamp(), readBy:[ME.uid] };
+    ? { uid:ME.uid, senderName:ME.name||'', text:winMatch[1].trim(), type:'win', ts:serverTimestamp(), readBy:[ME.uid] }
+    : { uid:ME.uid, senderName:ME.name||'', text:txt, ts:serverTimestamp(), readBy:[ME.uid] };
   // attach reply context
   if (REPLY_TO){
     msgData.replyTo = { docId:REPLY_TO.docId, uid:REPLY_TO.uid, senderName:REPLY_TO.senderName, text:REPLY_TO.text, file:REPLY_TO.file||null };
@@ -2656,7 +2656,7 @@ window.confirmShare = async function(){
     const targetUid = isDm ? curCh.replace('dm-','') : null;
     const colPath = isDm ? `dm_messages/${dmKey(ME.uid,targetUid)}/msgs` : `channel_messages/${curCh}/msgs`;
     const fileObj = { name:pendingFile.name, size:(pendingFile.size/1024).toFixed(1)+' KB', ftype, url };
-    await addDoc(collection(db, colPath), { uid:ME.uid, file:fileObj, ts:serverTimestamp() });
+    await addDoc(collection(db, colPath), { uid:ME.uid, senderName:ME.name||'', file:fileObj, ts:serverTimestamp() });
     await addDoc(collection(db,'shared_files'), { name:pendingFile.name, uid:ME.uid, ftype, url, ch:curCh, isDm, ts:serverTimestamp() });
     if (isDm && targetUid) sendPushTo(targetUid, ME.name||'File shared', `Sent a file: ${pendingFile.name}`);
     renderSharedFiles(); closeFileModal(); showToast('File shared');
@@ -3153,7 +3153,7 @@ window.globalSearch = function(val){
         const hi = (m.text||'').replace(hiRe,s=>`<mark style="background:var(--bg-warning);border-radius:2px;padding:0 1px">${s}</mark>`);
         const icon = isDm ? 'ti-user' : 'ti-hash';
         return `<div class="gs-item" onclick="gsJumpTo('${chId}','${d.id}')">
-          <div class="gs-item-top"><i class="ti ${icon}" style="font-size:11px"></i><span class="gs-ch">${chName}</span><span style="color:var(--text-tertiary)">·</span><span>${sender?.name||'Unknown'}</span><span style="margin-left:auto">${ts}</span></div>
+          <div class="gs-item-top"><i class="ti ${icon}" style="font-size:11px"></i><span class="gs-ch">${chName}</span><span style="color:var(--text-tertiary)">·</span><span>${sender?.name || m.senderName || 'Unknown'}</span><span style="margin-left:auto">${ts}</span></div>
           <div class="gs-item-text">${hi.slice(0,140)}</div>
         </div>`;
       }).join('');
@@ -3225,7 +3225,7 @@ async function uploadVoiceMessage(blob, durationSec){
     const data = await r.json();
     const m = Math.floor(durationSec/60), s = durationSec%60;
     const durStr = `${m}:${s.toString().padStart(2,'0')}`;
-    await addDoc(collection(db,colPath),{ uid:ME.uid, ts:serverTimestamp(), readBy:[ME.uid], voice:{ url:data.secure_url, duration:durStr } });
+    await addDoc(collection(db,colPath),{ uid:ME.uid, senderName:ME.name||'', ts:serverTimestamp(), readBy:[ME.uid], voice:{ url:data.secure_url, duration:durStr } });
     showToast('🎤 Voice message sent');
   } catch(e){ showToast('Voice upload failed'); }
 }
@@ -3571,7 +3571,7 @@ window.renderMsgsFromSnap = function(snap, colPath, ch, area){
 
   snap.docs.forEach((d,idx)=>{
     const msg = d.data(); const docId = d.id;
-    const mu = ALL_USERS[msg.uid]||{name:'Unknown',uid:msg.uid};
+    const mu = ALL_USERS[msg.uid] ? { ...ALL_USERS[msg.uid], name: ALL_USERS[msg.uid].name || msg.senderName || 'Unknown' } : { name: msg.senderName || 'Unknown', uid: msg.uid };
     const isOwn = msg.uid===ME.uid;
     const col = avatarColor(msg.uid);
     const sameSender = msg.uid===lastUid && !msg.file && !msg.voice;
