@@ -356,7 +356,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .install-btn:hover{color:var(--green)}
 
 /* ── MOBILE ── */
-.hamburger-btn,.team-toggle-btn{display:none}
+.hamburger-btn,.team-toggle-btn,.rp-close-btn{display:none}
 .mobile-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:450;display:none}
 .mobile-backdrop.show{display:block}
 @media(max-width:860px){
@@ -364,8 +364,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   .sidebar.mobile-open{transform:translateX(0)}
   .right-panel{position:fixed;right:0;top:0;bottom:0;z-index:500;width:80vw;max-width:300px;transform:translateX(100%);transition:transform .25s ease;box-shadow:var(--shadow-lg)}
   .right-panel.mobile-open{transform:translateX(0)}
-  .hamburger-btn,.team-toggle-btn{display:flex}
+  .hamburger-btn,.team-toggle-btn,.rp-close-btn{display:flex}
   .topbar{padding:10px 12px}
+  /* Hide non-essential topbar buttons on mobile to prevent overflow */
+  .topbar-r .icon-btn:not(.team-toggle-btn):not(#searchBtn):not([onclick*="openGlobalSearch"]):not(#ticketsBtn){display:none}
+  .topbar-r .call-topbar-btn{display:none!important}
   .msgs{padding:10px 12px 4px}
   .input-area{padding:7px 12px 12px}
   .bubble{max-width:80vw}
@@ -931,6 +934,7 @@ kbd{background:var(--bg-secondary);border:0.5px solid var(--border-md);border-ra
       Team<span id="onlineCount" class="online-count"></span>
       <button class="icon-btn" id="rpLogBtn" onclick="openAdminLog()" title="Admin activity log" style="display:none;border:none;padding:4px"><i class="ti ti-history" style="font-size:15px"></i></button>
       <button class="icon-btn" id="rpAddBtn" onclick="openCreateUser()" title="Add member" style="display:none;border:none;padding:4px"><i class="ti ti-user-plus" style="font-size:15px"></i></button>
+      <button class="icon-btn rp-close-btn" onclick="closeMobilePanels()" title="Close" style="border:none;padding:4px"><i class="ti ti-x" style="font-size:15px"></i></button>
     </div>
     <div class="rp-section">
       <div class="rp-title"><i class="ti ti-users"></i> Members</div>
