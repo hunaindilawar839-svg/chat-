@@ -369,8 +369,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   .sidebar.mobile-open{transform:translateX(0)}
   .hamburger-btn{display:flex}
   .topbar{padding:10px 12px}
-  /* Hide non-essential topbar buttons on mobile to prevent overflow */
-  .topbar-r .icon-btn:not(.team-toggle-btn):not(#searchBtn):not([onclick*="openGlobalSearch"]):not(#ticketsBtn):not(#submitLeadBtn):not(#bulkLeadBtn){display:none}
+  /* Mobile topbar: only show search, team toggle, and lead buttons */
+  .topbar-r .icon-btn:not(.team-toggle-btn):not([onclick*="openGlobalSearch"]):not(#submitLeadBtn):not(#bulkLeadBtn){display:none}
   .topbar-r .call-topbar-btn{display:none!important}
   .msgs{padding:10px 12px 4px}
   .input-area{padding:7px 12px 12px}
@@ -851,6 +851,11 @@ kbd{background:var(--bg-secondary);border:0.5px solid var(--border-md);border-ra
       <div class="ch-item" onclick="switchCh('files')" id="ch-files"><i class="ti ti-hash" style="font-size:13px;flex-shrink:0"></i><span class="ch-label" id="chlbl-files">files</span><span class="ml"><button class="ch-rename-btn" id="renameBtn-files" onclick="event.stopPropagation();openRenameChannel('files')" title="Rename channel"><i class="ti ti-pencil" style="font-size:12px"></i></button></span></div>
       <div class="sec-label">Direct Messages</div>
       <div id="dmList"></div>
+      <!-- Employee quick actions (hidden for admin via JS) -->
+      <div id="empLeadActions" style="display:none;padding:8px 12px;gap:6px;flex-direction:column">
+        <button class="ch-item" style="width:100%;text-align:left;background:none;border:none;font-family:inherit;cursor:pointer;color:var(--text-success)" onclick="closeMobilePanels();openSubmitLead()"><i class="ti ti-user-plus" style="font-size:13px;flex-shrink:0;color:var(--text-success)"></i><span class="ch-label" style="color:var(--text-success)">Submit a lead</span></button>
+        <button class="ch-item" style="width:100%;text-align:left;background:none;border:none;font-family:inherit;cursor:pointer" onclick="closeMobilePanels();document.getElementById('bulkLeadFileInput').click()"><i class="ti ti-file-upload" style="font-size:13px;flex-shrink:0;color:var(--text-success)"></i><span class="ch-label" style="color:var(--text-success)">Bulk upload leads</span></button>
+      </div>
     </div>
     <div class="sb-footer">
       <div class="sf-inner">
@@ -1791,6 +1796,9 @@ async function initApp(){
   // Lead upload buttons: only for employees (admins use admin portal instead)
   document.getElementById('submitLeadBtn').style.display = u.isAdmin ? 'none' : 'flex';
   document.getElementById('bulkLeadBtn').style.display = u.isAdmin ? 'none' : 'flex';
+  // Employee sidebar quick actions
+  const empLeadActions = document.getElementById('empLeadActions');
+  if (empLeadActions) empLeadActions.style.display = u.isAdmin ? 'none' : 'flex';
   // hide rename buttons for non-admins
   document.querySelectorAll('.ch-rename-btn').forEach(b => b.style.display = u.isAdmin ? '' : 'none');
   // load dynamic channel names from Firestore
