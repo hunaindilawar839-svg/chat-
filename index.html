@@ -355,16 +355,19 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .install-btn.show{display:flex}
 .install-btn:hover{color:var(--green)}
 
-/* ── MOBILE ── */
+/* ── MOBILE / TABLET ── */
 .hamburger-btn,.team-toggle-btn,.rp-close-btn{display:none}
 .mobile-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:450;display:none}
 .mobile-backdrop.show{display:block}
+/* Right panel: always a slide-in drawer (works on all screen sizes) */
+.right-panel{position:fixed;right:0;top:0;bottom:0;z-index:500;width:80vw;max-width:300px;transform:translateX(100%);transition:transform .25s ease;box-shadow:var(--shadow-lg)}
+.right-panel.mobile-open{transform:translateX(0)}
+/* Always show the team toggle button so right panel is always accessible */
+.team-toggle-btn,.rp-close-btn{display:flex}
 @media(max-width:860px){
   .sidebar{position:fixed;left:0;top:0;bottom:0;z-index:500;width:78vw;max-width:280px;transform:translateX(-100%);transition:transform .25s ease;box-shadow:var(--shadow-lg)}
   .sidebar.mobile-open{transform:translateX(0)}
-  .right-panel{position:fixed;right:0;top:0;bottom:0;z-index:500;width:80vw;max-width:300px;transform:translateX(100%);transition:transform .25s ease;box-shadow:var(--shadow-lg)}
-  .right-panel.mobile-open{transform:translateX(0)}
-  .hamburger-btn,.team-toggle-btn,.rp-close-btn{display:flex}
+  .hamburger-btn{display:flex}
   .topbar{padding:10px 12px}
   /* Hide non-essential topbar buttons on mobile to prevent overflow */
   .topbar-r .icon-btn:not(.team-toggle-btn):not(#searchBtn):not([onclick*="openGlobalSearch"]):not(#ticketsBtn):not(#submitLeadBtn):not(#bulkLeadBtn){display:none}
@@ -1785,6 +1788,9 @@ async function initApp(){
   document.getElementById('roleTag').innerHTML = u.isAdmin ? '<span class="badge-admin">Admin</span>' : '<span class="badge-emp">Agent</span>';
   document.querySelectorAll('#addUserBtn,#rpAddBtn,#rpLogBtn').forEach(b => b.style.display = u.isAdmin ? 'flex' : 'none');
   document.getElementById('adminPortalBtn').style.display = u.isAdmin ? 'flex' : 'none';
+  // Lead upload buttons: only for employees (admins use admin portal instead)
+  document.getElementById('submitLeadBtn').style.display = u.isAdmin ? 'none' : 'flex';
+  document.getElementById('bulkLeadBtn').style.display = u.isAdmin ? 'none' : 'flex';
   // hide rename buttons for non-admins
   document.querySelectorAll('.ch-rename-btn').forEach(b => b.style.display = u.isAdmin ? '' : 'none');
   // load dynamic channel names from Firestore
