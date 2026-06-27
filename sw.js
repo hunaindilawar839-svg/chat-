@@ -1,3 +1,14 @@
+// ── MERGED SERVICE WORKER ──
+// This single file handles BOTH push systems used by Navain Chat:
+//   1. OneSignal (sendPushTo() in index.html — DMs, mentions, leads, calls)
+//   2. Firebase Cloud Messaging (legacy/secondary path via initNotifications())
+// Previously these lived in two separate files (sw.js + OneSignalSDKWorker.js)
+// registered at the same root scope, which silently fights over who controls
+// push delivery — especially after reinstalls/cache clears, which happen far
+// more often on mobile than on a desktop tab left open for days. Combining
+// them into one file/one scope removes that collision entirely.
+importScripts("https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.sw.js");
+
 importScripts('https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js');
 
